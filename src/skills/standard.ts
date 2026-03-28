@@ -4,7 +4,7 @@
 
 import { electronicMusicSkills } from "#src/skills/electronic-music.ts";
 import { productionTechniquesSkills } from "#src/skills/production-techniques.ts";
-import { innelleaReferenceSkills } from "#src/skills/references/innellea.ts";
+import { allReferenceSkills } from "#src/skills/references/index.ts";
 
 const codeTransformsSkills = `
 
@@ -171,7 +171,7 @@ MIDI params ignored for audio clips, vice versa.
 ${process.env.ENABLE_CODE_EXEC === "true" ? codeTransformsSkills : ""}
 ${electronicMusicSkills}
 ${productionTechniquesSkills}
-${innelleaReferenceSkills}
+${allReferenceSkills}
 ## Working with Ableton Live
 
 **Views and Playback:**
