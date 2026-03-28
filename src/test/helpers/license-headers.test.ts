@@ -1,6 +1,5 @@
 // Ableton DJ MCP - Electronic music production MCP server for Ableton Live
 // Copyright (C) 2026 Gabriel Pulga
-// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -122,7 +121,6 @@ describe("License headers", () => {
       `Expected format:\n` +
         `  // Ableton DJ MCP - Electronic music production MCP server for Ableton Live\n` +
         `  // Copyright (C) 2026 Gabriel Pulga\n` +
-        `  // Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)\n` +
         `  // SPDX-License-Identifier: GPL-3.0-or-later`,
     );
     expect(violations).toHaveLength(0);
