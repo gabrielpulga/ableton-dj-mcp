@@ -14,6 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
+      - name: Label and assign
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.pull_request.html_url }}"
+          # Assign owner
+          gh pr edit "$PR" --add-assignee gabrielpulga
+          # Pick label based on branch name
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" == dependabot/github_actions/* ]]; then
+            gh pr edit "$PR" --add-label "ci"
+          else
+            gh pr edit "$PR" --add-label "deps"
+          fi
+
       - name: Auto-approve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

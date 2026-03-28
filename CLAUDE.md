@@ -87,6 +87,20 @@ Each tool has a `.def.ts` (Zod schema) and a `.ts` (implementation).
 - `main` — stable
 - Feature branches: `gabriel/<description>`
 
+## Pull requests
+
+Every PR must include:
+
+- **Assignee**: `gabrielpulga`
+- **Label**: one of the 5 standard labels (pick the best fit):
+  - `bug` — fixes a defect
+  - `feature` — new functionality
+  - `chore` — maintenance, cleanup, config, refactoring
+  - `deps` — dependency updates
+  - `ci` — CI/CD and workflow changes
+
+`gh pr create` flags: `--assignee gabrielpulga --label <label>`
+
 ## Commit style
 
 Use conventional commits — release-please reads these to auto-generate the
