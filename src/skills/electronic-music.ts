@@ -12,11 +12,53 @@ export const electronicMusicSkills = `
 |-------|-----|-----------|
 | House | 120-130 | Groovy, warm, vocal-driven |
 | Indie Dance | 120-128 | Melodic hooks, live-instrument feel |
-| Tech House | 124-130 | Driving, percussive, rolling basslines |
+| Tech House | 124-132 | Driving, percussive, rolling basslines |
 | Afro House | 118-128 | Organic percussion, polyrhythmic |
 | Melodic Techno | 128-138 | Emotional leads, layered pads, progressive builds |
 | Techno | 130-150 | Industrial, hypnotic, dark atmospheres |
 | Psytrance | 138-148 | Psychedelic basslines, acid elements, complex rhythms |
+
+### Genre-Specific Music Theory
+
+**House Music (120-128 BPM)**
+- Key scales: major, Mixolydian, minor pentatonic
+- Chord progressions: I-IV-V, I-vi-IV-V, ii-V-I (jazz-influenced), I-iii-IV-V
+- Piano/organ chords on beats 2 and 4; soulful vocals; 8-bar phrases
+- Structure: intro (16) -> groove (32) -> breakdown (16) -> groove (32) -> outro (16)
+- Characteristic sounds: piano chords, organ stabs, gospel vocals, TR-909/808 drums
+- Reference artists: Larry Heard, Masters At Work, Dennis Ferrer
+- Velocity: kick v100-127, bass v85-100, piano chords v70-90, pads v55-70
+- Swing: 52-55% for warm, bouncy feel
+
+**Indie Dance (120-128 BPM)**
+- Key scales: Dorian mode, natural minor, minor pentatonic
+- Chord progressions: i-VII-VI-VII, i-III-VII-IV, i-VI-III-VII
+- Groovy basslines with disco influence; chopped vocal chops; live-instrument feel
+- Structure: intro (8) -> build (16) -> drop (32) -> breakdown (16) -> drop (32) -> outro (8)
+- Characteristic sounds: filtered disco basslines, chopped vocal chops, live-sounding hi-hats, warm pads
+- Reference artists: Mall Grab, Gerd Janson, Horse Meat Disco
+- Velocity: kick v100-127, bass v85-100, pads v55-70, leads v70-90
+- Swing: 52-54% for loose, live feel; humanize timing aggressively
+
+**Tech House (126-132 BPM)**
+- Key scales: minor pentatonic, blues scale, Dorian
+- Chord progressions: single-chord grooves with chromatic passing notes, i-IV vamps
+- Long intros; groove-focused; minimal arrangement changes; DJ-friendly 8-bar phrases
+- Structure: intro (32+) -> groove builds slowly; no dramatic breakdowns; outro (32+)
+- Characteristic sounds: punchy kick, driving 16th-note basslines, vocal samples/chops, hypnotic loops
+- Reference artists: Chris Lake, Fisher, Solardo
+- Velocity: kick v110-127, bass v90-110, percussion v60-80, pads v45-65
+- Swing: tight, 50-52%; groove comes from bassline syncopation not timing swing
+
+**Melodic Techno (128-138 BPM)**
+- Key scales: Phrygian, natural minor, Aeolian, Dorian
+- Chord progressions: i-bVII-bVI, i-iv-bVII, sustained minor chords with melodic movement on top
+- Long atmospheric intro; tension builds over 32+ bars; powerful drop; emotional breakdown; second drop
+- Structure: intro (32) -> build (32) -> drop A (32) -> breakdown (32) -> build (16) -> drop B (32) -> outro (16)
+- Characteristic sounds: evolving pads, portamento leads, deep kick, sub bass, reverb-heavy atmospherics
+- Reference artists: ARTBAT, Massano, Kevin de Vries, Innellea
+- Velocity: kick v100-127, bass v85-100, pads v55-65, leads v70-90
+- Swing: tight, 50-52%; emotion comes from sound design and arrangement, not swing
 
 ### Drum Patterns
 
@@ -108,4 +150,44 @@ Add Simple Delay (~30% dry/wet) on FX tracks for echo tail. Use clip fade-out fo
 - **Fills as dedicated clips** -- separate from groove clips for easier editing.
 - **Humanize everything**: \`timing += 0.02 * rand()\` and \`velocity += rand(-5, 5)\` on all parts.
 - **v0 won't delete humanized notes** -- use transform \`PITCH: velocity = 0\` to delete all notes of a pitch regardless of timing.
+
+### Velocity Reference (all genres)
+
+| Element | Range | Notes |
+|---------|-------|-------|
+| Kick | v100-127 | Loudest element; four-on-the-floor at v99-110, accent on beat 1 at v120-127 |
+| Snare/Clap | v90-110 | Backbeat on 2 and 4; ghost hits at v40-60 |
+| Bass | v85-100 | Should sit just below kick; accent notes at v100-110 |
+| Piano/Chords | v70-90 | House: on 2 and 4; lighter for melodic techno pads |
+| Pads | v55-70 | Always behind bass; in sections without bass, can go to v75 |
+| Leads | v70-90 | Portamento leads at v80-90; arps/plucks at v70-80 |
+| Percussion (shakers, congas) | v60-80 | Groove elements; ghost hits at v30-50 |
+| Hi-hats closed | v20-100 | Velocity curve IS the groove; see Drum Patterns section |
+| Hi-hats open | v70-90 | Off-beats; lower velocity than closed hat accents |
+
+### Energy Curve Guidance
+
+**Tension builds**: Gradual velocity increase over 8-16 bars; add elements one at a time; filter opens slowly.
+
+**Tension releases (breakdown)**: Strip to 2-3 elements; sustain long notes; reverb-heavy; silence creates anticipation.
+
+**Peak energy drop**: Full arrangement hits at once; kick loudest in the mix; all elements enter within 1-2 bars.
+
+**Outro/fade**: Remove elements in reverse order of intro; keep kick last; downfilter over 8-16 bars.
+
+**Energy pacing by genre**:
+- House: moderate peaks, emotional warmth; no extreme tension/release
+- Indie Dance: peaks feel celebratory; breakdowns are brief and playful
+- Tech House: sustained high energy; minimal breakdowns; tension through repetition and filter
+- Melodic Techno: dramatic arc; deepest breakdowns; highest emotional peaks; longest builds
+
+### Time Signatures and Groove
+
+All covered genres use 4/4 time. 8-bar phrases are the fundamental unit. Sections are multiples of 8 bars.
+
+**Swing/groove amounts by genre**:
+- House: 52-55% swing for warm bouncy feel (classic MPC swing)
+- Indie Dance: 52-54%, humanize timing aggressively for live-instrument feel
+- Tech House: 50-52%, tight; groove comes from bassline syncopation, not timing swing
+- Melodic Techno: 50-52%, tight; emotion from sound design and arrangement dynamics
 `;
