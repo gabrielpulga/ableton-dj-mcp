@@ -1,9 +1,10 @@
 // Ableton DJ MCP - Electronic music production MCP server for Ableton Live
 // Copyright (C) 2026 Gabriel Pulga
-// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { electronicMusicSkills } from "#src/skills/electronic-music.ts";
+import { productionTechniquesSkills } from "#src/skills/production-techniques.ts";
+import { allReferenceSkills } from "#src/skills/references/index.ts";
 
 const codeTransformsSkills = `
 
@@ -169,6 +170,8 @@ C1-C2: duration /= 2           // halve duration of bass notes
 MIDI params ignored for audio clips, vice versa.
 ${process.env.ENABLE_CODE_EXEC === "true" ? codeTransformsSkills : ""}
 ${electronicMusicSkills}
+${productionTechniquesSkills}
+${allReferenceSkills}
 ## Working with Ableton Live
 
 **Views and Playback:**
