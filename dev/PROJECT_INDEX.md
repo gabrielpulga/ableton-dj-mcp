@@ -1,7 +1,7 @@
 # Project Index
 
-Quick reference for the entire codebase. Use this to orient before any task.
-See `INDEX.md` at the project root for a fuller breakdown with more detail.
+Quick reference for the entire codebase. Use this to orient before any task. See
+`INDEX.md` at the project root for a fuller breakdown with more detail.
 
 ## Architecture
 
@@ -19,41 +19,44 @@ AI Client (Claude Desktop, etc.)
 
 All prefixed `adj-`.
 
-| Domain     | Tools                                                          |
-| ---------- | -------------------------------------------------------------- |
-| Workflow   | `connect`, `context`, `read-samples`                           |
-| Live Set   | `read-live-set`, `update-live-set`                             |
-| Track      | `read-track`, `create-track`, `update-track`                   |
-| Scene      | `read-scene`, `create-scene`, `update-scene`                   |
-| Clip       | `read-clip`, `create-clip`, `update-clip`                      |
-| Device     | `read-device`, `create-device`, `update-device`                |
-| Operations | `delete`, `duplicate`                                          |
-| Control    | `select`, `playback`                                           |
-| Dev-only   | `raw-live-api` (requires `ENABLE_RAW_LIVE_API=true`)           |
+| Domain     | Tools                                                |
+| ---------- | ---------------------------------------------------- |
+| Workflow   | `connect`, `context`, `read-samples`                 |
+| Live Set   | `read-live-set`, `update-live-set`                   |
+| Track      | `read-track`, `create-track`, `update-track`         |
+| Scene      | `read-scene`, `create-scene`, `update-scene`         |
+| Clip       | `read-clip`, `create-clip`, `update-clip`            |
+| Device     | `read-device`, `create-device`, `update-device`      |
+| Operations | `delete`, `duplicate`                                |
+| Control    | `select`, `playback`                                 |
+| Dev-only   | `raw-live-api` (requires `ENABLE_RAW_LIVE_API=true`) |
 
 ## Code Layers
 
 Each tool has 3 layers:
 
-1. **Schema** (`src/tools/{domain}/{action}/{action}.def.ts`) — Zod params, description
-2. **Implementation** (`src/tools/{domain}/{action}/{action}.ts`) — business logic
-3. **Live API dispatch** (`src/live-api-adapter/live-api-adapter.ts`) — routes to Ableton
+1. **Schema** (`src/tools/{domain}/{action}/{action}.def.ts`) — Zod params,
+   description
+2. **Implementation** (`src/tools/{domain}/{action}/{action}.ts`) — business
+   logic
+3. **Live API dispatch** (`src/live-api-adapter/live-api-adapter.ts`) — routes
+   to Ableton
 
 ## Key Directories
 
-| Dir                         | Purpose                                                    |
-| --------------------------- | ---------------------------------------------------------- |
-| `src/mcp-server/`           | MCP server creation, Express app, Max API adapter          |
-| `src/tools/`                | All tool definitions + implementations                     |
-| `src/live-api-adapter/`     | Tool dispatch to Ableton Live API (runs in Max V8)         |
-| `src/portal/`               | Node CLI bridge (stdio to HTTP)                            |
-| `src/notation/`             | Bar|beat parser + transform expression evaluator           |
-| `src/skills/`               | Tool set definitions (basic/standard/electronic-music)     |
-| `src/shared/`               | Version, pitch, errors, serialization utils                |
-| `e2e/`                      | End-to-end tests against live Ableton instance             |
-| `config/`                   | Rollup, Vitest, ESLint, jscpd configs                      |
-| `scripts/`                  | Dev utilities: adj-client, loc counter, open-live-set      |
-| `dist/`                     | Build output (git-ignored)                                 |
+| Dir                     | Purpose                                                |
+| ----------------------- | ------------------------------------------------------ | -------------------------------------------- |
+| `src/mcp-server/`       | MCP server creation, Express app, Max API adapter      |
+| `src/tools/`            | All tool definitions + implementations                 |
+| `src/live-api-adapter/` | Tool dispatch to Ableton Live API (runs in Max V8)     |
+| `src/portal/`           | Node CLI bridge (stdio to HTTP)                        |
+| `src/notation/`         | Bar                                                    | beat parser + transform expression evaluator |
+| `src/skills/`           | Tool set definitions (basic/standard/electronic-music) |
+| `src/shared/`           | Version, pitch, errors, serialization utils            |
+| `e2e/`                  | End-to-end tests against live Ableton instance         |
+| `config/`               | Rollup, Vitest, ESLint, jscpd configs                  |
+| `scripts/`              | Dev utilities: adj-client, loc counter, open-live-set  |
+| `dist/`                 | Build output (git-ignored)                             |
 
 ## Entry Points
 
@@ -65,25 +68,29 @@ Each tool has 3 layers:
 
 ## Notation Systems
 
-- **Bar|Beat**: `17|1` = bar 17, beat 1. Grammar: `src/notation/barbeat/parser/barbeat-grammar.peggy`
-- **Transforms**: `velocity += rand(-5, 5)`. Grammar: `src/notation/transform/parser/transform-grammar.peggy`
-- Both parsers generated by Peggy into `generated-*-parser.js` — run `npm run parser:build`
+- **Bar|Beat**: `17|1` = bar 17, beat 1. Grammar:
+  `src/notation/barbeat/parser/barbeat-grammar.peggy`
+- **Transforms**: `velocity += rand(-5, 5)`. Grammar:
+  `src/notation/transform/parser/transform-grammar.peggy`
+- Both parsers generated by Peggy into `generated-*-parser.js` — run
+  `npm run parser:build`
 
 ## Constants (`src/tools/constants.ts`)
 
 - 35 valid scale names
 - 15 instruments, 9 MIDI effects, 35 audio effects (Ableton native)
-- Device types: instrument, drum-rack, audio-effect, midi-effect (+ rack variants)
+- Device types: instrument, drum-rack, audio-effect, midi-effect (+ rack
+  variants)
 - Warp modes: beats, tones, texture, repitch, complex, rex, pro
 
 ## Env Flags
 
-| Flag                  | Effect                               |
-| --------------------- | ------------------------------------ |
-| `ENABLE_RAW_LIVE_API` | Expose raw API passthrough tool      |
-| `ENABLE_CODE_EXEC`    | Allow code execution in clips        |
-| `ENABLE_DEV_CORS`     | CORS for external MCP Inspector      |
-| `ENABLE_WARP_MARKERS` | Enable warp marker read/write        |
+| Flag                  | Effect                          |
+| --------------------- | ------------------------------- |
+| `ENABLE_RAW_LIVE_API` | Expose raw API passthrough tool |
+| `ENABLE_CODE_EXEC`    | Allow code execution in clips   |
+| `ENABLE_DEV_CORS`     | CORS for external MCP Inspector |
+| `ENABLE_WARP_MARKERS` | Enable warp marker read/write   |
 
 ## Build Pipeline
 

@@ -49,8 +49,8 @@ describe("REST API Routes", () => {
       const body = await response.json();
 
       expect(body.tools).toBeInstanceOf(Array);
-      // +1 for adj-raw-live-api which is always included in REST
-      expect(body.tools).toHaveLength(TOOL_NAMES.length + 1);
+      // raw tool excluded (ENABLE_RAW_LIVE_API not set in tests)
+      expect(body.tools).toHaveLength(TOOL_NAMES.length);
 
       const tool = body.tools[0];
 
@@ -71,13 +71,13 @@ describe("REST API Routes", () => {
       const response = await fetch(`${appState.baseUrl}/api/tools`);
       const body = await response.json();
 
-      // adj-connect + adj-raw-live-api (always included)
-      expect(body.tools).toHaveLength(2);
+      // only adj-connect (raw tool excluded without ENABLE_RAW_LIVE_API)
+      expect(body.tools).toHaveLength(1);
 
       const names = body.tools.map((t: { name: string }) => t.name);
 
       expect(names).toContain("adj-connect");
-      expect(names).toContain("adj-raw-live-api");
+      expect(names).not.toContain("adj-raw-live-api");
 
       // Restore all tools
       await fetch(`${appState.baseUrl}/config`, {
@@ -88,23 +88,16 @@ describe("REST API Routes", () => {
     });
   });
 
-  describe("adj-raw-live-api (always available)", () => {
-    it("should always include raw tool in tool list", async () => {
+  describe("adj-raw-live-api (gated by ENABLE_RAW_LIVE_API)", () => {
+    it("should not include raw tool in tool list when env flag is off", async () => {
       const response = await fetch(`${appState.baseUrl}/api/tools`);
       const body = await response.json();
       const names = body.tools.map((t: { name: string }) => t.name);
 
-      expect(names).toContain("adj-raw-live-api");
+      expect(names).not.toContain("adj-raw-live-api");
     });
 
-    it("should allow calling raw tool even when not in enabled config", async () => {
-      await fetch(`${appState.baseUrl}/config`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tools: ["adj-connect"] }),
-      });
-
-      // Raw tool should still be callable (returns 400 for missing input, not 404)
+    it("should return 404 when calling raw tool without ENABLE_RAW_LIVE_API", async () => {
       const response = await fetch(
         `${appState.baseUrl}/api/tools/adj-raw-live-api`,
         {
@@ -114,14 +107,7 @@ describe("REST API Routes", () => {
         },
       );
 
-      expect(response.status).toBe(400);
-
-      // Restore all tools
-      await fetch(`${appState.baseUrl}/config`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tools: [...TOOL_NAMES] }),
-      });
+      expect(response.status).toBe(404);
     });
   });
 

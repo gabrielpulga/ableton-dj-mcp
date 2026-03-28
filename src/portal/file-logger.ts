@@ -15,16 +15,18 @@ const verboseLogging = process.env.VERBOSE_LOGGING === "true";
 // Detect if running under Vitest to avoid file operations during tests
 const isRunningInVitest = process.env.VITEST === "true";
 
+const APP_NAME = "Ableton DJ MCP";
+
 // Platform-specific log directories
 const LOG_DIR = (() => {
   if (process.platform === "darwin") {
-    return join(homedir(), "Library", "Logs", "Ableton DJ MCP");
+    return join(homedir(), "Library", "Logs", APP_NAME);
   } else if (process.platform === "win32") {
-    return join(process.env.LOCALAPPDATA ?? homedir(), "Ableton DJ MCP", "Logs");
+    return join(process.env.LOCALAPPDATA ?? homedir(), APP_NAME, "Logs");
   }
 
   // Linux/Unix: follows XDG Base Directory specification
-  return join(homedir(), ".local", "share", "Ableton DJ MCP", "logs");
+  return join(homedir(), ".local", "share", APP_NAME, "logs");
 })();
 
 // Ensure directory exists (skip during tests or when logging disabled)

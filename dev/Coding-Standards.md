@@ -31,13 +31,13 @@ and file extensions:
 
 Test files should follow this pattern:
 
-1. **Core tests**: `{filename}.test.ts` - Tests for the main
-   functionality of the source file
+1. **Core tests**: `{filename}.test.ts` - Tests for the main functionality of
+   the source file
    - Example: `create-clip.test.ts` tests `create-clip.ts`
 
-2. **Split tests**: `{filename}-{feature-group}.test.ts` - When test
-   files exceed size limits (600 lines for source, 800 for tests), split by
-   feature area
+2. **Split tests**: `{filename}-{feature-group}.test.ts` - When test files
+   exceed size limits (600 lines for source, 800 for tests), split by feature
+   area
    - Example: `update-clip-audio-arrangement.test.ts`
    - Example: `read-track-drums-advanced.test.ts`
    - Example: `duplicate-arrangement-length.test.ts`

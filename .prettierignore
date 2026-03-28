@@ -13,3 +13,4 @@ release
 docs/.vitepress/cache
 docs/.vitepress/dist
 test-results
+dist
