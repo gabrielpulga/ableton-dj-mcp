@@ -15,7 +15,7 @@ const verboseLogging = process.env.VERBOSE_LOGGING === "true";
 // Detect if running under Vitest to avoid file operations during tests
 const isRunningInVitest = process.env.VITEST === "true";
 
-const APP_NAME = APP_NAME;
+const APP_NAME = "Ableton DJ MCP";
 
 // Platform-specific log directories
 const LOG_DIR = (() => {
