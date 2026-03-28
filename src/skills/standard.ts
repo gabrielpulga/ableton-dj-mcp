@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { electronicMusicSkills } from "#src/skills/electronic-music.ts";
+import { productionTechniquesSkills } from "#src/skills/production-techniques.ts";
+import { innelleaReferenceSkills } from "#src/skills/reference-innellea.ts";
 
 const codeTransformsSkills = `
 
@@ -169,6 +171,8 @@ C1-C2: duration /= 2           // halve duration of bass notes
 MIDI params ignored for audio clips, vice versa.
 ${process.env.ENABLE_CODE_EXEC === "true" ? codeTransformsSkills : ""}
 ${electronicMusicSkills}
+${productionTechniquesSkills}
+${innelleaReferenceSkills}
 ## Working with Ableton Live
 
 **Views and Playback:**
