@@ -1,4 +1,5 @@
-# generated files:
+# generated files (do not format):
+CHANGELOG.md
 .claude
 coverage
 knowledge-base
