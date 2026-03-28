@@ -23,14 +23,12 @@ const ESLINT_DISABLE_LIMITS: TreeLimits = {
   src: 10,
   srcTests: 17,
   scripts: 0,
-  webui: 3,
 };
 
 const TS_EXPECT_ERROR_LIMITS: TreeLimits = {
   src: 0,
   srcTests: 17,
   scripts: 4, // Accessing private MCP SDK properties (_registeredTools, _serverVersion)
-  webui: 0,
 };
 
 // TODO: This looks to be enforced by eslint, so we can probably safely simplify and remove it here
@@ -38,14 +36,12 @@ const TS_NOCHECK_LIMITS: TreeLimits = {
   src: 0,
   srcTests: 3, // This test file's pattern definitions
   scripts: 0,
-  webui: 0,
 };
 
 const V8_IGNORE_LIMITS: TreeLimits = {
   src: 8, // Defensive guards with caller guarantees/lookup tables
   srcTests: 8, // This test file's pattern definitions + description enforcement
   scripts: 0,
-  webui: 13, // Untestable IDB error callbacks, exhaustive never, inline JSX callbacks, no-ops
 };
 
 const TREES = Object.keys(ESLINT_DISABLE_LIMITS);
@@ -105,7 +101,7 @@ describe("Lint suppression limits", () => {
 
   // v8 ignore next/start must include a "-- reason" description (v8 ignore stop is exempt)
   it("should require descriptions on v8 ignore next/start comments", () => {
-    const dirs = ["src", "webui", "scripts"];
+    const dirs = ["src", "scripts"];
     const allFiles = dirs.flatMap((dir) => {
       const dirPath = path.join(projectRoot, dir);
 
