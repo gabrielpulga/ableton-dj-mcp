@@ -1,6 +1,6 @@
 [config]
-model = "anthropic/claude-haiku-4-5-20251001"
-fallback_models = ["anthropic/claude-3-5-haiku-20241022"]
+model = "anthropic/claude-3-5-haiku-20241022"
+fallback_models = ["anthropic/claude-3-haiku-20240307"]
 
 [github_action_config]
 auto_review = true
