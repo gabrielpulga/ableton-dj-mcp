@@ -20,7 +20,15 @@
     "music",
     "ai",
     "mcp",
-    "ableton"
+    "ableton",
+    "electronic-music",
+    "music-production",
+    "ableton-live",
+    "max-for-live",
+    "indie-dance",
+    "techno",
+    "house-music",
+    "music-theory"
   ],
   "scripts": {
     "dev": "npm run parser:build && rollup -c config/rollup.config.mjs -w",
