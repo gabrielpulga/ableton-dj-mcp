@@ -1,0 +1,23 @@
+[config]
+model = "anthropic/claude-sonnet-4-5-20250929"
+fallback_models = ["anthropic/claude-3-5-haiku-20241022"]
+
+[github_action_config]
+auto_review = true
+auto_describe = true
+auto_improve = true
+
+[pr_reviewer]
+extra_instructions = """
+This is a TypeScript MCP server for AI-assisted electronic music production in Ableton Live.
+Focus on:
+- Correctness of MCP tool implementations and Zod schema definitions
+- Type safety and proper error handling
+- Music domain logic (MIDI, note durations, bar|beat positions, velocity ranges)
+- Security (especially around raw Live API access gating)
+- Test coverage for new tool behaviour
+"""
+
+[pr_code_suggestions]
+num_code_suggestions = 5
+suggestions_score_threshold = 7
