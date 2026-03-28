@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .claude
+.vscode
+.serena
 *.bak
 node_modules
 knowledge-base
