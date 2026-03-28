@@ -1,5 +1,5 @@
 [config]
-model = "gemini/gemini-2.0-flash"
+model = "gemini/gemini-2.5-flash"
 fallback_models = ["gemini/gemini-2.0-flash-lite"]
 
 [github_action_config]
