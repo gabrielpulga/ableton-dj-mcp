@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.5.0...ableton-dj-mcp-v1.6.0) (2026-03-28)
+
+
+### Features
+
+* add production knowledge base with techniques, references, and scalable skills architecture ([#16](https://github.com/gabrielpulga/ableton-dj-mcp/issues/16)) ([8218cf0](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8218cf00d451ea9c3c75cb268aff1a722bc13b0e))
+* add psytrance genre theory to electronic music skills ([#22](https://github.com/gabrielpulga/ableton-dj-mcp/issues/22)) ([9a4f7b0](https://github.com/gabrielpulga/ableton-dj-mcp/commit/9a4f7b0097d72914b785e408aa4b4dc9064574cf))
+
 ## [1.5.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.4.5...ableton-dj-mcp-v1.5.0) (2026-03-28)
 
 
