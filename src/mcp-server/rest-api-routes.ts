@@ -36,7 +36,8 @@ export function registerRestApiRoutes(
 
     const rawEnabled = process.env.ENABLE_RAW_LIVE_API === "true";
     const tools = REST_TOOL_DEFS.filter(
-      (td) => enabledSet.has(td.toolName) || (td === toolDefRawLiveApi && rawEnabled),
+      (td) =>
+        enabledSet.has(td.toolName) || (td === toolDefRawLiveApi && rawEnabled),
     ).map((td) => ({
       name: td.toolName,
       title: td.toolOptions.title,
@@ -61,7 +62,12 @@ export function registerRestApiRoutes(
       const isRawTool = toolDef === toolDefRawLiveApi;
 
       const rawEnabled = process.env.ENABLE_RAW_LIVE_API === "true";
-      if (!toolDef || (isRawTool && !rawEnabled) || (!isRawTool && !enabledSet.has(toolName))) {
+
+      if (
+        !toolDef ||
+        (isRawTool && !rawEnabled) ||
+        (!isRawTool && !enabledSet.has(toolName))
+      ) {
         res
           .status(404)
           .json({ error: `Unknown or disabled tool: ${toolName}` });
