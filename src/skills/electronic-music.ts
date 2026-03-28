@@ -59,6 +59,18 @@ export const electronicMusicSkills = `
 - Velocity: kick v100-127, bass v85-100, pads v55-65, leads v70-90
 - Swing: tight, 50-52%; emotion comes from sound design and arrangement, not swing
 
+**Psytrance (138-148 BPM)**
+- Key scales: Phrygian dominant (5th mode of harmonic minor), Phrygian, harmonic minor
+- Chord progressions: single-chord vamps with chromatic bassline movement; i-bII alternation; bass carries all harmonic interest
+- Relentless energy; no breakdowns in full-on style; progressive psy uses 8-bar tension/release cycles
+- Structure (full-on): intro (16) -> layer build (64+) -> peak (32) -> outro (16); no breakdown
+- Structure (progressive): intro (16) -> groove (32) -> build (16) -> peak (32) -> breakdown (16) -> build (16) -> peak (32) -> outro (16)
+- Characteristic sounds: acid bassline (TB-303 style, heavy filter modulation), psychedelic fx layers, punchy kick with long tail, gated leads
+- Reference artists: Infected Mushroom, Astrix, Vini Vici (full-on); Ace Ventura, Liquid Soul (progressive)
+- Velocity: kick v110-127, bass v100-115, leads v80-100, fx layers v50-75
+- Swing: 50% (straight 16ths); psychedelic feel comes from polyrhythmic layers, not timing deviation
+- Bass signature: 16th-note pattern with heavy filter envelope; note on 1, off-beat accents on 1.5/2.5/3.5; pitch movement within the bar (root → b2 → root)
+
 ### Drum Patterns
 
 **Kick**: Four-on-the-floor on every beat. No ghost kicks, no syncopation in driving sections. v99, t/2. Dead simple.
