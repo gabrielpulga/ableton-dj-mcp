@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Upstream (Ableton DJ MCP)
+    url: https://github.com/adamjmurray/ableton-dj-mcp
+    about:
+      For issues with the core MCP server (not specific to electronic music
+      features)

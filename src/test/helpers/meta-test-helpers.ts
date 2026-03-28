@@ -1,0 +1,384 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { type ExpectStatic } from "vitest";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/** Project root directory */
+export const projectRoot: string = path.resolve(__dirname, "../../..");
+
+interface OversizedFolder {
+  path: string;
+  count: number;
+}
+
+/**
+ * Recursively find folders exceeding an item limit
+ * @param dirPath - Directory to scan
+ * @param excludeDirs - Directory names to exclude
+ * @param maxItems - Maximum items allowed per folder
+ * @param ignoreItems - Items to ignore in count
+ * @returns Folders over limit
+ */
+export function findOversizedFolders(
+  dirPath: string,
+  excludeDirs: string[],
+  maxItems: number,
+  ignoreItems: Set<string> = new Set([".DS_Store"]),
+): OversizedFolder[] {
+  const results: OversizedFolder[] = [];
+  const items = fs
+    .readdirSync(dirPath)
+    .filter((item) => !ignoreItems.has(item) && !isGitIgnored(dirPath, item));
+
+  if (items.length > maxItems) {
+    results.push({
+      path: path.relative(projectRoot, dirPath),
+      count: items.length,
+    });
+  }
+
+  for (const item of items) {
+    if (excludeDirs.includes(item)) continue;
+
+    const fullPath = path.join(dirPath, item);
+
+    if (fs.statSync(fullPath).isDirectory()) {
+      results.push(
+        ...findOversizedFolders(fullPath, excludeDirs, maxItems, ignoreItems),
+      );
+    }
+  }
+
+  return results;
+}
+
+/** Gitignored directory names parsed from .gitignore (simple name-only entries) */
+const GITIGNORED_DIRS: Set<string> = new Set(
+  fs
+    .readFileSync(path.join(projectRoot, ".gitignore"), "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => line.replace(/^\//, "").replace(/\/$/, ""))
+    .filter((line) => !line.includes("*") && !line.includes("!")),
+);
+
+/**
+ * Check if an item is gitignored (simple name match against .gitignore entries)
+ *
+ * @param dirPath - Parent directory
+ * @param item - File or directory name
+ * @returns True if the item is gitignored
+ */
+function isGitIgnored(dirPath: string, item: string): boolean {
+  const relativePath = path.relative(projectRoot, path.join(dirPath, item));
+
+  return GITIGNORED_DIRS.has(item) || GITIGNORED_DIRS.has(relativePath);
+}
+
+/**
+ * Assert that no folders exceed the item limit, with a detailed failure message
+ * @param dirPath - Directory to check
+ * @param maxItems - Maximum items allowed
+ * @param expect - Vitest expect function
+ */
+export function assertFolderSizeLimit(
+  dirPath: string,
+  maxItems: number,
+  expect: ExpectStatic,
+): void {
+  if (!fs.existsSync(dirPath)) return;
+
+  const oversized = findOversizedFolders(dirPath, ["node_modules"], maxItems);
+
+  if (oversized.length > 0) {
+    const details = oversized
+      .map((f) => `  - ${f.path}: ${f.count} items`)
+      .join("\n");
+
+    expect.fail(
+      `Found ${oversized.length} folder(s) exceeding ${maxItems} items:\n${details}\n\n` +
+        `Consider splitting these folders into subdirectories.`,
+    );
+  }
+}
+
+interface TestHeavyFolder {
+  path: string;
+  testCount: number;
+  sourceCount: number;
+}
+
+/** Directories that are expected to contain mostly test files */
+const TEST_HEAVY_SKIP_DIRS: Set<string> = new Set([
+  "node_modules",
+  "tests",
+  "test",
+  "test-cases",
+  "test-utils",
+]);
+
+/**
+ * Recursively find folders where test files outnumber source files
+ * @param dirPath - Directory to scan
+ * @param minTestFiles - Minimum test files to trigger (default 3)
+ * @returns Folders where testFiles >= 2 * sourceFiles
+ */
+export function findTestHeavyFolders(
+  dirPath: string,
+  minTestFiles: number = 3,
+): TestHeavyFolder[] {
+  const results: TestHeavyFolder[] = [];
+
+  if (!fs.existsSync(dirPath)) return results;
+
+  const items = fs.readdirSync(dirPath);
+  let testCount = 0;
+  let sourceCount = 0;
+
+  for (const item of items) {
+    const fullPath = path.join(dirPath, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      if (!TEST_HEAVY_SKIP_DIRS.has(item)) {
+        results.push(...findTestHeavyFolders(fullPath, minTestFiles));
+      }
+    } else if (SOURCE_EXTENSIONS.has(path.extname(item))) {
+      if (isTestFile(item)) {
+        testCount++;
+      } else {
+        sourceCount++;
+      }
+    }
+  }
+
+  if (
+    testCount >= minTestFiles &&
+    sourceCount > 0 &&
+    testCount >= 2 * sourceCount
+  ) {
+    results.push({
+      path: path.relative(projectRoot, dirPath),
+      testCount,
+      sourceCount,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Assert that no folders have test files outnumbering source files
+ * @param dirPath - Directory to check
+ * @param expect - Vitest expect function
+ */
+export function assertTestFileRatio(
+  dirPath: string,
+  expect: ExpectStatic,
+): void {
+  if (!fs.existsSync(dirPath)) return;
+
+  const violations = findTestHeavyFolders(dirPath);
+
+  if (violations.length > 0) {
+    const details = violations
+      .map(
+        (f) =>
+          `  - ${f.path}: ${f.testCount} test files, ${f.sourceCount} source files`,
+      )
+      .join("\n");
+
+    expect.fail(
+      `Found ${violations.length} folder(s) where test files outnumber source files:\n${details}\n\n` +
+        `Move test files to a tests/ subdirectory.`,
+    );
+  }
+}
+
+interface PatternMatch {
+  file: string;
+  line: number;
+  match: string;
+}
+
+/**
+ * Count pattern occurrences in files and return matches
+ * @param files - Files to search
+ * @param pattern - Pattern to match
+ * @returns Matches found
+ */
+export function countPatternOccurrences(
+  files: string[],
+  pattern: RegExp,
+): PatternMatch[] {
+  const matches: PatternMatch[] = [];
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, "utf8");
+    const lines = content.split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line && pattern.test(line)) {
+        matches.push({
+          file: path.relative(projectRoot, file),
+          line: i + 1,
+          match: line.trim(),
+        });
+      }
+    }
+  }
+
+  return matches;
+}
+
+/** Source file extensions */
+const SOURCE_EXTENSIONS: Set<string> = new Set([".js", ".mjs", ".ts", ".tsx"]);
+
+/** Test file patterns */
+const TEST_FILE_PATTERNS: string[] = [
+  ".test.js",
+  ".test.ts",
+  ".test.tsx",
+  "-test-helpers.js",
+  "-test-helpers.ts",
+];
+
+/**
+ * Checks if a filename is a test file based on patterns
+ * @param filename - File name to check
+ * @returns True if it's a test file
+ */
+export function isTestFile(filename: string): boolean {
+  return TEST_FILE_PATTERNS.some((pattern) => filename.endsWith(pattern));
+}
+
+/**
+ * Recursively find files in a directory matching a filter
+ * @param dirPath - Directory to scan
+ * @param filter - Function that receives a filename and returns true to include it
+ * @returns Array of file paths
+ */
+function findFilesRecursive(
+  dirPath: string,
+  filter: (filename: string) => boolean,
+): string[] {
+  const results: string[] = [];
+
+  if (!fs.existsSync(dirPath)) return results;
+
+  const items = fs.readdirSync(dirPath);
+
+  for (const item of items) {
+    if (item === "node_modules") continue;
+
+    const fullPath = path.join(dirPath, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      results.push(...findFilesRecursive(fullPath, filter));
+    } else if (filter(item)) {
+      results.push(fullPath);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Recursively find all source files in a directory
+ * @param dirPath - Directory to scan
+ * @param excludeTests - Whether to exclude test files
+ * @returns Array of file paths
+ */
+export function findSourceFiles(
+  dirPath: string,
+  excludeTests: boolean = false,
+): string[] {
+  return findFilesRecursive(dirPath, (item) => {
+    if (!SOURCE_EXTENSIONS.has(path.extname(item))) return false;
+
+    return !excludeTests || !isTestFile(item);
+  });
+}
+
+/**
+ * Recursively find all test files in a directory
+ * @param dirPath - Directory to scan
+ * @returns Array of test file paths
+ */
+export function findTestFiles(dirPath: string): string[] {
+  return findFilesRecursive(
+    dirPath,
+    (item) => SOURCE_EXTENSIONS.has(path.extname(item)) && isTestFile(item),
+  );
+}
+
+interface FileViolation {
+  file: string;
+  reason: string;
+}
+
+/**
+ * Format file violations as a message string and throw if any exist
+ * @param violations - Array of file violations
+ * @param errorHeader - Error message header
+ * @param errorFooter - Optional additional instructions appended after violations
+ */
+export function throwOnFileViolations(
+  violations: FileViolation[],
+  errorHeader: string,
+  errorFooter?: string,
+): void {
+  if (violations.length > 0) {
+    const message = violations
+      .map((v) => `  ${v.file}: ${v.reason}`)
+      .join("\n");
+    const suffix = errorFooter ? `\n\n${errorFooter}` : "";
+
+    throw new Error(`${errorHeader}:\n${message}${suffix}`);
+  }
+}
+
+/**
+ * Assert that pattern occurrences don't exceed limits
+ * @param tree - Tree name (e.g., "src", "srcTests", "webui")
+ * @param pattern - Pattern to match
+ * @param limit - Maximum allowed occurrences
+ * @param errorSuffix - Message suffix for failures
+ * @param expect - Vitest expect function
+ */
+export function assertPatternLimit(
+  tree: string,
+  pattern: RegExp,
+  limit: number,
+  errorSuffix: string,
+  expect: ExpectStatic,
+): void {
+  // "srcTests" checks only test files in src/
+  const isTestTree = tree.endsWith("Tests");
+  const dirName = isTestTree ? tree.slice(0, -5) : tree;
+  const treePath = path.join(projectRoot, dirName);
+  const files = isTestTree
+    ? findTestFiles(treePath)
+    : findSourceFiles(treePath, true); // excludeTests=true for source trees
+  const matches = countPatternOccurrences(files, pattern);
+
+  if (matches.length > limit) {
+    const details = matches.map((m) => `  - ${m.file}:${m.line}`).join("\n");
+
+    expect.fail(
+      `Found ${matches.length} ${pattern.source} in ${tree} (max: ${limit}):\n${details}\n\n${errorSuffix}`,
+    );
+  }
+}

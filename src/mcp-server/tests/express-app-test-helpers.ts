@@ -1,0 +1,58 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { type Server } from "node:http";
+import { type AddressInfo } from "node:net";
+import { afterAll, beforeAll } from "vitest";
+
+interface ExpressAppTestState {
+  server: Server | undefined;
+  baseUrl: string;
+  serverUrl: string;
+}
+
+/**
+ * Set up an Express app server for testing.
+ * Registers beforeAll/afterAll hooks to start and stop the server.
+ *
+ * @param options - Setup options
+ * @param options.beforeStart - Optional callback to run before starting the server
+ * @returns Test state with server and URL references
+ */
+export function setupExpressAppServer(
+  options: { beforeStart?: () => void } = {},
+): ExpressAppTestState {
+  const state: ExpressAppTestState = {
+    server: undefined,
+    baseUrl: "",
+    serverUrl: "",
+  };
+
+  beforeAll(async () => {
+    options.beforeStart?.();
+
+    const { createExpressApp } = await import("../create-express-app.ts");
+    const app = createExpressApp();
+    const port = await new Promise<number>((resolve) => {
+      state.server = app.listen(0, () => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- server is assigned on the line above
+        resolve((state.server!.address() as AddressInfo).port);
+      });
+    });
+
+    state.baseUrl = `http://localhost:${port}`;
+    state.serverUrl = `${state.baseUrl}/mcp`;
+  });
+
+  afterAll(async () => {
+    if (state.server) {
+      await new Promise<void>((resolve) =>
+        state.server?.close(() => resolve()),
+      );
+    }
+  });
+
+  return state;
+}

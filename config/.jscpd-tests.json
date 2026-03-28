@@ -1,0 +1,13 @@
+{
+  "threshold": 1,
+  "reporters": ["console"],
+  "ignorePattern": [
+    "// Ableton DJ MCP",
+    "// Copyright \\(C\\).*",
+    "// AI assistance:.*",
+    "// SPDX-License-Identifier:.*"
+  ],
+  "ignore": ["**/node_modules/**", "**/parser/*.js"],
+  "pattern": "**/{*.test.{js,ts,tsx},*-test-helpers.{js,ts},*-test-case.ts,test-utils/**/*.{js,ts},test-cases/**/*.{js,ts},tests/**/*.{js,ts},e2e/**/*.{js,ts}}",
+  "path": ["../src"]
+}

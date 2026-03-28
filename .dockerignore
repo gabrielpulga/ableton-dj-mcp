@@ -1,0 +1,9 @@
+node_modules
+coverage
+release
+scratchpad
+.DS_Store
+.env
+.claude
+*.bak
+*.afdesign~lock~

@@ -1,0 +1,62 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { z } from "zod";
+import { defineTool } from "#src/tools/shared/tool-framework/define-tool.ts";
+
+export const toolDefCreateScene = defineTool("adj-create-scene", {
+  title: "Create Scene",
+  description: "Create empty scene(s) or capture playing session clips.",
+  annotations: {
+    readOnlyHint: false,
+    destructiveHint: true,
+  },
+  inputSchema: {
+    sceneIndex: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe(
+        "0-based index for new scene(s), shifts existing scenes. Required when capture=false, optional when capture=true",
+      ),
+    count: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1)
+      .describe("number to create"),
+    capture: z
+      .boolean()
+      .default(false)
+      .describe("copy playing session clips instead of creating empty?"),
+    name: z
+      .string()
+      .optional()
+      .describe("name for all, or comma-separated for each"),
+    color: z
+      .string()
+      .optional()
+      .describe(
+        "#RRGGBB for all, or comma-separated for each (cycles if fewer than count)",
+      ),
+    tempo: z.coerce
+      .number()
+      .optional()
+      .describe("BPM (-1 disables when capturing)"),
+    timeSignature: z
+      .string()
+      .optional()
+      .describe('N/D (4/4) or "disabled" when capturing'),
+  },
+
+  smallModelModeConfig: {
+    excludeParams: ["count", "capture", "tempo", "timeSignature"],
+    descriptionOverrides: {
+      name: "scene name",
+      color: "#RRGGBB",
+    },
+  },
+});

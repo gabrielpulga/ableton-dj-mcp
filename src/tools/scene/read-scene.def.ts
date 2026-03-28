@@ -1,0 +1,35 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { z } from "zod";
+import { defineTool } from "#src/tools/shared/tool-framework/define-tool.ts";
+
+export const toolDefReadScene = defineTool("adj-read-scene", {
+  title: "Read Scene",
+  description:
+    "Read scene settings and clips. Returns overview by default. Use include to add detail.",
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+  },
+  inputSchema: {
+    sceneId: z.coerce
+      .string()
+      .optional()
+      .describe("provide this or sceneIndex"),
+    sceneIndex: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("0-based index"),
+    include: z
+      .array(z.enum(["clips", "notes", "sample", "timing", "color", "*"]))
+      .default([])
+      .describe(
+        'clips = clip list. notes, sample, timing = clip detail (use with clips). color = scene + clip color. "*" = all',
+      ),
+  },
+});

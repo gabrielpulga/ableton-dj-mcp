@@ -1,0 +1,155 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { livePath } from "#src/shared/live-api-path-builders.ts";
+import { readClip } from "#src/tools/clip/read/read-clip.ts";
+import {
+  parseIncludeArray,
+  READ_SCENE_DEFAULTS,
+} from "#src/tools/shared/tool-framework/include-params.ts";
+import { stripFields } from "#src/tools/shared/utils.ts";
+import { validateIdType } from "#src/tools/shared/validation/id-validation.ts";
+
+interface ReadSceneArgs {
+  sceneIndex?: number;
+  sceneId?: string;
+  include?: string[];
+}
+
+interface ReadSceneResult {
+  id: string | null;
+  name: string | null;
+  sceneIndex?: number | null;
+  color?: string | null;
+  tempo?: unknown;
+  timeSignature?: string | null;
+  triggered?: boolean;
+  clips?: object[];
+  clipCount?: number;
+}
+
+interface ClipResult {
+  id?: string | null;
+}
+
+/**
+ * Read comprehensive information about a scene
+ * @param args - The parameters
+ * @param args.sceneIndex - Scene index (0-based)
+ * @param args.sceneId - Scene ID to directly access any scene
+ * @param args.include - Array of data to include
+ * @param _context - Internal context object (unused)
+ * @returns Result object with scene information
+ */
+export function readScene(
+  args: ReadSceneArgs = {},
+  _context: Partial<ToolContext> = {},
+): ReadSceneResult {
+  const { sceneIndex, sceneId } = args;
+
+  // Validate parameters
+  if (sceneId == null && sceneIndex == null) {
+    throw new Error("Either sceneId or sceneIndex must be provided");
+  }
+
+  const { includeClips, includeColor } = parseIncludeArray(
+    args.include,
+    READ_SCENE_DEFAULTS,
+  );
+  const liveSet = LiveAPI.from(livePath.liveSet);
+
+  let scene: LiveAPI;
+  let resolvedSceneIndex: number | null | undefined = sceneIndex;
+
+  if (sceneId != null) {
+    // Use sceneId to access scene directly and validate it's a scene
+    scene = validateIdType(sceneId, "scene", "readScene");
+
+    // Determine scene index from the scene's path
+    resolvedSceneIndex = scene.sceneIndex;
+  } else {
+    // sceneIndex guaranteed defined here: null-check at function start covers sceneId==null case
+    scene = LiveAPI.from(livePath.scene(sceneIndex as number));
+  }
+
+  if (!scene.exists()) {
+    throw new Error(`readScene: sceneIndex ${sceneIndex} does not exist`);
+  }
+
+  const isTempoEnabled = (scene.getProperty("tempo_enabled") as number) > 0;
+  const isTimeSignatureEnabled =
+    (scene.getProperty("time_signature_enabled") as number) > 0;
+
+  const rawName = scene.getProperty("name") as string | null;
+  const sceneName = rawName === "" ? null : rawName;
+  const result: ReadSceneResult = {
+    id: scene.id,
+    name: sceneName ?? `${(resolvedSceneIndex as number) + 1}`,
+    sceneIndex: resolvedSceneIndex,
+    ...(includeColor && { color: scene.getColor() }),
+  };
+
+  // Only include tempo/timeSignature when enabled
+  if (isTempoEnabled) {
+    result.tempo = scene.getProperty("tempo");
+  }
+
+  if (isTimeSignatureEnabled) {
+    result.timeSignature = scene.timeSignature;
+  }
+
+  // Only include triggered when scene is triggered
+  const isTriggered = (scene.getProperty("is_triggered") as number) > 0;
+
+  if (isTriggered) {
+    result.triggered = true;
+  }
+
+  if (includeClips) {
+    const clips = liveSet
+      .getChildIds("tracks")
+      .map((_trackId, trackIndex) =>
+        readClip({
+          trackIndex,
+          sceneIndex: resolvedSceneIndex,
+          suppressEmptyWarning: true,
+          include: args.include,
+        }),
+      )
+      .filter((clip: ClipResult) => clip.id != null);
+
+    // Strip fields redundant with parent scene context
+    stripFields(clips, "view");
+
+    result.clips = clips;
+  } else {
+    // Lightweight clip counting — only check existence instead of reading full clip properties
+    result.clipCount = countSceneClips(liveSet, resolvedSceneIndex as number);
+  }
+
+  return result;
+}
+
+/**
+ * Count non-empty clips in a scene using lightweight existence checks
+ * @param liveSet - LiveAPI reference to the live set
+ * @param sceneIndex - Scene index (0-based)
+ * @returns Number of non-empty clips
+ */
+function countSceneClips(liveSet: LiveAPI, sceneIndex: number): number {
+  let count = 0;
+
+  for (const [trackIndex] of liveSet.getChildIds("tracks").entries()) {
+    const clip = LiveAPI.from(
+      livePath.track(trackIndex).clipSlot(sceneIndex).clip(),
+    );
+
+    if (clip.exists()) {
+      count++;
+    }
+  }
+
+  return count;
+}

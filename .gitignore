@@ -1,0 +1,51 @@
+.DS_Store
+.env
+.claude
+*.bak
+node_modules
+knowledge-base
+coverage
+claude-desktop-extension/*.mcpb
+claude-desktop-extension/*.js
+claude-desktop-extension/LICENSE
+claude-desktop-extension/licenses
+claude-desktop-extension/manifest.json
+npm/*.js
+npm/*.svg
+npm/*.tgz
+npm/LICENSE
+npm/licenses
+max-for-live-device/*.js
+max-for-live-device/*.mjs
+max-for-live-device/*.html
+max-for-live-device/LICENSE
+max-for-live-device/Ableton Folder Info/
+*.afdesign~lock~
+release
+scratchpad
+.env
+
+# Generated JS from TypeScript in portal
+src/portal/*.js
+src/portal/*.js.map
+
+# Generated JS from Peggy grammars
+src/notation/*/parser/generated-*-parser.js
+
+# Generated docs artifacts
+docs/_generated
+docs/public/markdown
+
+# VitePress Documentation Site
+docs/.vitepress/dist
+docs/.vitepress/cache
+
+# Eval results (generated JSON)
+evals/results
+
+# Playwright Test Results
+test-results
+report/
+
+# Live project backups
+**/live-sets/**/Backup

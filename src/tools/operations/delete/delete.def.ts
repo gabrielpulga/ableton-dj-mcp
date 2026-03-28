@@ -1,0 +1,41 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { z } from "zod";
+import { defineTool } from "#src/tools/shared/tool-framework/define-tool.ts";
+
+export const toolDefDelete = defineTool("adj-delete", {
+  title: "Delete",
+  description:
+    "Delete objects. Supports tracks, scenes, clips, devices, and drum pads. " +
+    "Use ids for most types; path for devices/drum pads.",
+  annotations: {
+    readOnlyHint: false,
+    destructiveHint: true,
+  },
+  inputSchema: {
+    ids: z.coerce
+      .string()
+      .optional()
+      .describe("comma-separated ID(s) to delete (must be same type)"),
+    path: z
+      .string()
+      .optional()
+      .describe(
+        "comma-separated device/drum-pad paths to delete (e.g., 't0/d1', 't1/d0/pC1/d0', 't1/d0/pC1')",
+      ),
+    // Required even though IDs encode type — intentional safety net for destructive operation
+    type: z
+      .enum(["track", "scene", "clip", "device", "drum-pad"])
+      .describe("type of objects to delete"),
+  },
+
+  smallModelModeConfig: {
+    descriptionOverrides: {
+      ids: "object ID to delete",
+      path: "device/drum-pad path to delete (e.g., 't0/d1')",
+    },
+  },
+});

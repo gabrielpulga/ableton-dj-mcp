@@ -1,0 +1,135 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { expect } from "vitest";
+import { type BarCopyNote, type NoteEvent } from "#src/notation/types.ts";
+import {
+  type BufferState,
+  type PitchState,
+} from "./barbeat-interpreter-buffer-helpers.ts";
+import {
+  handleBarCopyRangeDestination,
+  handleBarCopySingleDestination,
+} from "./barbeat-interpreter-copy-helpers.ts";
+
+type BarCopyElement = Parameters<typeof handleBarCopySingleDestination>[0];
+type CopyHandler = typeof handleBarCopySingleDestination;
+
+/**
+ * Default buffer state for copy operations
+ */
+export const defaultBufferState: BufferState = {
+  currentPitches: [] as PitchState[],
+  pitchesEmitted: true,
+  stateChangedSinceLastPitch: false,
+  pitchGroupStarted: false,
+  stateChangedAfterEmission: false,
+};
+
+/**
+ * Expected result when a bar copy operation fails/returns null
+ */
+export const nullCopyResult = {
+  currentTime: null,
+};
+
+/**
+ * Internal helper to test copy failure for either range or single destination handlers.
+ * @param handler - The handler function to call
+ * @param element - The copy element with source and destination
+ * @param errorContains - Substring that error message should contain
+ * @param notesByBar - Notes map
+ * @param bufferState - Buffer state
+ * @returns Returns true after assertions pass
+ */
+function testCopyFailureWithHandler(
+  handler: CopyHandler,
+  element: BarCopyElement,
+  errorContains: string,
+  notesByBar: Map<number, BarCopyNote[]>,
+  bufferState: BufferState,
+): true {
+  const result = handler(element, 4, 4, notesByBar, [], bufferState);
+
+  expect(result).toStrictEqual(nullCopyResult);
+  expect(outlet).toHaveBeenCalledWith(
+    1,
+    expect.stringContaining(errorContains),
+  );
+
+  return true;
+}
+
+/**
+ * Creates a copy failure test function for the given handler.
+ * @param handler - The handler function to use
+ * @returns A function that tests copy failure with the given handler
+ */
+function makeCopyFailureTester(handler: CopyHandler) {
+  return ({
+    element,
+    errorContains,
+    notesByBar = new Map(),
+    bufferState = defaultBufferState,
+  }: {
+    element: BarCopyElement;
+    errorContains: string;
+    notesByBar?: Map<number, BarCopyNote[]>;
+    bufferState?: BufferState;
+  }): true =>
+    testCopyFailureWithHandler(
+      handler,
+      element,
+      errorContains,
+      notesByBar,
+      bufferState,
+    );
+}
+
+/**
+ * Runs a test for handleBarCopyRangeDestination that expects a null result with an error message.
+ */
+export const testRangeCopyFailure = makeCopyFailureTester(
+  handleBarCopyRangeDestination,
+);
+
+/**
+ * Runs a test for handleBarCopySingleDestination that expects a null result with an error message.
+ */
+export const testSingleCopyFailure = makeCopyFailureTester(
+  handleBarCopySingleDestination,
+);
+
+/**
+ * Runs a test for handleBarCopySingleDestination that expects a null result without error.
+ * Returns true after all assertions pass.
+ * @param options - Test options
+ * @param options.element - The copy element with source and destination
+ * @param options.notesByBar - Optional notes map
+ * @param options.bufferState - Optional buffer state override
+ * @returns Returns true after assertions pass
+ */
+export function testSingleCopyNullResult({
+  element,
+  notesByBar = new Map(),
+  bufferState = defaultBufferState,
+}: {
+  element: BarCopyElement;
+  notesByBar?: Map<number, BarCopyNote[]>;
+  bufferState?: BufferState;
+}): true {
+  const result = handleBarCopySingleDestination(
+    element,
+    4, // beatsPerBar
+    4, // timeSigDenominator
+    notesByBar,
+    [] as NoteEvent[],
+    bufferState,
+  );
+
+  expect(result).toStrictEqual(nullCopyResult);
+
+  return true;
+}

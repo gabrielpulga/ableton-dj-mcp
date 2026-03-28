@@ -1,0 +1,22 @@
+services:
+  dev:
+    build: .
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: npm run dev
+
+  check:
+    build: .
+    command: npm run check
+
+  test:
+    build: .
+    command: npm test
+
+  build:
+    build: .
+    command: npm run build
+
+volumes:
+  node_modules:

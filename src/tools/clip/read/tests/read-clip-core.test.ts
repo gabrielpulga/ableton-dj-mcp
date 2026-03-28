@@ -1,0 +1,490 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as consoleModule from "#src/shared/v8-max-console.ts";
+import { livePath } from "#src/shared/live-api-path-builders.ts";
+import {
+  clearMockRegistry,
+  registerMockObject,
+} from "#src/test/mocks/mock-registry.ts";
+import { readClip } from "#src/tools/clip/read/read-clip.ts";
+import {
+  createTestNote,
+  expectGetNotesExtendedCall,
+  setupAudioClipMock,
+  setupMidiClipMock,
+  setupNotesMock,
+} from "./read-clip-test-helpers.ts";
+
+describe("readClip", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearMockRegistry();
+  });
+  it.each([
+    {
+      timeSig: "4/4",
+      numerator: 4,
+      denominator: 4,
+      expectedStart: "1|2", // 1 Ableton beat = bar 1 beat 2 in 4/4
+      expectedEnd: "2|2", // end_marker (5 beats = 2|2)
+      expectedLength: "1:0", // 1 bar duration
+      expectedNotes: "C3 1|1 D3 1|2 E3 1|3", // Real bar|beat output
+    },
+    {
+      timeSig: "6/8",
+      numerator: 6,
+      denominator: 8,
+      expectedStart: "1|3", // 1 Ableton beat = 2 musical beats = bar 1 beat 3 in 6/8
+      expectedEnd: "2|5", // end_marker (5 beats = 2|5 in 6/8)
+      expectedLength: "1:2", // 1 bar + 2 beats (4 Ableton beats in 6/8)
+      expectedNotes: "t2 C3 1|1 D3 1|3 E3 1|5", // Real bar|beat output in 6/8 (t2 = duration in 8th-note beats)
+    },
+  ])(
+    "returns clip information when a valid MIDI clip exists ($timeSig time)",
+    ({
+      timeSig,
+      numerator,
+      denominator,
+      expectedStart,
+      expectedEnd,
+      expectedLength,
+      expectedNotes,
+    }) => {
+      const clip = setupMidiClipMock({
+        clipProps: {
+          signature_numerator: numerator,
+          signature_denominator: denominator,
+          length: 4, // Ableton beats
+          start_marker: 1,
+          end_marker: 5,
+          loop_start: 1,
+          loop_end: 5,
+        },
+      });
+
+      const result = readClip({
+        trackIndex: 1,
+        sceneIndex: 1,
+        include: ["timing", "notes"],
+      });
+
+      expectGetNotesExtendedCall(clip);
+
+      expect(result).toStrictEqual({
+        id: "live_set/tracks/1/clip_slots/1/clip",
+        name: "Test Clip",
+        type: "midi",
+        slot: "1/1",
+        view: "session",
+        timeSignature: timeSig,
+        looping: false,
+        start: expectedStart,
+        end: expectedEnd,
+        length: expectedLength,
+        notes: expectedNotes,
+      });
+    },
+  );
+
+  it("should format notes using clip's time signature", () => {
+    const clip = setupMidiClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        signature_numerator: 3,
+        signature_denominator: 4,
+        length: 4, // Ableton beats
+      },
+    });
+
+    setupNotesMock(clip, [
+      createTestNote({ pitch: 60, startTime: 0 }),
+      createTestNote({ pitch: 62, startTime: 3 }), // Start of bar 2 in 3/4
+      createTestNote({ pitch: 64, startTime: 4 }), // bar 2, beat 2
+    ]);
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["timing", "notes"],
+    });
+
+    expectGetNotesExtendedCall(clip);
+
+    // In 3/4 time, beat 3 should be bar 2 beat 1
+    expect(result.notes).toBe("C3 1|1 D3 2|1 E3 2|2");
+    expect(result.timeSignature).toBe("3/4");
+    expect(result).toHaveLength("1:1"); // 4 Ableton beats = 1 bar + 1 beat in 3/4
+  });
+
+  it("should format notes using clip's time signature with Ableton quarter-note conversion", () => {
+    const clip = setupMidiClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        signature_numerator: 6,
+        signature_denominator: 8,
+        length: 3, // Ableton beats
+        start_marker: 0,
+        end_marker: 3,
+        loop_start: 0,
+        loop_end: 3,
+        looping: 0,
+      },
+    });
+
+    setupNotesMock(clip, [
+      createTestNote({ pitch: 60, startTime: 0 }),
+      createTestNote({ pitch: 62, startTime: 3 }), // Start of bar 2 in 6/8 (3 quarter notes)
+      createTestNote({ pitch: 64, startTime: 3.5 }), // bar 2, beat 2
+    ]);
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["timing", "notes"],
+    });
+
+    expectGetNotesExtendedCall(clip, 3);
+
+    // In 6/8 time with Ableton's quarter-note beats, beat 3 should be bar 2 beat 1
+    // t2 emitted because 1 Ableton beat = 2 eighth-note beats (notation default is 1)
+    expect(result.notes).toBe("t2 C3 1|1 D3 2|1 E3 2|2");
+    expect(result.timeSignature).toBe("6/8");
+    expect(result).toHaveLength("1:0"); // 3 Ableton beats = 1 bar in 6/8
+  });
+
+  it("returns null values and emits warning when no clip exists at valid track/scene", () => {
+    const consoleSpy = vi.spyOn(consoleModule, "warn");
+
+    // Track and scene exist, but clip does not
+    registerMockObject("track2", {
+      path: livePath.track(2),
+      type: "Track",
+    });
+    registerMockObject("scene3", {
+      path: livePath.scene(3),
+      type: "Scene",
+    });
+    registerMockObject("0", {
+      path: livePath.track(2).clipSlot(3).clip(),
+      type: "Clip",
+    });
+
+    const result = readClip({ trackIndex: 2, sceneIndex: 3 });
+
+    expect(result).toStrictEqual({
+      id: null,
+      type: null,
+      name: null,
+      slot: "2/3",
+    });
+
+    // Verify warning is emitted
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "no clip at trackIndex 2, sceneIndex 3",
+    );
+  });
+
+  it("throws when track does not exist", () => {
+    registerMockObject("0", {
+      path: livePath.track(99),
+      type: "Track",
+    });
+
+    expect(() => readClip({ trackIndex: 99, sceneIndex: 0 })).toThrow(
+      "trackIndex 99 does not exist",
+    );
+  });
+
+  it("throws when scene does not exist", () => {
+    // Track exists, but scene does not
+    registerMockObject("track0", {
+      path: livePath.track(0),
+      type: "Track",
+    });
+    registerMockObject("0", {
+      path: livePath.scene(99),
+      type: "Scene",
+    });
+
+    expect(() => readClip({ trackIndex: 0, sceneIndex: 99 })).toThrow(
+      "sceneIndex 99 does not exist",
+    );
+  });
+
+  it("handles audio clips correctly", () => {
+    setupAudioClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 0,
+        name: "Audio Sample",
+        looping: 1,
+        is_playing: 1,
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4, // Ableton beats
+        start_marker: 1,
+        end_marker: 5,
+        loop_start: 1,
+        loop_end: 5,
+      },
+    });
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["sample", "timing", "warp"],
+    });
+
+    expect(result).toStrictEqual({
+      id: "live_set/tracks/0/clip_slots/0/clip",
+      name: "Audio Sample",
+      type: "audio",
+      slot: "0/0",
+      view: "session",
+      timeSignature: "4/4",
+      looping: true,
+      start: "1|2", // loop_start
+      end: "2|2", // loop_end (5 beats = 2|2)
+      length: "1:0", // 1 bar
+      playing: true,
+      gainDb: -70, // gain=0 maps to -70 dB
+      sampleLength: 0,
+      sampleRate: 0,
+      warpMode: "beats",
+      warping: false,
+    });
+  });
+
+  it("includes sampleFile with full path for audio clips with file_path", () => {
+    setupAudioClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 0,
+        name: "Audio Sample",
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        file_path: "/Users/username/Music/Samples/kick.wav",
+      },
+    });
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["sample"],
+    });
+
+    expect(result.sampleFile).toBe("/Users/username/Music/Samples/kick.wav");
+    expect(result.type).toBe("audio");
+  });
+
+  it("does not include sampleFile for MIDI clips", () => {
+    setupMidiClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 1,
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+      },
+    });
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["sample"],
+    });
+
+    expect(result.sampleFile).toBeUndefined();
+    expect(result.type).toBe("midi");
+  });
+
+  it("does not include sampleFile for audio clips without file_path", () => {
+    setupAudioClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 0,
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        // No file_path property
+      },
+    });
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["sample"],
+    });
+
+    expect(result.sampleFile).toBeUndefined();
+    expect(result.type).toBe("audio");
+  });
+
+  it("reads warp mode and warping state when warp included", () => {
+    setupAudioClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 0,
+        name: "Warped Audio",
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        warp_mode: 4, // Complex mode
+        warping: 1,
+      },
+    });
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["warp"],
+    });
+
+    expect(result.warpMode).toBe("complex");
+    expect(result.warping).toBe(true);
+  });
+
+  it("reads a session clip by ID", () => {
+    setupMidiClipMock({
+      clipId: "session_clip_id",
+      path: livePath.track(2).clipSlot(4).clip(),
+      clipProps: {
+        is_arrangement_clip: 0,
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        start_marker: 1,
+        end_marker: 5,
+        loop_start: 1,
+        loop_end: 5,
+      },
+    });
+
+    const result = readClip({
+      clipId: "id session_clip_id",
+      include: ["timing"],
+    });
+
+    expect(result.id).toBe("session_clip_id");
+    expect(result.slot).toBe("2/4");
+    expect(result.view).toBe("session");
+    expect(result).toHaveLength("1:0");
+    expect(result.start).toBe("1|2");
+  });
+
+  it("reads an Arrangement clip by ID using song time signature for arrangementStart and arrangementLength", () => {
+    setupMidiClipMock({
+      clipId: "arrangement_clip_id",
+      path: livePath.track(3).arrangementClip(2),
+      clipProps: {
+        is_arrangement_clip: 1,
+        start_time: 16.0, // Ableton beats
+        end_time: 20.0, // Ableton beats (start_time + length)
+        signature_numerator: 6, // Clip is in 6/8
+        signature_denominator: 8,
+        length: 4,
+        start_marker: 1,
+        end_marker: 5,
+        loop_start: 1,
+        loop_end: 5,
+      },
+    });
+    registerMockObject("live-set", {
+      path: "live_set",
+      properties: {
+        signature_numerator: 4, // Song is in 4/4
+        signature_denominator: 4,
+      },
+    });
+
+    const result = readClip({
+      clipId: "id arrangement_clip_id",
+      include: ["timing"],
+    });
+
+    expect(result.id).toBe("arrangement_clip_id");
+    expect(result.view).toBe("arrangement");
+    expect(result.trackIndex).toBe(3);
+    expect(result.slot).toBeUndefined();
+    // arrangementStart uses song time signature (4/4), so 16 Ableton beats = bar 5 beat 1
+    expect(result.arrangementStart).toBe("5|1");
+    // arrangementLength also uses song time signature (4/4), so 4 Ableton beats = 1:0
+    expect(result.arrangementLength).toBe("1:0");
+    // But clip properties use clip time signature (6/8)
+    expect(result.timeSignature).toBe("6/8");
+    expect(result).toHaveLength("1:2"); // 4 Ableton beats = 1 bar + 2 beats in 6/8
+    expect(result.start).toBe("1|3"); // Uses clip time signature and needs to compensate for Ableton using quarter note beats instead of musical beats that respect the time signature
+  });
+
+  it("includes pitchShift for audio clips with non-zero pitch", () => {
+    setupAudioClipMock({
+      trackIndex: 0,
+      sceneIndex: 0,
+      clipProps: {
+        is_midi_clip: 0,
+        name: "Pitched Audio",
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        pitch_coarse: 3,
+        pitch_fine: 50,
+      },
+    });
+
+    const result = readClip({
+      trackIndex: 0,
+      sceneIndex: 0,
+      include: ["sample"],
+    });
+
+    expect(result.pitchShift).toBe(3.5);
+    expect(result.type).toBe("audio");
+  });
+
+  it("reads a clip using the slot parameter", () => {
+    setupMidiClipMock({
+      trackIndex: 2,
+      sceneIndex: 3,
+      clipProps: {
+        signature_numerator: 4,
+        signature_denominator: 4,
+        length: 4,
+        start_marker: 0,
+        end_marker: 4,
+        loop_start: 0,
+        loop_end: 4,
+      },
+    });
+
+    const result = readClip({
+      slot: "2/3",
+      include: ["timing"],
+    });
+
+    expect(result.id).toBe("live_set/tracks/2/clip_slots/3/clip");
+    expect(result.slot).toBe("2/3");
+    expect(result.type).toBe("midi");
+  });
+
+  it("throws an error when neither clipId nor slot are provided", () => {
+    expect(() => readClip({})).toThrow(
+      "Either clipId or slot must be provided",
+    );
+    expect(() => readClip({ trackIndex: 1 })).toThrow(
+      "Either clipId or slot must be provided",
+    );
+    expect(() => readClip({ sceneIndex: 1 })).toThrow(
+      "Either clipId or slot must be provided",
+    );
+  });
+});

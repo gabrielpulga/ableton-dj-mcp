@@ -1,0 +1,61 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { describe, expect, it, vi } from "vitest";
+import {
+  computeLoopDeadline,
+  isDeadlineExceeded,
+  LOOP_DEADLINE_BUFFER_MS,
+} from "./loop-deadline.ts";
+
+describe("computeLoopDeadline", () => {
+  it("should return null when timeoutMs is undefined", () => {
+    expect(computeLoopDeadline(undefined)).toBeNull();
+  });
+
+  it("should return deadline offset by timeoutMs minus buffer", () => {
+    const before = Date.now();
+    const deadline = computeLoopDeadline(30_000);
+    const after = Date.now();
+
+    expect(deadline).toBeGreaterThanOrEqual(
+      before + 30_000 - LOOP_DEADLINE_BUFFER_MS,
+    );
+    expect(deadline).toBeLessThanOrEqual(
+      after + 30_000 - LOOP_DEADLINE_BUFFER_MS,
+    );
+  });
+
+  it("should return an immediately-exceeded deadline for timeoutMs=0", () => {
+    const deadline = computeLoopDeadline(0);
+
+    expect(deadline).not.toBeNull();
+    expect(isDeadlineExceeded(deadline!)).toBe(true);
+  });
+});
+
+describe("isDeadlineExceeded", () => {
+  it("should return false for null deadline", () => {
+    expect(isDeadlineExceeded(null)).toBe(false);
+  });
+
+  it("should return false when deadline is in the future", () => {
+    expect(isDeadlineExceeded(Date.now() + 10_000)).toBe(false);
+  });
+
+  it("should return true when deadline is in the past", () => {
+    expect(isDeadlineExceeded(Date.now() - 1)).toBe(true);
+  });
+
+  it("should return true when deadline equals current time", () => {
+    vi.useFakeTimers({ now: 1000 });
+
+    try {
+      expect(isDeadlineExceeded(1000)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

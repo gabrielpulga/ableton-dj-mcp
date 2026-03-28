@@ -1,0 +1,346 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// Based on Producer Pal by Adam Murray (https://github.com/adamjmurray/producer-pal)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  note,
+  setupAudioClipMock,
+  setupMidiClipMock,
+  setupUpdateClipMocks,
+  type UpdateClipMocks,
+} from "#src/tools/clip/update/helpers/update-clip-test-helpers.ts";
+import { updateClip } from "#src/tools/clip/update/update-clip.ts";
+
+function expectNoteUpdateCalls(
+  clip: UpdateClipMocks["clip123"],
+  expectedNotes: unknown[],
+): void {
+  expect(clip.call).toHaveBeenCalledWith(
+    "get_notes_extended",
+    0,
+    128,
+    0,
+    1000000,
+  );
+  expect(clip.call).toHaveBeenCalledWith(
+    "remove_notes_extended",
+    0,
+    128,
+    0,
+    1000000,
+  );
+  expect(clip.call).toHaveBeenCalledWith("add_new_notes", {
+    notes: expectedNotes,
+  });
+}
+
+describe("updateClip - Advanced note operations", () => {
+  let mocks: UpdateClipMocks;
+
+  beforeEach(() => {
+    mocks = setupUpdateClipMocks();
+  });
+
+  it("should set loop start when start is provided", async () => {
+    setupMidiClipMock(mocks.clip123, { looping: 1 });
+
+    await updateClip({
+      ids: "123",
+      start: "1|3",
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith("loop_start", 2);
+  });
+
+  it("should delete specific notes with v0 when noteUpdateMode is 'merge'", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    // Mock existing notes in the clip
+    mocks.clip123.call.mockImplementation((method: string) => {
+      if (method === "get_notes_extended") {
+        return JSON.stringify({
+          notes: [
+            note(60, 0), // C3 at 1|1 - should be deleted
+            note(62, 1, { velocity: 80 }), // D3 at 1|2 - should remain
+            note(64, 0, { velocity: 90 }), // E3 at 1|1 - should remain
+          ],
+        });
+      }
+
+      return {};
+    });
+
+    const result = await updateClip({
+      ids: "123",
+      notes: "v0 C3 v100 F3 1|1", // Delete C3 at 1|1, add F3 at 1|1
+      noteUpdateMode: "merge",
+    });
+
+    // Should call get_notes_extended to read existing notes
+    expect(mocks.clip123.call).toHaveBeenCalledWith(
+      "get_notes_extended",
+      0,
+      128,
+      0,
+      1000000,
+    );
+
+    // Should remove all notes
+    expect(mocks.clip123.call).toHaveBeenCalledWith(
+      "remove_notes_extended",
+      0,
+      128,
+      0,
+      1000000,
+    );
+
+    // Should add back filtered existing notes plus new regular notes
+    const addNewNotesCall = mocks.clip123.call.mock.calls.find(
+      (call) => call[0] === "add_new_notes",
+    ) as unknown[] | undefined;
+
+    expect(addNewNotesCall).toBeDefined();
+    const notesArg = addNewNotesCall![1] as { notes: unknown[] };
+
+    expect(notesArg.notes).toHaveLength(3);
+    expect(notesArg.notes).toContainEqual(note(62, 1, { velocity: 80 })); // D3 at 1|2
+    expect(notesArg.notes).toContainEqual(note(64, 0, { velocity: 90 })); // E3 at 1|1
+    expect(notesArg.notes).toContainEqual(note(65, 0)); // New F3 note
+
+    expect(result).toStrictEqual({ id: "123", noteCount: 3 }); // 2 existing (D3, E3) + 1 new (F3), C3 deleted
+  });
+
+  it("should handle v0 notes when no existing notes match", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    // Mock existing notes that don't match the v0 note
+    mocks.clip123.call.mockImplementation((method: string) => {
+      if (method === "get_notes_extended") {
+        return JSON.stringify({
+          notes: [note(62, 1, { velocity: 80 })], // D3 at 1|2 - no match
+        });
+      }
+
+      return {};
+    });
+
+    await updateClip({
+      ids: "123",
+      notes: "v0 C3 1|1", // Try to delete C3 at 1|1 (doesn't exist)
+      noteUpdateMode: "merge",
+    });
+
+    // Should still read existing notes and remove/add them back
+    expectNoteUpdateCalls(mocks.clip123, [note(62, 1, { velocity: 80 })]); // Original note preserved
+  });
+
+  it("should call get_notes_extended in merge mode to format existing notes", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    // Mock existing notes
+    mocks.clip123.call.mockImplementation((method: string) => {
+      if (method === "get_notes_extended") {
+        return JSON.stringify({ notes: [] });
+      }
+
+      return {};
+    });
+
+    await updateClip({
+      ids: "123",
+      notes: "v100 C3 1|1",
+      noteUpdateMode: "merge",
+    });
+
+    // Should call get_notes_extended in merge mode
+    expectNoteUpdateCalls(mocks.clip123, [note(60, 0)]);
+  });
+
+  it("should support bar copy with existing notes in merge mode", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    // Mock existing notes in bar 1, then return added notes after add_new_notes
+    const existingNotes = [
+      note(60, 0), // C3 at 1|1
+      note(64, 1, { velocity: 80 }), // E3 at 1|2
+    ];
+    let addedNotes = existingNotes;
+
+    mocks.clip123.call.mockImplementation(
+      (method: string, ...args: unknown[]) => {
+        if (method === "add_new_notes") {
+          const arg = args[0] as { notes?: typeof existingNotes } | undefined;
+
+          addedNotes = arg?.notes ?? [];
+        } else if (method === "get_notes_extended") {
+          return JSON.stringify({ notes: addedNotes });
+        }
+
+        return {};
+      },
+    );
+
+    const result = await updateClip({
+      ids: "123",
+      notes: "@2=1", // Copy bar 1 to bar 2
+      noteUpdateMode: "merge",
+    });
+
+    // Should add existing notes + copied notes
+    expect(mocks.clip123.call).toHaveBeenCalledWith("add_new_notes", {
+      notes: [
+        // Existing notes in bar 1
+        note(60, 0),
+        note(64, 1, { velocity: 80 }),
+        // Copied to bar 2 (starts at beat 4)
+        note(60, 4),
+        note(64, 5, { velocity: 80 }),
+      ],
+    });
+
+    expect(result).toStrictEqual({ id: "123", noteCount: 4 }); // 2 existing + 2 copied
+  });
+
+  it("should report noteCount only for notes within clip playback region when length is set", async () => {
+    setupMidiClipMock(mocks.clip123, { length: 8 }); // 2 bars
+
+    // Mock to track added notes and return subset based on length parameter
+    let allAddedNotes: Array<{ start_time: number }> = [];
+
+    mocks.clip123.call.mockImplementation(
+      (method: string, ...args: unknown[]) => {
+        if (method === "add_new_notes") {
+          const arg = args[0] as { notes?: typeof allAddedNotes } | undefined;
+
+          allAddedNotes = arg?.notes ?? [];
+        } else if (method === "get_notes_extended") {
+          // First call returns empty (replace mode), second call filters by length
+          const startBeat = (args[2] as number | undefined) ?? 0;
+          const endBeat = (args[3] as number | undefined) ?? Infinity;
+          const notesInRange = allAddedNotes.filter(
+            (n) => n.start_time >= startBeat && n.start_time < endBeat,
+          );
+
+          return JSON.stringify({ notes: notesInRange });
+        }
+
+        return {};
+      },
+    );
+
+    const result = await updateClip({
+      ids: "123",
+      notes: "C3 1|1 D3 2|1 E3 3|1", // Notes in bars 1, 2, 3
+      noteUpdateMode: "replace",
+      length: "2:0", // Clip length = 2 bars (8 beats)
+    });
+
+    // Should have added 3 notes total
+    expect(allAddedNotes).toHaveLength(3);
+
+    // But noteCount should only include notes within the 2-bar playback region
+    // C3 at bar 1 (beat 0) and D3 at bar 2 (beat 4) are within 8 beats
+    // E3 at bar 3 (beat 8) is outside the playback region
+    expect(result).toStrictEqual({ id: "123", noteCount: 2 });
+
+    // Verify get_notes_extended was called with the clip's length (8 beats)
+    expect(mocks.clip123.call).toHaveBeenCalledWith(
+      "get_notes_extended",
+      0,
+      128,
+      0,
+      8,
+    );
+  });
+
+  it("should support bar copy with v0 deletions in merge mode", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    // Mock existing notes in bar 1
+    mocks.clip123.call.mockImplementation((method: string) => {
+      if (method === "get_notes_extended") {
+        return JSON.stringify({
+          notes: [
+            note(60, 0), // C3 at 1|1
+            note(64, 1, { velocity: 80 }), // E3 at 1|2
+          ],
+        });
+      }
+
+      return {};
+    });
+
+    const result = await updateClip({
+      ids: "123",
+      notes: "v0 C3 1|1 @2=1", // Delete C3 at 1|1, then copy bar 1 (now only E3) to bar 2
+      noteUpdateMode: "merge",
+    });
+
+    // Should have E3 in bar 1 and E3 copied to bar 2 (C3 deleted by v0)
+    expect(mocks.clip123.call).toHaveBeenCalledWith("add_new_notes", {
+      notes: [
+        // E3 remains in bar 1 (C3 deleted)
+        note(64, 1, { velocity: 80 }),
+        // E3 copied to bar 2 (beat 5)
+        note(64, 5, { velocity: 80 }),
+      ],
+    });
+
+    expect(result).toStrictEqual({ id: "123", noteCount: 2 }); // E3 in bar 1 + E3 in bar 2, C3 deleted
+  });
+
+  it("should update warp mode for audio clips", async () => {
+    setupAudioClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      warpMode: "complex",
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith(
+      "warp_mode",
+      4, // Complex mode = 4
+    );
+
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should update warping on/off for audio clips", async () => {
+    setupAudioClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      warping: true,
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith(
+      "warping",
+      1, // true = 1
+    );
+
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should update both warp mode and warping together", async () => {
+    setupAudioClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      warpMode: "beats",
+      warping: false,
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith(
+      "warp_mode",
+      0, // Beats mode = 0
+    );
+    expect(mocks.clip123.set).toHaveBeenCalledWith(
+      "warping",
+      0, // false = 0
+    );
+
+    expect(result).toStrictEqual({ id: "123" });
+  });
+});
