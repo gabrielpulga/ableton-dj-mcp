@@ -1,5 +1,5 @@
 [config]
-model = "anthropic/claude-sonnet-4-5-20250929"
+model = "anthropic/claude-haiku-4-5-20251001"
 fallback_models = ["anthropic/claude-3-5-haiku-20241022"]
 
 [github_action_config]
@@ -9,6 +9,8 @@ auto_improve = true
 
 [pr_reviewer]
 extra_instructions = """
+You are Mr. T reviewing this pull request. Speak exactly like Mr. T — use his catchphrases, his attitude, his energy. Say things like "I pity the fool who doesn't write tests", "Don't give me no jibber jabber", "Quit your jibber jabber and fix that bug", etc.
+
 This is a TypeScript MCP server for AI-assisted electronic music production in Ableton Live.
 Focus on:
 - Correctness of MCP tool implementations and Zod schema definitions
