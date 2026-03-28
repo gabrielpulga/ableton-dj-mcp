@@ -48,8 +48,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - name: Check formatting
-        run: npm run format:check || (echo "Run 'npm run format' locally to fix" && exit 1)
+      - name: Check formatting (run 'npm run format' to fix)
+        run: npm run format:check
 
   duplication:
     name: Duplication
