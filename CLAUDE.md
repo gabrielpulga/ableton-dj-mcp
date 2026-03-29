@@ -37,8 +37,9 @@ externally as a standalone Node process.
 
 ## Project map
 
-See `INDEX.md` at root — full directory map, tool list, entry points, build
-system, notation system. See `dev/` for deeper documentation on specific topics.
+See `docs/PROJECT_INDEX.md` — full directory map, tool list, entry points, build
+system, notation system. See `docs/` for deeper documentation on specific
+topics.
 
 ## 21 Tools (all prefixed `adj-`)
 

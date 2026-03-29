@@ -448,12 +448,12 @@ export default [
 
   // MCP E2E tests (TypeScript with vitest)
   {
-    files: ["e2e/mcp/**/*.ts"],
+    files: ["e2e/tests/**/*.ts"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
         ...tsParserOptionsBase,
-        project: "./e2e/mcp/tsconfig.json",
+        project: "./e2e/tests/tsconfig.json",
       },
       globals: {
         ...globals.node,
@@ -580,7 +580,7 @@ export default [
   },
   // E2E MCP tests - override max-expects and prefer-to-have-length
   {
-    files: ["e2e/mcp/**/*.test.ts"],
+    files: ["e2e/tests/**/*.test.ts"],
     rules: {
       "vitest/max-expects": "off",
       "vitest/prefer-to-have-length": "off",
@@ -589,7 +589,7 @@ export default [
 
   // Max file size rules
   {
-    files: ["src/**/*.ts", "scripts/**/*.ts", "e2e/mcp/**/*.ts"],
+    files: ["src/**/*.ts", "scripts/**/*.ts", "e2e/tests/**/*.ts"],
     ignores: [
       "**/*.test.ts",
       "src/tools/shared/clip-gain-lookup-table.ts", // Auto-generated data

@@ -1,0 +1,248 @@
+// Ableton DJ MCP - Electronic music production MCP server for Ableton Live
+// Copyright (C) 2026 Gabriel Pulga
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+/**
+ * E2E tests for adj-read-clip tool
+ * Uses: e2e-test-set with pre-populated clips
+ * See: e2e/fixtures/e2e-test-set-spec.md
+ *
+ * Run with: npm run e2e:mcp
+ */
+import { describe, expect, it } from "vitest";
+import {
+  getToolErrorMessage,
+  isToolError,
+  parseToolResult,
+  parseToolResultWithWarnings,
+  type ReadClipResult,
+  setupMcpTestContext,
+} from "../mcp-test-helpers";
+
+// Use once: true since we're only reading pre-populated clips
+const ctx = setupMcpTestContext({ once: true });
+
+describe("adj-read-clip", () => {
+  it("reads MIDI clips with various properties", async () => {
+    // Test 1: Read MIDI clip by position (t0/s0 "Beat" - looping drum pattern)
+    const midiResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: {
+        slot: "0/0",
+        include: ["timing", "notes"],
+      },
+    });
+    const midiClip = parseToolResult<ReadClipResult>(midiResult);
+
+    expect(midiClip.id).toBeDefined();
+    expect(midiClip.type).toBe("midi");
+    expect(midiClip.name).toBe("Beat");
+    expect(midiClip.view).toBe("session");
+    expect(midiClip.looping).toBe(true);
+    expect(midiClip.length).toBe("1:0");
+    expect(midiClip.slot).toBe("0/0");
+    expect(midiClip.notes).toBeDefined();
+
+    // Test 2: Read clip by clipId
+    const byIdResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { clipId: midiClip.id! },
+    });
+    const byIdClip = parseToolResult<ReadClipResult>(byIdResult);
+
+    expect(byIdClip.id).toBe(midiClip.id);
+    expect(byIdClip.name).toBe("Beat");
+
+    // Test 3: Read non-looping MIDI clip (t2/s0 "Chords")
+    const nonLoopingResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "2/0", include: ["timing"] },
+    });
+    const nonLoopingClip = parseToolResult<ReadClipResult>(nonLoopingResult);
+
+    expect(nonLoopingClip.name).toBe("Chords");
+    expect(nonLoopingClip.looping).toBe(false);
+
+    // Test 4: Read with include: ["notes"] - verify notes string present
+    const withNotesResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "0/0", include: ["notes"] },
+    });
+    const withNotesClip = parseToolResult<ReadClipResult>(withNotesResult);
+
+    expect(withNotesClip.notes).toBeDefined();
+    // Should contain drum pad notes (C1, D1 etc for kick/snare)
+    expect(withNotesClip.notes).toMatch(/[CD]1/);
+
+    // Test 5: Read with include: ["color"] - verify hex color format
+    const withColorResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "0/0", include: ["color"] },
+    });
+    const withColorClip = parseToolResult<ReadClipResult>(withColorResult);
+
+    expect(withColorClip.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  });
+
+  it("reads audio clips with warp and pitch properties", async () => {
+    // Test 1: Read warped audio clip (t4/s0 "sample" - warped, looping)
+    const warpedResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: {
+        slot: "4/0",
+        include: ["timing", "warp"],
+      },
+    });
+    const warpedClip = parseToolResult<ReadClipResult>(warpedResult);
+
+    expect(warpedClip.type).toBe("audio");
+    expect(warpedClip.name).toBe("sample");
+    expect(warpedClip.looping).toBe(true);
+    expect(warpedClip.warping).toBe(true);
+    expect(warpedClip.warpMode).toBe("beats");
+
+    // Test 2: Read unwarped, pitch-shifted audio clip (t5/s0 "sample copy")
+    const unwarpedResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: {
+        slot: "5/0",
+        include: ["timing", "sample", "warp"],
+      },
+    });
+    const unwarpedClip = parseToolResult<ReadClipResult>(unwarpedResult);
+
+    expect(unwarpedClip.type).toBe("audio");
+    expect(unwarpedClip.name).toBe("sample copy");
+    expect(unwarpedClip.looping).toBe(false);
+    expect(unwarpedClip.warping).toBe(false);
+    expect(unwarpedClip.pitchShift).toBe(7); // +7 semitones per spec
+    expect(unwarpedClip.gainDb).toBeCloseTo(-2.31, 1);
+  });
+
+  it("reads arrangement clips", async () => {
+    // Read arrangement clip from t0 at position 1|1 ("Arr Beat")
+    // First get the clip ID from reading the track's arrangement clips
+    const trackResult = await ctx.client!.callTool({
+      name: "adj-read-track",
+      arguments: { trackIndex: 0, include: ["arrangement-clips"] },
+    });
+    const track = parseToolResult<TrackWithClips>(trackResult);
+
+    expect(track.arrangementClips).toBeDefined();
+    expect(track.arrangementClips!.length).toBeGreaterThan(0);
+
+    const arrClipId = track.arrangementClips![0]!.id;
+    const arrResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { clipId: arrClipId, include: ["timing"] },
+    });
+    const arrClip = parseToolResult<ReadClipResult>(arrResult);
+
+    expect(arrClip.view).toBe("arrangement");
+    expect(arrClip.arrangementStart).toBe("1|1");
+    expect(arrClip.arrangementLength).toBeDefined();
+  });
+
+  it("reads clips with offset loops", async () => {
+    // Test offset loop: t3/s1 has start=2|1, loopStart=1|1
+    const offsetResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "3/1", include: ["timing"] },
+    });
+    const offsetClip = parseToolResult<ReadClipResult>(offsetResult);
+
+    expect(offsetClip.start).toBe("2|1");
+    expect(offsetClip.looping).toBe(true);
+    expect(offsetClip.type).toBe("midi");
+
+    // Test firstStart: t4/s0 has firstStart≠start per spec
+    const warpResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: {
+        slot: "4/0",
+        include: ["warp", "timing"],
+      },
+    });
+    const warpClip = parseToolResult<ReadClipResult>(warpResult);
+
+    // firstStart is only included when it differs from start
+    expect(typeof warpClip.firstStart).toBe("string");
+  });
+
+  it("handles empty slots and errors correctly", async () => {
+    // Test 1: Read empty slot (t8 is empty track with no clips)
+    const emptyResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "8/0" },
+    });
+    const { data: emptyClip, warnings } =
+      parseToolResultWithWarnings<ReadClipResult>(emptyResult);
+
+    expect(emptyClip.id).toBeNull();
+    expect(emptyClip.type).toBeNull();
+    expect(emptyClip.slot).toBe("8/0");
+
+    // Verify warning is emitted for empty slot
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toBe("WARNING: no clip at trackIndex 8, sceneIndex 0");
+
+    // Test 2: Non-existent scene throws error
+    const invalidSceneResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "0/999" },
+    });
+
+    expect(isToolError(invalidSceneResult)).toBe(true);
+    expect(getToolErrorMessage(invalidSceneResult)).toContain(
+      "sceneIndex 999 does not exist",
+    );
+
+    // Test 3: Non-existent track throws error
+    const invalidTrackResult = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "999/0" },
+    });
+
+    expect(isToolError(invalidTrackResult)).toBe(true);
+    expect(getToolErrorMessage(invalidTrackResult)).toContain(
+      "trackIndex 999 does not exist",
+    );
+  });
+});
+
+describe("adj-read-clip compact notation", () => {
+  it("produces comma merging and fraction durations", async () => {
+    // t0/s0 "Beat" — drum pattern: C1 kick on 1,3; D1 snare on 2,4
+    const result = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "0/0", include: ["notes"] },
+    });
+    const clip = parseToolResult<ReadClipResult>(result);
+    const notes = clip.notes!;
+
+    // Fraction duration for quarter-note hits
+    expect(notes).toMatch(/t\/4/);
+    // Comma-merged beats (e.g. 1|1,3 for kicks on beats 1 and 3)
+    expect(notes).toMatch(/\d\|[\d.]+,[\d.]+/);
+    expect(notes).toContain("C1");
+    expect(notes).toContain("D1");
+  });
+
+  it("formats probability as decimal", async () => {
+    // t2/s0 "Chords" — Am chord, one note has p=0.69
+    const result = await ctx.client!.callTool({
+      name: "adj-read-clip",
+      arguments: { slot: "2/0", include: ["notes"] },
+    });
+    const clip = parseToolResult<ReadClipResult>(result);
+    const notes = clip.notes!;
+
+    // Probability uses decimal format, not fraction
+    expect(notes).toMatch(/p0\.69/);
+    expect(notes).not.toMatch(/p\d*\/\d+/);
+  });
+});
+
+interface TrackWithClips {
+  arrangementClips?: Array<{ id: string; position: string; length: string }>;
+}
