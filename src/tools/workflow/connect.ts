@@ -24,7 +24,7 @@ interface LiveSetInfo {
 
 interface ConnectResult {
   connected: boolean;
-  producerPalVersion: string;
+  serverVersion: string;
   abletonLiveVersion: string;
   liveSet: LiveSetInfo;
   skills?: string;
@@ -89,7 +89,7 @@ export function connect(
 
   const result: ConnectResult = {
     connected: true,
-    producerPalVersion: VERSION,
+    serverVersion: VERSION,
     abletonLiveVersion,
     liveSet: liveSetInfo,
     skills: context.smallModelMode ? basicSkills : skills,

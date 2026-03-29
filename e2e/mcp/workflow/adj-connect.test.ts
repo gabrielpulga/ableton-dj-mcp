@@ -35,7 +35,7 @@ describe("adj-connect", () => {
 
     // Connection status
     expect(parsed.connected).toBe(true);
-    expect(parsed.producerPalVersion).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(parsed.serverVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(parsed.abletonLiveVersion).toBeDefined();
     expect(typeof parsed.abletonLiveVersion).toBe("string");
 
@@ -68,7 +68,7 @@ describe("adj-connect", () => {
 
     // Connection status still works
     expect(parsed.connected).toBe(true);
-    expect(parsed.producerPalVersion).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(parsed.serverVersion).toMatch(/^\d+\.\d+\.\d+$/);
 
     // Skills documentation - small model mode has simplified skills (~1.6K chars)
     expect(parsed.skills).toBeDefined();
@@ -125,7 +125,7 @@ describe("adj-connect", () => {
  */
 interface ConnectResult {
   connected: boolean;
-  producerPalVersion: string;
+  serverVersion: string;
   abletonLiveVersion: string;
   liveSet: {
     name?: string;

@@ -266,7 +266,7 @@ describe("connect", () => {
 
     expect(result).toStrictEqual({
       connected: true,
-      producerPalVersion: VERSION,
+      serverVersion: VERSION,
       abletonLiveVersion: "12.3",
       liveSet: {
         name: "Test Project",
