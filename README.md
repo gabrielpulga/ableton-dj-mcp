@@ -111,8 +111,8 @@ npm run fix            # auto-fix lint and formatting
 npm run build          # bundle all three outputs to dist/
 ```
 
-See [`INDEX.md`](./INDEX.md) for the full project map and [`dev/`](./dev/) for
-deeper documentation.
+See [`docs/PROJECT_INDEX.md`](./docs/PROJECT_INDEX.md) for the full project map
+and [`docs/`](./docs/) for deeper documentation.
 
 ## License
 

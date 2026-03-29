@@ -18,7 +18,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["e2e/mcp/**/*.test.ts"],
+    include: ["e2e/tests/**/*.test.ts"],
     // No setupFiles - don't want the Live API mocks
     clearMocks: true,
     restoreMocks: true,
