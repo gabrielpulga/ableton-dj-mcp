@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.6.0...ableton-dj-mcp-v1.6.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* rename producerPalVersion to serverVersion in connect response ([#43](https://github.com/gabrielpulga/ableton-dj-mcp/issues/43)) ([8afcf5a](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8afcf5afbf0e8ab81bc86bd49d7d71e6ccb366fb))
+
 ## [1.6.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.5.0...ableton-dj-mcp-v1.6.0) (2026-03-28)
 
 
