@@ -93,7 +93,7 @@
     "eslint-plugin-unicorn": "^64.0.0",
     "jscpd": "^4.0.8",
     "peggy": "^5.1.0",
-    "prettier": "^3.8.1",
+    "prettier": "^3.8.2",
     "rollup": "^4.60.1",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-esbuild": "^6.2.1",
