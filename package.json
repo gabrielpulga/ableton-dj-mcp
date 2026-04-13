@@ -91,7 +91,7 @@
     "eslint-plugin-jsdoc": "^62.9.0",
     "eslint-plugin-sonarjs": "^4.0.2",
     "eslint-plugin-unicorn": "^64.0.0",
-    "jscpd": "^4.0.8",
+    "jscpd": "^4.0.9",
     "peggy": "^5.1.0",
     "prettier": "^3.8.2",
     "rollup": "^4.60.1",
