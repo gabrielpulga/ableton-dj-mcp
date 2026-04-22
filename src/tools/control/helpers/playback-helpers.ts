@@ -292,21 +292,33 @@ interface LiveSetHistoryResult {
   canRedo: boolean;
 }
 
+export type LiveSetHistoryAction = "undo" | "redo" | "save";
+
 /**
  * Handle undo/redo/save on the Live set.
  *
  * @param action - "undo" | "redo" | "save"
  * @returns Current transport state plus canUndo/canRedo flags
  */
-export function handleLiveSetHistory(action: string): LiveSetHistoryResult {
+export function handleLiveSetHistory(
+  action: LiveSetHistoryAction,
+): LiveSetHistoryResult {
   const liveSet = LiveAPI.from(livePath.liveSet);
 
-  if (action === "undo") {
-    liveSet.call("undo");
-  } else if (action === "redo") {
-    liveSet.call("redo");
-  } else {
-    liveSet.call("save_live_set");
+  switch (action) {
+    case "undo":
+      liveSet.call("undo");
+      break;
+    case "redo":
+      liveSet.call("redo");
+      break;
+    case "save":
+      liveSet.call("save_live_set");
+      break;
+    default:
+      throw new Error(
+        `playback failed: unknown history action "${String(action)}"`,
+      );
   }
 
   const numerator = liveSet.getProperty("signature_numerator") as number;

@@ -14149,12 +14149,21 @@ function handlePlayScene(sceneIndex, state) {
 
 function handleLiveSetHistory(action) {
   const liveSet = LiveAPI.from(livePath.liveSet);
-  if (action === "undo") {
+  switch (action) {
+   case "undo":
     liveSet.call("undo");
-  } else if (action === "redo") {
+    break;
+
+   case "redo":
     liveSet.call("redo");
-  } else {
+    break;
+
+   case "save":
     liveSet.call("save_live_set");
+    break;
+
+   default:
+    throw new Error(`playback failed: unknown history action "${String(action)}"`);
   }
   const numerator = liveSet.getProperty("signature_numerator");
   const denominator = liveSet.getProperty("signature_denominator");
