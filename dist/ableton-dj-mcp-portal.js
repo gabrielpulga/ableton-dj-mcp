@@ -714,13 +714,15 @@ const verboseLogging = process.env.VERBOSE_LOGGING === "true";
 
 const isRunningInVitest = process.env.VITEST === "true";
 
+const APP_NAME = "Ableton DJ MCP";
+
 const LOG_DIR = (() => {
   if (process.platform === "darwin") {
-    return join(homedir(), "Library", "Logs", "Ableton DJ MCP");
+    return join(homedir(), "Library", "Logs", APP_NAME);
   } else if (process.platform === "win32") {
-    return join(process.env.LOCALAPPDATA ?? homedir(), "Ableton DJ MCP", "Logs");
+    return join(process.env.LOCALAPPDATA ?? homedir(), APP_NAME, "Logs");
   }
-  return join(homedir(), ".local", "share", "Ableton DJ MCP", "logs");
+  return join(homedir(), ".local", "share", APP_NAME, "logs");
 })();
 
 if (!isRunningInVitest && enableLogging) {
@@ -29263,7 +29265,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.4.5";
+const VERSION = "1.6.0";
 
 const MAX_SPLIT_POINTS = 32;
 

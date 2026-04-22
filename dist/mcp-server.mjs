@@ -795,7 +795,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.4.5";
+const VERSION = "1.6.0";
 
 var RequestError = class extends Error {
   constructor(message, options) {
@@ -51831,7 +51831,8 @@ const REST_TOOL_DEFS = [ ...STANDARD_TOOL_DEFS, toolDefRawLiveApi ];
 function registerRestApiRoutes(app, getConfig, callLiveApi) {
   app.get("/api/tools", (_req, res) => {
     const enabledSet = new Set(getConfig().tools);
-    const tools = REST_TOOL_DEFS.filter(td => enabledSet.has(td.toolName) || td === toolDefRawLiveApi).map(td => ({
+    const rawEnabled = false;
+    const tools = REST_TOOL_DEFS.filter(td => enabledSet.has(td.toolName) || td === toolDefRawLiveApi && rawEnabled).map(td => ({
       name: td.toolName,
       title: td.toolOptions.title,
       description: td.toolOptions.description,
@@ -51847,7 +51848,7 @@ function registerRestApiRoutes(app, getConfig, callLiveApi) {
     const enabledSet = new Set(getConfig().tools);
     const toolDef = REST_TOOL_DEFS.find(td => td.toolName === toolName);
     const isRawTool = toolDef === toolDefRawLiveApi;
-    if (!toolDef || !isRawTool && !enabledSet.has(toolName)) {
+    if (!toolDef || isRawTool && true || !isRawTool && !enabledSet.has(toolName)) {
       res.status(404).json({
         error: `Unknown or disabled tool: ${toolName}`
       });

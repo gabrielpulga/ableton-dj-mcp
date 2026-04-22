@@ -116,5 +116,4 @@ and [`docs/`](./docs/) for deeper documentation.
 
 ## License
 
-[GPL-3.0-or-later](./LICENSE). Originally based on
-[Producer Pal](https://github.com/adamjmurray/producer-pal) by Adam Murray.
+[GPL-3.0-or-later](./LICENSE).
