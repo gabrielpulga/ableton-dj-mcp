@@ -24,6 +24,9 @@ export const toolDefPlayback = defineTool("adj-playback", {
         "stop-session-clips",
         "stop-all-session-clips",
         "stop",
+        "undo",
+        "redo",
+        "save",
       ])
       .describe(
         `play-arrangement: from startTime
@@ -32,7 +35,10 @@ play-scene: all clips in scene
 play-session-clips: by id(s) or slot(s)
 stop-session-clips: by id(s) or slot(s)
 stop-all-session-clips: all
-stop: session and arrangement`,
+stop: session and arrangement
+undo: undo last Live set action (check canUndo before)
+redo: redo last undone action (check canRedo before)
+save: save the Live set to disk`,
       ),
     startTime: z
       .string()

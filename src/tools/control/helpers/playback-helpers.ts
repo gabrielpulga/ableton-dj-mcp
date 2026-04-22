@@ -284,3 +284,55 @@ export function handlePlayScene(
     currentTimeBeats: state.currentTimeBeats,
   };
 }
+
+interface LiveSetHistoryResult {
+  playing: boolean;
+  currentTime: string;
+  canUndo: boolean;
+  canRedo: boolean;
+}
+
+export type LiveSetHistoryAction = "undo" | "redo" | "save";
+
+/**
+ * Handle undo/redo/save on the Live set.
+ *
+ * @param action - "undo" | "redo" | "save"
+ * @returns Current transport state plus canUndo/canRedo flags
+ */
+export function handleLiveSetHistory(
+  action: LiveSetHistoryAction,
+): LiveSetHistoryResult {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+
+  switch (action) {
+    case "undo":
+      liveSet.call("undo");
+      break;
+    case "redo":
+      liveSet.call("redo");
+      break;
+    case "save":
+      liveSet.call("save_live_set");
+      break;
+    default:
+      throw new Error(
+        `playback failed: unknown history action "${String(action)}"`,
+      );
+  }
+
+  const numerator = liveSet.getProperty("signature_numerator") as number;
+  const denominator = liveSet.getProperty("signature_denominator") as number;
+  const currentTimeBeats = liveSet.getProperty("current_song_time") as number;
+
+  return {
+    playing: (liveSet.getProperty("is_playing") as number) > 0,
+    currentTime: abletonBeatsToBarBeat(
+      currentTimeBeats,
+      numerator,
+      denominator,
+    ),
+    canUndo: (liveSet.getProperty("can_undo") as number) > 0,
+    canRedo: (liveSet.getProperty("can_redo") as number) > 0,
+  };
+}

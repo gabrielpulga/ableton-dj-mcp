@@ -29490,7 +29490,7 @@ const toolDefPlayback = defineTool("adj-playback", {
     destructiveHint: true
   },
   inputSchema: {
-    action: _enum$2([ "play-arrangement", "update-arrangement", "play-scene", "play-session-clips", "stop-session-clips", "stop-all-session-clips", "stop" ]).describe(`play-arrangement: from startTime\nupdate-arrangement: modify loop\nplay-scene: all clips in scene\nplay-session-clips: by id(s) or slot(s)\nstop-session-clips: by id(s) or slot(s)\nstop-all-session-clips: all\nstop: session and arrangement`),
+    action: _enum$2([ "play-arrangement", "update-arrangement", "play-scene", "play-session-clips", "stop-session-clips", "stop-all-session-clips", "stop", "undo", "redo", "save" ]).describe(`play-arrangement: from startTime\nupdate-arrangement: modify loop\nplay-scene: all clips in scene\nplay-session-clips: by id(s) or slot(s)\nstop-session-clips: by id(s) or slot(s)\nstop-all-session-clips: all\nstop: session and arrangement\nundo: undo last Live set action (check canUndo before)\nredo: redo last undone action (check canRedo before)\nsave: save the Live set to disk`),
     startTime: string$1().optional().describe("bar|beat position in arrangement"),
     startLocator: string$1().optional().describe("locator ID or name for start position (e.g., locator-0 or Verse)"),
     loop: boolean().optional().describe("arrangement loop?"),

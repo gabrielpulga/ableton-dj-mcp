@@ -9,6 +9,7 @@ import { validateIdTypes } from "#src/tools/shared/validation/id-validation.ts";
 import { parseSlotList } from "#src/tools/shared/validation/position-parsing.ts";
 import {
   getCurrentLoopState,
+  handleLiveSetHistory,
   handlePlayArrangement,
   handlePlayScene,
   resolveLoopEnd,
@@ -47,6 +48,8 @@ interface PlaybackResult {
   playing: boolean;
   currentTime: string;
   arrangementLoop?: { start: string; end: string };
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 interface BuildPlaybackResultParams {
@@ -97,6 +100,11 @@ export function playback(
 ): PlaybackResult {
   if (!action) {
     throw new Error("playback failed: action is required");
+  }
+
+  // undo/redo/save don't interact with transport or loop params
+  if (action === "undo" || action === "redo" || action === "save") {
+    return handleLiveSetHistory(action);
   }
 
   if (ids != null && slots != null) {
