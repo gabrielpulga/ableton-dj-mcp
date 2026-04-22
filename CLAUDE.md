@@ -1,8 +1,7 @@
 # Ableton DJ MCP
 
-MCP server for AI-assisted electronic music production in Ableton Live. Based on
-[Producer Pal](https://github.com/adamjmurray/producer-pal) by Adam Murray
-(GPL-3.0-or-later).
+MCP server for AI-assisted electronic music production in Ableton Live. Licensed
+under GPL-3.0-or-later.
 
 ## Quick start
 
@@ -116,4 +115,4 @@ CHANGELOG:
 
 ## License
 
-GPL-3.0-or-later. Upstream copyright (Adam Murray) preserved per license.
+GPL-3.0-or-later. See LICENSE.

@@ -714,13 +714,15 @@ const verboseLogging = process.env.VERBOSE_LOGGING === "true";
 
 const isRunningInVitest = process.env.VITEST === "true";
 
+const APP_NAME = "Ableton DJ MCP";
+
 const LOG_DIR = (() => {
   if (process.platform === "darwin") {
-    return join(homedir(), "Library", "Logs", "Ableton DJ MCP");
+    return join(homedir(), "Library", "Logs", APP_NAME);
   } else if (process.platform === "win32") {
-    return join(process.env.LOCALAPPDATA ?? homedir(), "Ableton DJ MCP", "Logs");
+    return join(process.env.LOCALAPPDATA ?? homedir(), APP_NAME, "Logs");
   }
-  return join(homedir(), ".local", "share", "Ableton DJ MCP", "logs");
+  return join(homedir(), ".local", "share", APP_NAME, "logs");
 })();
 
 if (!isRunningInVitest && enableLogging) {
@@ -9691,7 +9693,7 @@ const ProgressTokenSchema = union([ string$1(), number$1().int() ]);
 const CursorSchema = string$1();
 
 looseObject({
-  ttl: union([ number$1(), _null() ]).optional(),
+  ttl: number$1().optional(),
   pollInterval: number$1().optional()
 });
 
@@ -9877,7 +9879,8 @@ const ClientCapabilitiesSchema = object({
   roots: object({
     listChanged: boolean().optional()
   }).optional(),
-  tasks: ClientTasksCapabilitySchema.optional()
+  tasks: ClientTasksCapabilitySchema.optional(),
+  extensions: record(string$1(), AssertObjectSchema).optional()
 });
 
 const InitializeRequestParamsSchema = BaseRequestParamsSchema.extend({
@@ -9905,7 +9908,8 @@ const ServerCapabilitiesSchema = object({
   tools: object({
     listChanged: boolean().optional()
   }).optional(),
-  tasks: ServerTasksCapabilitySchema.optional()
+  tasks: ServerTasksCapabilitySchema.optional(),
+  extensions: record(string$1(), AssertObjectSchema).optional()
 });
 
 const InitializeResultSchema = ResultSchema.extend({
@@ -10055,6 +10059,7 @@ const ResourceSchema = object({
   uri: string$1(),
   description: optional(string$1()),
   mimeType: optional(string$1()),
+  size: optional(number$1()),
   annotations: AnnotationsSchema.optional(),
   _meta: optional(looseObject({}))
 });
@@ -12149,6 +12154,10 @@ class Protocol {
     this._progressHandlers.clear();
     this._taskProgressTokens.clear();
     this._pendingDebouncedNotifications.clear();
+    for (const info of this._timeoutInfo.values()) {
+      clearTimeout(info.timeoutId);
+    }
+    this._timeoutInfo.clear();
     for (const controller of this._requestHandlerAbortControllers.values()) {
       controller.abort();
     }
@@ -12289,7 +12298,9 @@ class Protocol {
         await (capturedTransport?.send(errorResponse));
       }
     }).catch(error => this._onerror(new Error(`Failed to send response: ${error}`))).finally(() => {
-      this._requestHandlerAbortControllers.delete(request.id);
+      if (this._requestHandlerAbortControllers.get(request.id) === abortController) {
+        this._requestHandlerAbortControllers.delete(request.id);
+      }
     });
   }
   _onprogress(notification) {
@@ -26823,11 +26834,11 @@ const AUTHORIZATION_CODE_CHALLENGE_METHOD = "S256";
 
 function selectClientAuthMethod(clientInformation, supportedMethods) {
   const hasClientSecret = clientInformation.client_secret !== undefined;
-  if (supportedMethods.length === 0) {
-    return hasClientSecret ? "client_secret_post" : "none";
-  }
-  if ("token_endpoint_auth_method" in clientInformation && clientInformation.token_endpoint_auth_method && isClientAuthMethod(clientInformation.token_endpoint_auth_method) && supportedMethods.includes(clientInformation.token_endpoint_auth_method)) {
+  if ("token_endpoint_auth_method" in clientInformation && clientInformation.token_endpoint_auth_method && isClientAuthMethod(clientInformation.token_endpoint_auth_method) && (supportedMethods.length === 0 || supportedMethods.includes(clientInformation.token_endpoint_auth_method))) {
     return clientInformation.token_endpoint_auth_method;
+  }
+  if (supportedMethods.length === 0) {
+    return hasClientSecret ? "client_secret_basic" : "none";
   }
   if (hasClientSecret && supportedMethods.includes("client_secret_basic")) {
     return "client_secret_basic";
@@ -26955,6 +26966,7 @@ async function authInternal(provider, {serverUrl: serverUrl, authorizationCode: 
     }));
   }
   const resource = await selectResourceURL(serverUrl, provider, resourceMetadata);
+  const resolvedScope = scope || resourceMetadata?.scopes_supported?.join(" ") || provider.clientMetadata.scope;
   let clientInformation = await Promise.resolve(provider.clientInformation());
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
@@ -26978,6 +26990,7 @@ async function authInternal(provider, {serverUrl: serverUrl, authorizationCode: 
       const fullInformation = await registerClient(authorizationServerUrl, {
         metadata: metadata,
         clientMetadata: provider.clientMetadata,
+        scope: resolvedScope,
         fetchFn: fetchFn
       });
       await provider.saveClientInformation(fullInformation);
@@ -27020,7 +27033,7 @@ async function authInternal(provider, {serverUrl: serverUrl, authorizationCode: 
     clientInformation: clientInformation,
     state: state,
     redirectUrl: provider.redirectUrl,
-    scope: scope || resourceMetadata?.scopes_supported?.join(" ") || provider.clientMetadata.scope,
+    scope: resolvedScope,
     resource: resource
   });
   await provider.saveCodeVerifier(codeVerifier);
@@ -27369,7 +27382,7 @@ async function fetchToken(provider, authorizationServerUrl, {metadata: metadata,
   });
 }
 
-async function registerClient(authorizationServerUrl, {metadata: metadata, clientMetadata: clientMetadata, fetchFn: fetchFn}) {
+async function registerClient(authorizationServerUrl, {metadata: metadata, clientMetadata: clientMetadata, scope: scope, fetchFn: fetchFn}) {
   let registrationUrl;
   if (metadata) {
     if (!metadata.registration_endpoint) {
@@ -27384,7 +27397,12 @@ async function registerClient(authorizationServerUrl, {metadata: metadata, clien
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(clientMetadata)
+    body: JSON.stringify({
+      ...clientMetadata,
+      ...scope !== undefined ? {
+        scope: scope
+      } : {}
+    })
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -29115,6 +29133,9 @@ class McpServer {
           annotations = rest.shift();
         }
       } else if (typeof firstArg === "object" && firstArg !== null) {
+        if (Object.values(firstArg).some(v => typeof v === "object" && v !== null)) {
+          throw new Error(`Tool ${name} expected a Zod schema or ToolAnnotations, but received an unrecognized object`);
+        }
         annotations = rest.shift();
       }
     }
@@ -29216,6 +29237,9 @@ function getZodSchemaObject(schema) {
   if (isZodRawShapeCompat(schema)) {
     return objectFromShape(schema);
   }
+  if (!isZodSchemaInstance(schema)) {
+    throw new Error("inputSchema must be a Zod schema or raw shape, received an unrecognized object");
+  }
   return schema;
 }
 
@@ -29263,7 +29287,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.4.5";
+const VERSION = "1.6.0";
 
 const MAX_SPLIT_POINTS = 32;
 
