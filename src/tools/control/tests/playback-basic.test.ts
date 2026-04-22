@@ -545,4 +545,83 @@ describe("transport", () => {
       "playback stop-session-clips action failed: track at index 99 does not exist",
     );
   });
+
+  it("should handle undo action and return canUndo/canRedo", () => {
+    liveSet = setupPlaybackLiveSet({
+      can_undo: 1,
+      can_redo: 0,
+      is_playing: 0,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "undo" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("undo");
+    expect(result).toStrictEqual({
+      playing: false,
+      currentTime: "1|1",
+      canUndo: true,
+      canRedo: false,
+    });
+  });
+
+  it("should handle redo action and return canUndo/canRedo", () => {
+    liveSet = setupPlaybackLiveSet({
+      can_undo: 1,
+      can_redo: 1,
+      is_playing: 0,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "redo" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("redo");
+    expect(result).toStrictEqual({
+      playing: false,
+      currentTime: "1|1",
+      canUndo: true,
+      canRedo: true,
+    });
+  });
+
+  it("should handle save action", () => {
+    liveSet = setupPlaybackLiveSet({
+      can_undo: 0,
+      can_redo: 0,
+      is_playing: 0,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "save" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("save_live_set");
+    expect(result).toStrictEqual({
+      playing: false,
+      currentTime: "1|1",
+      canUndo: false,
+      canRedo: false,
+    });
+  });
+
+  it("should call undo without touching transport or loop params", () => {
+    liveSet = setupPlaybackLiveSet({
+      can_undo: 1,
+      can_redo: 0,
+    });
+
+    playback({
+      action: "undo",
+      startTime: "5|1",
+      loop: true,
+      loopStart: "1|1",
+      loopEnd: "3|1",
+    });
+
+    expect(liveSet.call).toHaveBeenCalledWith("undo");
+    expect(liveSet.set).not.toHaveBeenCalledWith(
+      "start_time",
+      expect.anything(),
+    );
+    expect(liveSet.set).not.toHaveBeenCalledWith("loop", expect.anything());
+  });
 });

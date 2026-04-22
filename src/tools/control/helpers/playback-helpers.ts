@@ -284,3 +284,43 @@ export function handlePlayScene(
     currentTimeBeats: state.currentTimeBeats,
   };
 }
+
+interface LiveSetHistoryResult {
+  playing: boolean;
+  currentTime: string;
+  canUndo: boolean;
+  canRedo: boolean;
+}
+
+/**
+ * Handle undo/redo/save on the Live set.
+ *
+ * @param action - "undo" | "redo" | "save"
+ * @returns Current transport state plus canUndo/canRedo flags
+ */
+export function handleLiveSetHistory(action: string): LiveSetHistoryResult {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+
+  if (action === "undo") {
+    liveSet.call("undo");
+  } else if (action === "redo") {
+    liveSet.call("redo");
+  } else {
+    liveSet.call("save_live_set");
+  }
+
+  const numerator = liveSet.getProperty("signature_numerator") as number;
+  const denominator = liveSet.getProperty("signature_denominator") as number;
+  const currentTimeBeats = liveSet.getProperty("current_song_time") as number;
+
+  return {
+    playing: (liveSet.getProperty("is_playing") as number) > 0,
+    currentTime: abletonBeatsToBarBeat(
+      currentTimeBeats,
+      numerator,
+      denominator,
+    ),
+    canUndo: (liveSet.getProperty("can_undo") as number) > 0,
+    canRedo: (liveSet.getProperty("can_redo") as number) > 0,
+  };
+}

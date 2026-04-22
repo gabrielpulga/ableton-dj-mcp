@@ -14147,9 +14147,32 @@ function handlePlayScene(sceneIndex, state) {
   };
 }
 
+function handleLiveSetHistory(action) {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+  if (action === "undo") {
+    liveSet.call("undo");
+  } else if (action === "redo") {
+    liveSet.call("redo");
+  } else {
+    liveSet.call("save_live_set");
+  }
+  const numerator = liveSet.getProperty("signature_numerator");
+  const denominator = liveSet.getProperty("signature_denominator");
+  const currentTimeBeats = liveSet.getProperty("current_song_time");
+  return {
+    playing: liveSet.getProperty("is_playing") > 0,
+    currentTime: abletonBeatsToBarBeat(currentTimeBeats, numerator, denominator),
+    canUndo: liveSet.getProperty("can_undo") > 0,
+    canRedo: liveSet.getProperty("can_redo") > 0
+  };
+}
+
 function playback({action: action, startTime: startTime, startLocator: startLocator, loop: loop, loopStart: loopStart, loopStartLocator: loopStartLocator, loopEnd: loopEnd, loopEndLocator: loopEndLocator, sceneIndex: sceneIndex, ids: ids, slots: slots, focus: focus} = {}, _context = {}) {
   if (!action) {
     throw new Error("playback failed: action is required");
+  }
+  if (action === "undo" || action === "redo" || action === "save") {
+    return handleLiveSetHistory(action);
   }
   if (ids != null && slots != null) {
     throw new Error("playback failed: ids and slots are mutually exclusive");
