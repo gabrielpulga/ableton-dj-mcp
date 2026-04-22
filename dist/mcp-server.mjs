@@ -6396,7 +6396,7 @@ const ProgressTokenSchema = union([ string$1(), number$1().int() ]);
 const CursorSchema = string$1();
 
 looseObject({
-  ttl: union([ number$1(), _null() ]).optional(),
+  ttl: number$1().optional(),
   pollInterval: number$1().optional()
 });
 
@@ -6582,7 +6582,8 @@ const ClientCapabilitiesSchema = object$1({
   roots: object$1({
     listChanged: boolean().optional()
   }).optional(),
-  tasks: ClientTasksCapabilitySchema.optional()
+  tasks: ClientTasksCapabilitySchema.optional(),
+  extensions: record(string$1(), AssertObjectSchema).optional()
 });
 
 const InitializeRequestParamsSchema = BaseRequestParamsSchema.extend({
@@ -6612,7 +6613,8 @@ const ServerCapabilitiesSchema = object$1({
   tools: object$1({
     listChanged: boolean().optional()
   }).optional(),
-  tasks: ServerTasksCapabilitySchema.optional()
+  tasks: ServerTasksCapabilitySchema.optional(),
+  extensions: record(string$1(), AssertObjectSchema).optional()
 });
 
 const InitializeResultSchema = ResultSchema.extend({
@@ -6760,6 +6762,7 @@ const ResourceSchema = object$1({
   uri: string$1(),
   description: optional(string$1()),
   mimeType: optional(string$1()),
+  size: optional(number$1()),
   annotations: AnnotationsSchema.optional(),
   _meta: optional(looseObject({}))
 });
@@ -35979,6 +35982,10 @@ class Protocol {
     this._progressHandlers.clear();
     this._taskProgressTokens.clear();
     this._pendingDebouncedNotifications.clear();
+    for (const info of this._timeoutInfo.values()) {
+      clearTimeout(info.timeoutId);
+    }
+    this._timeoutInfo.clear();
     for (const controller of this._requestHandlerAbortControllers.values()) {
       controller.abort();
     }
@@ -36119,7 +36126,9 @@ class Protocol {
         await (capturedTransport?.send(errorResponse));
       }
     }).catch(error => this._onerror(new Error(`Failed to send response: ${error}`))).finally(() => {
-      this._requestHandlerAbortControllers.delete(request.id);
+      if (this._requestHandlerAbortControllers.get(request.id) === abortController) {
+        this._requestHandlerAbortControllers.delete(request.id);
+      }
     });
   }
   _onprogress(notification) {
@@ -50872,6 +50881,9 @@ class McpServer {
           annotations = rest.shift();
         }
       } else if (typeof firstArg === "object" && firstArg !== null) {
+        if (Object.values(firstArg).some(v => typeof v === "object" && v !== null)) {
+          throw new Error(`Tool ${name} expected a Zod schema or ToolAnnotations, but received an unrecognized object`);
+        }
         annotations = rest.shift();
       }
     }
@@ -50972,6 +50984,9 @@ function getZodSchemaObject(schema) {
   }
   if (isZodRawShapeCompat(schema)) {
     return objectFromShape(schema);
+  }
+  if (!isZodSchemaInstance(schema)) {
+    throw new Error("inputSchema must be a Zod schema or raw shape, received an unrecognized object");
   }
   return schema;
 }

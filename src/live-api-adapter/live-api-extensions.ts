@@ -198,7 +198,7 @@ if (typeof LiveAPI !== "undefined") {
         if (property === "color") {
           this.setColor(value as string);
         } else {
-          this.set(property, value as any);
+          this.set(property, value);
         }
       }
     }

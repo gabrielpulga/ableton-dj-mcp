@@ -1,7 +1,7 @@
 # Ableton DJ MCP
 
-MCP server for AI-assisted electronic music production in Ableton Live.
-Licensed under GPL-3.0-or-later.
+MCP server for AI-assisted electronic music production in Ableton Live. Licensed
+under GPL-3.0-or-later.
 
 ## Quick start
 

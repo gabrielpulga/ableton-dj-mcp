@@ -322,7 +322,7 @@ function parsePeriod(
   } else {
     // Evaluate as expression (e.g., variable or number) - treated as beats
     period = evaluateExpression(
-      periodArg as ExpressionNode,
+      periodArg,
       position,
       timeSigNumerator,
       timeSigDenominator,
