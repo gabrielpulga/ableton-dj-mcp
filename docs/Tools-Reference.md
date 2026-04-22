@@ -164,10 +164,22 @@ Select tracks, scenes, or clips in Live's UI.
 
 ### `adj-playback`
 
-Control transport and clip playback.
+Control transport, session clips, and Live set history.
 
-- `action`: `"play"` | `"stop"` | `"continue"` | `"tap-tempo"` |
-  `"launch-scene"` | `"fire-clip"` | `"stop-clip"`
+- `action`:
+  - `"play-arrangement"` — play from `startTime`
+  - `"update-arrangement"` — modify loop (`loop`, `loopStart`, `loopEnd`)
+  - `"play-scene"` — fire all clips in a scene (`sceneIndex`)
+  - `"play-session-clips"` — fire clip(s) by `ids` or `slots`
+  - `"stop-session-clips"` — stop clip(s) by `ids` or `slots`
+  - `"stop-all-session-clips"` — stop every session clip
+  - `"stop"` — stop transport
+  - `"undo"` — undo last Live set action
+  - `"redo"` — redo last undone action
+  - `"save"` — save Live set to disk
+- Response includes `playing`, `currentTime`, optional `arrangementLoop`.
+- For `"undo"` / `"redo"` / `"save"`, response also includes `canUndo` and
+  `canRedo` booleans — check these before calling undo/redo to avoid no-ops.
 
 ---
 
