@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.6.1...ableton-dj-mcp-v1.7.0) (2026-04-22)
+
+
+### Features
+
+* add undo, redo, and save actions to adj-playback ([#74](https://github.com/gabrielpulga/ableton-dj-mcp/issues/74)) ([d548d01](https://github.com/gabrielpulga/ableton-dj-mcp/commit/d548d01b7e3dde9417eeb83b6425efbd35a5c814))
+
 ## [1.6.1](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.6.0...ableton-dj-mcp-v1.6.1) (2026-04-22)
 
 
