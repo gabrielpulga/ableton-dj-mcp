@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.8.0...ableton-dj-mcp-v1.8.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* correct adj-generate note output to put pitch before time ([#84](https://github.com/gabrielpulga/ableton-dj-mcp/issues/84)) ([ed9f8e9](https://github.com/gabrielpulga/ableton-dj-mcp/commit/ed9f8e97be35df27916975440f4cad851a8ed9dd))
+* sync src/shared/version.ts with release-please bumps ([#82](https://github.com/gabrielpulga/ableton-dj-mcp/issues/82)) ([8656b87](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8656b87c474bb8b8caa41f8617fe3a16624fd163))
+
 ## [1.8.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.7.0...ableton-dj-mcp-v1.8.0) (2026-04-25)
 
 
