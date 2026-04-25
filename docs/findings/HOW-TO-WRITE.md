@@ -79,15 +79,32 @@ evidence: <PR # | commit SHA | file:line | "user confirmed">
 
 ## INDEX rules
 
-`INDEX.md` is the only file always loaded. Keep it lean.
+`INDEX.md` is the only file always loaded. Keep it lean. Lines must encode enough routing signal that Claude can decide whether to load the linked file WITHOUT loading it.
 
 Format per line:
 
 ```
-- [<slug>](<domain>/<slug>.md) — <one-sentence-summary>
+- [<slug>](<domain>/<slug>.md) [<glob>,<glob>,<glob>] — <summary>
 ```
 
-- Summary ≤ 120 chars
+### Globs
+
+The bracketed glob list is the trigger. Claude matches each glob against the file paths being touched in the current task. If any glob matches → load the finding. If none match → skip without loading.
+
+- Use `**` for deep paths (`src/notation/**`)
+- Use `*` for filename patterns (`**/notes-formatter*`)
+- Comma-separated, no spaces inside brackets
+- 2-4 globs per line ideal; >5 = finding is too broad, split it
+- Globs MUST point to the files / dirs the finding actually applies to. Vague globs poison routing.
+
+### Summary
+
+- ≤ 120 chars
+- States the fact, not its cause: `pitch must precede time` not `bug in barbeat parser`
+- Reads as a complete sentence Claude can act on without opening the file
+
+### Other rules
+
 - Sort alphabetically within domain section
 - Empty domain sections kept (so consumers know the domain exists)
 - No file at root counts as a finding except INDEX and HOW-TO-WRITE

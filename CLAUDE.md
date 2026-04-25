@@ -40,6 +40,24 @@ See `docs/PROJECT_INDEX.md` — full directory map, tool list, entry points, bui
 system, notation system. See `docs/` for deeper documentation on specific
 topics.
 
+## Findings — load before non-trivial work
+
+`docs/findings/INDEX.md` lists validated facts captured from prior sessions
+(format: `[slug](path) [glob,glob] — summary`). Read INDEX before:
+
+- Writing new code in `src/` (≥10 lines)
+- Fixing bugs that aren't single-line typos
+- Editing build / release / CI config
+- Generating notes/clips programmatically
+- Deploying or modifying the `.amxd` device
+
+For each INDEX line, match the bracketed globs against your task's file paths.
+Read the linked file ONLY if matched. Skip if no match — the INDEX line itself
+is the lookup key.
+
+To capture a new validated finding, run `/update-docs` (loads
+`docs/findings/HOW-TO-WRITE.md`).
+
 ## 22 Tools (all prefixed `adj-`)
 
 | Domain     | Tools                                           |
