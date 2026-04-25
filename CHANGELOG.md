@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.7.0...ableton-dj-mcp-v1.8.0) (2026-04-25)
+
+
+### Features
+
+* add adj-generate tool for Euclidean rhythm patterns ([#80](https://github.com/gabrielpulga/ableton-dj-mcp/issues/80)) ([2efc238](https://github.com/gabrielpulga/ableton-dj-mcp/commit/2efc238be2065f7caf3ec02507ef9d4966c3177c))
+
 ## [1.7.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.6.1...ableton-dj-mcp-v1.7.0) (2026-04-22)
 
 
