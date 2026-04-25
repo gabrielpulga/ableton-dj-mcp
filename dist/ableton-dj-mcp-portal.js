@@ -29287,7 +29287,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.6.0";
+const VERSION = "1.8.0";
 
 const MAX_SPLIT_POINTS = 32;
 
@@ -29627,6 +29627,59 @@ const toolDefUpdateDevice = defineTool("adj-update-device", {
   }
 });
 
+const T = true;
+
+const F = false;
+
+const NAMED_PATTERNS = {
+  tresillo: {
+    steps: 8,
+    pattern: [ T, F, F, T, F, F, T, F ]
+  },
+  cinquillo: {
+    steps: 8,
+    pattern: [ T, F, T, T, F, T, T, F ]
+  },
+  "bossa-nova": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, T, F, F, F, T, F, F, T, F, F ]
+  },
+  "son-clave": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, T, F, F, F, T, F, T, F, F, F ]
+  },
+  "rumba-clave": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, F, T, F, F, T, F, T, F, F, F ]
+  },
+  "16th-4": {
+    steps: 16,
+    pattern: [ T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F ]
+  }
+};
+
+const NAMED_PATTERN_NAMES = Object.keys(NAMED_PATTERNS);
+
+const toolDefGenerate = defineTool("adj-generate", {
+  title: "Generate",
+  description: "Generate algorithmic note patterns. Returns notes in bar|beat notation that plug directly into adj-create-clip's `notes` param. Pure computation, no Live API calls.",
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false
+  },
+  inputSchema: {
+    algorithm: _enum$2([ "euclidean" ]).describe("euclidean: Bjorklund-style even distribution of pulses"),
+    pattern: _enum$2(NAMED_PATTERN_NAMES).optional().describe(`named pattern (overrides steps/pulses/rotation): ${NAMED_PATTERN_NAMES.join(", ")}`),
+    pitch: string$1().describe("MIDI note name for hits (e.g., C1, F#2)"),
+    steps: number().int().positive().optional().describe("total steps per bar (e.g., 16 for sixteenths)"),
+    pulses: number().int().min(0).optional().describe("active hits to distribute across steps"),
+    rotation: number().int().optional().describe("rotate pattern left by N steps (default 0)"),
+    bars: number().int().positive().optional().describe("how many bars to tile the pattern across (default 1)"),
+    velocity: number().int().min(0).max(127).optional().describe("hit velocity 0-127 (default 100)"),
+    duration: string$1().optional().describe("note duration in barbeat syntax without `t` prefix (e.g., /16, 1/8). default: one step length")
+  }
+});
+
 const toolDefReadLiveSet = defineTool("adj-read-live-set", {
   title: "Read Live Set",
   description: "Read Live Set global settings, track/scene overview. Returns overview by default. Use include to add detail.",
@@ -29895,7 +29948,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate ];
 
 Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 

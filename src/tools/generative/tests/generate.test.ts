@@ -51,9 +51,7 @@ describe("generate", () => {
         pulses: 3,
       });
 
-      expect(result.notes).toBe(
-        "1|1 v100 t/8 C1\n1|2.5 v100 t/8 C1\n1|4 v100 t/8 C1",
-      );
+      expect(result.notes).toBe("v100 t/8 C1 1|1,2.5,4");
       expect(result.steps).toBe(8);
       expect(result.pulses).toBe(3);
       expect(result.rotation).toBe(0);
@@ -101,12 +99,7 @@ describe("generate", () => {
         bars: 3,
       });
 
-      const lines = result.notes.split("\n");
-
-      expect(lines).toHaveLength(3);
-      expect(lines[0]).toMatch(/^1\|1/);
-      expect(lines[1]).toMatch(/^2\|1/);
-      expect(lines[2]).toMatch(/^3\|1/);
+      expect(result.notes).toBe("v100 t/4 C1 1|1 2|1 3|1");
     });
   });
 
@@ -134,7 +127,7 @@ describe("generate", () => {
         pattern: "son-clave",
       });
 
-      expect(result.notes.split("\n")).toHaveLength(5);
+      expect(result.notes.split(",")).toHaveLength(5);
       expect(result.steps).toBe(16);
       expect(result.pulses).toBe(5);
     });

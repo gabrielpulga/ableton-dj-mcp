@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { formatPatternToBarbeat } from "../helpers/notes-formatter.ts";
 
 describe("formatPatternToBarbeat", () => {
-  it("emits one line per active step in 8-step grid", () => {
+  it("groups beats per bar with pitch and properties first (8-step grid)", () => {
     const notes = formatPatternToBarbeat({
       pattern: [true, false, false, true, false, false, true, false],
       steps: 8,
@@ -16,7 +16,7 @@ describe("formatPatternToBarbeat", () => {
       bars: 1,
     });
 
-    expect(notes).toBe("1|1 v100 t/8 C1\n1|2.5 v100 t/8 C1\n1|4 v100 t/8 C1");
+    expect(notes).toBe("v100 t/8 C1 1|1,2.5,4");
   });
 
   it("converts step positions to fractional beats in 16-step grid", () => {
@@ -31,10 +31,10 @@ describe("formatPatternToBarbeat", () => {
       bars: 1,
     });
 
-    expect(notes).toBe("1|1 v90 t/16 D2\n1|1.5 v90 t/16 D2");
+    expect(notes).toBe("v90 t/16 D2 1|1,1.5");
   });
 
-  it("tiles pattern across multiple bars", () => {
+  it("tiles pattern across multiple bars as space-separated chunks", () => {
     const notes = formatPatternToBarbeat({
       pattern: [true, false, false, false],
       steps: 4,
@@ -44,11 +44,7 @@ describe("formatPatternToBarbeat", () => {
       bars: 3,
     });
 
-    expect(notes.split("\n")).toStrictEqual([
-      "1|1 v100 t/4 C1",
-      "2|1 v100 t/4 C1",
-      "3|1 v100 t/4 C1",
-    ]);
+    expect(notes).toBe("v100 t/4 C1 1|1 2|1 3|1");
   });
 
   it("returns empty string when pattern has no hits", () => {
