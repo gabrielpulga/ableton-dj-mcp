@@ -40,7 +40,7 @@ See `docs/PROJECT_INDEX.md` — full directory map, tool list, entry points, bui
 system, notation system. See `docs/` for deeper documentation on specific
 topics.
 
-## 21 Tools (all prefixed `adj-`)
+## 22 Tools (all prefixed `adj-`)
 
 | Domain     | Tools                                           |
 | ---------- | ----------------------------------------------- |
@@ -52,6 +52,7 @@ topics.
 | Device     | `read-device`, `create-device`, `update-device` |
 | Operations | `delete`, `duplicate`                           |
 | Control    | `select`, `playback`                            |
+| Generative | `generate` (Euclidean rhythms, no Live API)     |
 | Dev-only   | `raw-live-api` (env flag required)              |
 
 Each tool has a `.def.ts` (Zod schema) and a `.ts` (implementation).

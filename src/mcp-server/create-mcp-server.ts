@@ -13,6 +13,7 @@ import { toolDefSelect } from "#src/tools/control/select.def.ts";
 import { toolDefCreateDevice } from "#src/tools/device/create/create-device.def.ts";
 import { toolDefReadDevice } from "#src/tools/device/read/read-device.def.ts";
 import { toolDefUpdateDevice } from "#src/tools/device/update/update-device.def.ts";
+import { toolDefGenerate } from "#src/tools/generative/generate.def.ts";
 import { toolDefReadLiveSet } from "#src/tools/live-set/read-live-set.def.ts";
 import { toolDefUpdateLiveSet } from "#src/tools/live-set/update-live-set.def.ts";
 import { toolDefDelete } from "#src/tools/operations/delete/delete.def.ts";
@@ -53,6 +54,7 @@ export const STANDARD_TOOL_DEFS: ToolDefFunction[] = [
   toolDefDuplicate,
   toolDefSelect,
   toolDefPlayback,
+  toolDefGenerate,
 ];
 
 /** All standard tool names (frozen). Does not include dev-only tools like adj-raw-live-api. */
