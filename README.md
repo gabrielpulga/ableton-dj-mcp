@@ -22,9 +22,9 @@ grounded, specific advice instead of generic music theory.
 
 ## How it works
 
-The server runs inside a Max for Live device embedded in your Live set. A
-portal bridges your AI client (stdio) to the server over HTTP. Tools prefixed
-`adj-` let the AI read and manipulate the Live set in real time.
+The server runs inside a Max for Live device embedded in your Live set. A portal
+bridges your AI client (stdio) to the server over HTTP. Tools prefixed `adj-`
+let the AI read and manipulate the Live set in real time.
 
 ## Requirements
 
