@@ -1090,7 +1090,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.6.0";
+const VERSION = "1.8.0";
 
 const MIN_LIVE_VERSION = "12.3.0";
 
@@ -1782,7 +1782,7 @@ function determineAutoDetailView({clipId: clipId, deviceId: deviceId, devicePath
   return void 0;
 }
 
-const DEFAULT_VELOCITY = 100;
+const DEFAULT_VELOCITY$1 = 100;
 
 const DEFAULT_DURATION = 1;
 
@@ -5096,7 +5096,7 @@ function processPitchElement(element, state) {
     velocity = state.currentVelocityMin;
     velocityDeviation = state.currentVelocityMax - state.currentVelocityMin;
   } else {
-    velocity = state.currentVelocity ?? DEFAULT_VELOCITY;
+    velocity = state.currentVelocity ?? DEFAULT_VELOCITY$1;
     velocityDeviation = DEFAULT_VELOCITY_DEVIATION;
   }
   state.currentPitches.push({
@@ -5169,7 +5169,7 @@ function interpretNotation(barBeatExpression, options = {}) {
     const events = [];
     const state = {
       currentTime: DEFAULT_TIME,
-      currentVelocity: DEFAULT_VELOCITY,
+      currentVelocity: DEFAULT_VELOCITY$1,
       currentDuration: DEFAULT_DURATION,
       currentProbability: DEFAULT_PROBABILITY,
       currentVelocityMin: null,
@@ -10182,7 +10182,7 @@ function groupNotesByTime(sortedNotes, config) {
 
 function createInitialState() {
   return {
-    velocity: DEFAULT_VELOCITY,
+    velocity: DEFAULT_VELOCITY$1,
     velocityDeviation: DEFAULT_VELOCITY_DEVIATION,
     duration: DEFAULT_DURATION,
     probability: DEFAULT_PROBABILITY
@@ -16609,6 +16609,153 @@ function updateNonDeviceProperties(target, type, options) {
   }
 }
 
+function euclidean(pulses, steps) {
+  if (steps <= 0) {
+    throw new Error("euclidean failed: steps must be positive");
+  }
+  if (pulses < 0) {
+    throw new Error("euclidean failed: pulses must be non-negative");
+  }
+  if (pulses > steps) {
+    throw new Error("euclidean failed: pulses cannot exceed steps");
+  }
+  if (pulses === 0) {
+    return new Array(steps).fill(false);
+  }
+  const result = [];
+  let prev = -1;
+  for (let i = 0; i < steps; i++) {
+    const curr = Math.floor(i * pulses / steps);
+    result.push(curr !== prev);
+    prev = curr;
+  }
+  return result;
+}
+
+function rotate(arr, offset) {
+  if (arr.length === 0) return arr;
+  const o = (offset % arr.length + arr.length) % arr.length;
+  return [ ...arr.slice(o), ...arr.slice(0, o) ];
+}
+
+const T = true;
+
+const F = false;
+
+const NAMED_PATTERNS = {
+  tresillo: {
+    steps: 8,
+    pattern: [ T, F, F, T, F, F, T, F ]
+  },
+  cinquillo: {
+    steps: 8,
+    pattern: [ T, F, T, T, F, T, T, F ]
+  },
+  "bossa-nova": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, T, F, F, F, T, F, F, T, F, F ]
+  },
+  "son-clave": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, T, F, F, F, T, F, T, F, F, F ]
+  },
+  "rumba-clave": {
+    steps: 16,
+    pattern: [ T, F, F, T, F, F, F, T, F, F, T, F, T, F, F, F ]
+  },
+  "16th-4": {
+    steps: 16,
+    pattern: [ T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F ]
+  }
+};
+
+const BEATS_PER_BAR = 4;
+
+const FLOAT_PRECISION = 1e4;
+
+function formatPatternToBarbeat(opts) {
+  const {pattern: pattern, steps: steps, pitch: pitch, velocity: velocity, duration: duration, bars: bars} = opts;
+  const beatsPerStep = BEATS_PER_BAR / steps;
+  const barChunks = [];
+  for (let bar = 1; bar <= bars; bar++) {
+    const beats = [];
+    for (let step = 0; step < steps; step++) {
+      if (!pattern[step]) continue;
+      beats.push(formatBeat(step * beatsPerStep + 1));
+    }
+    if (beats.length > 0) {
+      barChunks.push(`${bar}|${beats.join(",")}`);
+    }
+  }
+  if (barChunks.length === 0) return "";
+  return `v${velocity} t${duration} ${pitch} ${barChunks.join(" ")}`;
+}
+
+function formatBeat(beat) {
+  const rounded = Math.round(beat * FLOAT_PRECISION) / FLOAT_PRECISION;
+  return String(rounded);
+}
+
+const DEFAULT_VELOCITY = 100;
+
+function generate(args = {}, _context = {}) {
+  const {algorithm: algorithm, pattern: namedPattern, pitch: pitch} = args;
+  if (!algorithm) {
+    throw new Error("generate failed: algorithm is required");
+  }
+  if (algorithm !== "euclidean") {
+    throw new Error(`generate failed: unknown algorithm "${algorithm}"`);
+  }
+  if (!pitch) {
+    throw new Error("generate failed: pitch is required");
+  }
+  const bars = args.bars ?? 1;
+  const velocity = args.velocity ?? DEFAULT_VELOCITY;
+  const rotation = args.rotation ?? 0;
+  const {steps: steps, basePattern: basePattern} = resolvePattern(namedPattern, args);
+  const rotated = rotate(basePattern, rotation);
+  const pulses = rotated.filter(Boolean).length;
+  const duration = args.duration ?? `/${steps}`;
+  const notes = formatPatternToBarbeat({
+    pattern: rotated,
+    steps: steps,
+    pitch: pitch,
+    velocity: velocity,
+    duration: duration,
+    bars: bars
+  });
+  return {
+    notes: notes,
+    steps: steps,
+    pulses: pulses,
+    rotation: rotation,
+    bars: bars
+  };
+}
+
+function resolvePattern(namedPattern, args) {
+  if (namedPattern != null) {
+    const spec = NAMED_PATTERNS[namedPattern];
+    if (!spec) {
+      throw new Error(`generate failed: unknown pattern "${namedPattern}"`);
+    }
+    return {
+      steps: spec.steps,
+      basePattern: [ ...spec.pattern ]
+    };
+  }
+  if (args.steps == null) {
+    throw new Error("generate failed: steps is required when pattern is not set");
+  }
+  if (args.pulses == null) {
+    throw new Error("generate failed: pulses is required when pattern is not set");
+  }
+  return {
+    steps: args.steps,
+    basePattern: euclidean(args.pulses, args.steps)
+  };
+}
+
 function readScene(args = {}, _context = {}) {
   const {sceneIndex: sceneIndex, sceneId: sceneId} = args;
   if (sceneId == null && sceneIndex == null) {
@@ -19194,6 +19341,7 @@ const tools = {
   "adj-update-device": args => updateDevice(args, context),
   "adj-playback": args => playback(args, context),
   "adj-select": args => select(args, context),
+  "adj-generate": args => generate(args, context),
   "adj-delete": args => deleteObject(args, context),
   "adj-duplicate": args => {
     initHoldingArea();
