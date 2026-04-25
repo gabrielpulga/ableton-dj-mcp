@@ -26,6 +26,7 @@ import { select } from "#src/tools/control/select.ts";
 import { createDevice } from "#src/tools/device/create/create-device.ts";
 import { readDevice } from "#src/tools/device/read/read-device.ts";
 import { updateDevice } from "#src/tools/device/update/update-device.ts";
+import { generate } from "#src/tools/generative/generate.ts";
 import { readLiveSet } from "#src/tools/live-set/read-live-set.ts";
 import { updateLiveSet } from "#src/tools/live-set/update-live-set.ts";
 import { deleteObject } from "#src/tools/operations/delete/delete.ts";
@@ -95,6 +96,7 @@ const tools: Record<string, (args: unknown) => unknown> = {
   "adj-update-device": (args) => updateDevice(args as any, context),
   "adj-playback": (args) => playback(args as any, context),
   "adj-select": (args) => select(args as any, context),
+  "adj-generate": (args) => generate(args as any, context),
   "adj-delete": (args) => deleteObject(args as any, context),
   "adj-duplicate": (args) => {
     initHoldingArea();

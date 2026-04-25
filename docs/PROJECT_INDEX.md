@@ -14,7 +14,7 @@ AI Client (Claude Desktop, etc.)
             -> Ableton Live JS API
 ```
 
-## 21 MCP Tools
+## 22 MCP Tools
 
 All prefixed `adj-`.
 
@@ -28,6 +28,7 @@ All prefixed `adj-`.
 | Device     | `read-device`, `create-device`, `update-device`      |
 | Operations | `delete`, `duplicate`                                |
 | Control    | `select`, `playback`                                 |
+| Generative | `generate` (algorithmic patterns, no Live API)       |
 | Dev-only   | `raw-live-api` (requires `ENABLE_RAW_LIVE_API=true`) |
 
 ## Code Layers

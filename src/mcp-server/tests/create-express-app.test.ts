@@ -127,6 +127,7 @@ describe("MCP Express App", () => {
         "adj-duplicate",
         "adj-select",
         "adj-playback",
+        "adj-generate",
         "adj-raw-live-api",
       ]);
     });
