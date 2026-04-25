@@ -34,7 +34,10 @@ let the AI read and manipulate the Live set in real time.
 
 ## Setup and usage
 
-See [`docs/`](./docs/) for installation, tool reference, and developer docs.
+- [Setup](./docs/Setup.md) — install + connect your AI client (5 minutes)
+- [Tools Reference](./docs/Tools-Reference.md) — all 22 `adj-*` tools
+- [Releasing](./docs/Releasing.md) — release process + local deploy
+- [`docs/`](./docs/) — full developer docs
 
 ## License
 
