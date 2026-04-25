@@ -47,3 +47,6 @@ report/
 
 # Live project backups
 **/live-sets/**/Backup
+
+# Personal/local-only files (notes, scratch tests, machine-specific configs)
+local/
