@@ -1,6 +1,6 @@
 {
   "name": "ableton-dj-mcp",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "MCP server for AI-assisted electronic music production in Ableton Live",
   "homepage": "https://github.com/gabrielpulga/ableton-dj-mcp",
   "repository": {
