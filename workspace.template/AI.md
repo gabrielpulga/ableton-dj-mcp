@@ -13,8 +13,18 @@ Your personal music context, gitignored, alongside the Ableton DJ MCP tooling.
 Holds:
 
 - `projects/` — active songs you're working on
-- `genres/` — genre-specific production patterns you've distilled
-- `techniques/` — cross-genre techniques and reference notes
+- `findings/` — validated music knowledge from sessions (strict format,
+  AI-routed)
+- `genres/` — freeform notes per genre (long-form analysis, reference dumps)
+- `techniques/` — freeform technique writeups
+
+`findings/` vs `genres/` + `techniques/`:
+
+- **findings/** = atomic, validated, indexed for AI routing. One fact per file.
+  Used by AI to look up specific knowledge fast. See `findings/HOW-TO-WRITE.md`.
+- **genres/ + techniques/** = freeform long-form notes you write for yourself.
+  Reference dumps, deep analyses, brain dumps. AI reads them when relevant but
+  they're not strictly formatted.
 
 Edit freely. Nothing here is pushed to the public repo.
 
@@ -81,6 +91,68 @@ Each project in `projects/<name>/` should have `<name>.md` summarizing:
 - Last session's progress
 
 Keep it short. The file is the AI's memory of your project.
+
+## Findings — load before non-trivial music work
+
+`findings/INDEX.md` lists validated music techniques captured from prior
+sessions (format: `[slug](path) [glob,glob] — summary`). Read INDEX before:
+
+- Generating clips for a new section
+- Picking sounds (instrument selection, velocity ranges)
+- Designing arrangement structure
+- Working in a specific genre for the first time in the session
+
+For each INDEX line, match the bracketed globs against your task's keywords
+(genre, section, instrument). Read the linked file ONLY if matched. Skip if no
+match — the INDEX line itself is the lookup key.
+
+## ALWAYS capture findings during sessions
+
+This is the rule, not optional. Every music session produces knowledge — capture
+it or lose it.
+
+### What to capture
+
+| Discovery type                                      | Where to capture                                         |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| MCP tool bug, missing feature, or workflow friction | **File a GitHub issue** in `gabrielpulga/ableton-dj-mcp` |
+| Tool quirk that changes how you use the tool        | Skip — covered by `docs/findings/` in the repo           |
+| Music technique that worked in this session         | `workspace/findings/technique/<slug>.md`                 |
+| Genre-specific pattern from reference analysis      | `workspace/findings/genre/<slug>.md`                     |
+| Sound design recipe (pad, lead, bass, kick)         | `workspace/findings/sound-design/<slug>.md`              |
+
+### When to capture
+
+- After a clip you generated sounds clearly right (or clearly wrong, with the
+  lesson)
+- After you analyze a reference track and extract a pattern
+- After an A/B test where one approach won
+- After hitting friction with the tool that you'd want fixed
+
+Don't wait until end of session. Capture immediately when validated — memory
+fades, sessions get long.
+
+### How to capture
+
+Run `/update-docs` in your AI client. It loads
+`workspace/findings/HOW-TO-WRITE.md` for the format spec, then scans the
+conversation, dedups against INDEX, and writes only validated findings.
+
+For tool issues: ask the AI to file a GitHub issue with concrete reproduction
+steps.
+
+### Why this matters
+
+You are the only user and primary source of music knowledge for this workspace.
+The AI is the developer/executor, but cannot remember across sessions without
+captured findings. This is the feedback loop:
+
+```
+session → discovery → captured finding → loaded next session → better output
+session → tool friction → GitHub issue → tool improvement → smoother sessions
+```
+
+Without capture, every session starts from zero.
 
 ## Customize this file
 
