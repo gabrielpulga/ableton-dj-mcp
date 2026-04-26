@@ -20,7 +20,8 @@ npm run build
 ## Load the device in Ableton
 
 1. Open Ableton Live
-2. From your file manager, drag `max-for-live-device/Ableton_DJ_MCP.amxd` onto any MIDI track
+2. From your file manager, drag `max-for-live-device/Ableton_DJ_MCP.amxd` onto
+   any MIDI track
 3. The device's status panel should show `MCP server running on :3350`
 
 ## Wire up your AI client
@@ -31,7 +32,8 @@ npm run build
 claude mcp add ableton-dj-mcp -- node /absolute/path/to/ableton-dj-mcp/dist/ableton-dj-mcp-portal.js
 ```
 
-Restart Claude Code. Verify with `/mcp` — should show `ableton-dj-mcp ✓ Connected`.
+Restart Claude Code. Verify with `/mcp` — should show
+`ableton-dj-mcp ✓ Connected`.
 
 ### Claude Desktop
 
@@ -52,7 +54,8 @@ Restart Claude Desktop.
 
 ### Other MCP clients
 
-Point the client at `node /absolute/path/to/dist/ableton-dj-mcp-portal.js` (stdio transport) or `http://localhost:3350/mcp` (HTTP).
+Point the client at `node /absolute/path/to/dist/ableton-dj-mcp-portal.js`
+(stdio transport) or `http://localhost:3350/mcp` (HTTP).
 
 ## Verify
 
@@ -63,6 +66,7 @@ Use adj-connect
 ```
 
 Expected response:
+
 ```
 connected: true
 serverVersion: <current version>
@@ -71,11 +75,38 @@ abletonLiveVersion: 12.3.x
 
 If you see this, you're done.
 
+## Set up your music workspace
+
+Optional but recommended. Creates a personal, gitignored `workspace/` for your
+projects, genres, techniques, and AI instructions.
+
+```bash
+npm run init:workspace
+```
+
+Result:
+
+```
+workspace/
+├── AI.md                # provider-agnostic instructions for your AI client
+├── projects/
+│   └── example-track/   # sample to copy or replace
+├── genres/
+└── techniques/
+```
+
+For music sessions, start your AI client from inside `workspace/` so it loads
+music-first context (not dev/code context). The `adj-*` tools are registered
+globally and work the same regardless of cwd.
+
+Edit `workspace/AI.md` to add your own production preferences, reference
+artists, and style rules. The file is read by your AI on every session.
+
 ## Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Device console silent | Reload device: eject + reinsert on track, or restart Live |
-| Tool list empty in client | Restart MCP client after `claude mcp add` |
-| `connection refused :3350` | Device not loaded in Live — check the MIDI track |
-| Wrong version in console | Stale bundle. See [Releasing.md](Releasing.md) |
+| Symptom                    | Fix                                                       |
+| -------------------------- | --------------------------------------------------------- |
+| Device console silent      | Reload device: eject + reinsert on track, or restart Live |
+| Tool list empty in client  | Restart MCP client after `claude mcp add`                 |
+| `connection refused :3350` | Device not loaded in Live — check the MIDI track          |
+| Wrong version in console   | Stale bundle. See [Releasing.md](Releasing.md)            |

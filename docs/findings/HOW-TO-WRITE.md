@@ -1,10 +1,12 @@
 # How to Write a Finding
 
-Format spec for `docs/findings/`. Loaded by `/update-docs` skill before scanning conversations. AI-optimized for reading, writing, and lazy loading.
+Format spec for `docs/findings/`. Loaded by `/update-docs` skill before scanning
+conversations. AI-optimized for reading, writing, and lazy loading.
 
 ## What goes here
 
-Validated facts discovered during work. Each finding is one fact with one piece of concrete evidence. Two unrelated facts = two files.
+Validated facts discovered during work. Each finding is one fact with one piece
+of concrete evidence. Two unrelated facts = two files.
 
 ## What does NOT go here
 
@@ -29,7 +31,8 @@ A finding is valid only if proven in the source conversation by ONE of:
 - An error message + reproduction
 - The user's explicit confirmation ("yes", "confirmed", "works")
 
-No other source counts. Inference, "common knowledge", and "we should remember" are rejected.
+No other source counts. Inference, "common knowledge", and "we should remember"
+are rejected.
 
 ## File layout
 
@@ -46,7 +49,8 @@ docs/findings/
 
 - Path: `<domain>/<slug>.md`
 - Slug: kebab-case, ≤ 5 words, ≤ 35 chars
-- Slug names the fact, not the symptom: `barbeat-notation-order` not `barbeat-bug-fix`
+- Slug names the fact, not the symptom: `barbeat-notation-order` not
+  `barbeat-bug-fix`
 - Lowercase only
 
 ## Strict file template
@@ -60,13 +64,17 @@ evidence: <PR # | commit SHA | file:line | "user confirmed">
 ---
 
 ## Fact
+
 <one or two sentences. The claim itself. No buildup, no preamble.>
 
 ## Evidence
+
 <concrete proof. Code block, command output, or test name. Reproducible.>
 
 ## Apply when
-<condition that triggers relevance. "Touching X", "Generating Y", "Debugging Z".>
+
+<condition that triggers relevance. "Touching X", "Generating Y", "Debugging
+Z".>
 ```
 
 ### Section rules
@@ -79,7 +87,9 @@ evidence: <PR # | commit SHA | file:line | "user confirmed">
 
 ## INDEX rules
 
-`INDEX.md` is the only file always loaded. Keep it lean. Lines must encode enough routing signal that Claude can decide whether to load the linked file WITHOUT loading it.
+`INDEX.md` is the only file always loaded. Keep it lean. Lines must encode
+enough routing signal that Claude can decide whether to load the linked file
+WITHOUT loading it.
 
 Format per line:
 
@@ -89,18 +99,22 @@ Format per line:
 
 ### Globs
 
-The bracketed glob list is the trigger. Claude matches each glob against the file paths being touched in the current task. If any glob matches → load the finding. If none match → skip without loading.
+The bracketed glob list is the trigger. Claude matches each glob against the
+file paths being touched in the current task. If any glob matches → load the
+finding. If none match → skip without loading.
 
 - Use `**` for deep paths (`src/notation/**`)
 - Use `*` for filename patterns (`**/notes-formatter*`)
 - Comma-separated, no spaces inside brackets
 - 2-4 globs per line ideal; >5 = finding is too broad, split it
-- Globs MUST point to the files / dirs the finding actually applies to. Vague globs poison routing.
+- Globs MUST point to the files / dirs the finding actually applies to. Vague
+  globs poison routing.
 
 ### Summary
 
 - ≤ 120 chars
-- States the fact, not its cause: `pitch must precede time` not `bug in barbeat parser`
+- States the fact, not its cause: `pitch must precede time` not
+  `bug in barbeat parser`
 - Reads as a complete sentence Claude can act on without opening the file
 
 ### Other rules
@@ -117,7 +131,8 @@ Before writing a new file:
 2. grep INDEX for keywords from the candidate finding
 3. If match: read the existing file
    - Same fact → skip, do not write
-   - Adjacent / extending fact → edit existing file's Evidence section, do not create new file
+   - Adjacent / extending fact → edit existing file's Evidence section, do not
+     create new file
    - Genuinely different angle → new file with disambiguating slug
 4. If no match: create new file
 
@@ -128,9 +143,12 @@ Before writing a new file:
 - ❌ "This was discovered when…" — frontmatter has the date
 - ❌ "Note that…" — just state it
 - ❌ Stuffing multiple findings into one file to save count
-- ❌ Adding a finding because the conversation was interesting (interesting ≠ validated)
-- ❌ Documenting the bug instead of the underlying invariant ("don't do X" → "X breaks because Y")
+- ❌ Adding a finding because the conversation was interesting (interesting ≠
+  validated)
+- ❌ Documenting the bug instead of the underlying invariant ("don't do X" → "X
+  breaks because Y")
 
 ## Worked examples
 
-Look at existing files in `dev/`, `music/`, `workflow/` for canonical examples. Match their shape exactly.
+Look at existing files in `dev/`, `music/`, `workflow/` for canonical examples.
+Match their shape exactly.

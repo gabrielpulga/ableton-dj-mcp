@@ -6,9 +6,13 @@ evidence: live tool calls in conversation 2026-04-25
 ---
 
 ## Fact
-Ableton Live allows only one instrument device per MIDI track. Attempting to insert a second instrument via `adj-create-device` fails with vague error message that does not name the cause.
+
+Ableton Live allows only one instrument device per MIDI track. Attempting to
+insert a second instrument via `adj-create-device` fails with vague error
+message that does not name the cause.
 
 ## Evidence
+
 After successful `adj-create-device(path=t0, deviceName="Drum Rack")`:
 
 ```
@@ -27,4 +31,7 @@ adj-create-device(path=t0, deviceName="Operator")
 ```
 
 ## Apply when
-Diagnosing "could not insert at end" errors from `adj-create-device`. Check existing devices on the track first; delete the existing instrument before adding a new one. Also relevant when designing tools that swap instruments.
+
+Diagnosing "could not insert at end" errors from `adj-create-device`. Check
+existing devices on the track first; delete the existing instrument before
+adding a new one. Also relevant when designing tools that swap instruments.
