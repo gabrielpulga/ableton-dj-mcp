@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.8.1...ableton-dj-mcp-v1.9.0) (2026-04-26)
+
+
+### Features
+
+* add scaffolded workspace/ for personal music context ([#90](https://github.com/gabrielpulga/ableton-dj-mcp/issues/90)) ([4703e72](https://github.com/gabrielpulga/ableton-dj-mcp/commit/4703e725bc45e52075651cf5fccbddf3c321fb16))
+* **workspace:** add findings system + mandatory capture rule ([#92](https://github.com/gabrielpulga/ableton-dj-mcp/issues/92)) ([c57b5d1](https://github.com/gabrielpulga/ableton-dj-mcp/commit/c57b5d18b1a99e866a06901603fb801375d9f4c2))
+
 ## [1.8.1](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.8.0...ableton-dj-mcp-v1.8.1) (2026-04-25)
 
 
