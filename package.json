@@ -54,6 +54,7 @@
     "duplication:e2e": "printf 'E2E ' && jscpd -s -c config/.jscpd-e2e.json",
     "duplication:verbose": "jscpd -c config/.jscpd.json && jscpd -c config/.jscpd-tests.json && jscpd -c config/.jscpd-scripts.json && jscpd -c config/.jscpd-e2e.json",
     "loc": "node scripts/loc/loc.ts",
+    "init:workspace": "node scripts/init-workspace.ts",
     "tc": "npm run typecheck",
     "typecheck": "echo 'Typechecking...' && node scripts/run-parallel.ts typecheck:src typecheck:scripts typecheck:e2e && echo 'No typecheck violations.\n'",
     "typecheck:src": "tsc --project src/tsconfig.json",

@@ -40,6 +40,28 @@ See `docs/PROJECT_INDEX.md` — full directory map, tool list, entry points, bui
 system, notation system. See `docs/` for deeper documentation on specific
 topics.
 
+## Music vs dev context
+
+This repo holds two contexts:
+
+- **Dev context** (root): code, tests, build, docs. AI sessions starting at the
+  repo root load this CLAUDE.md and dev findings.
+- **Music context** (`workspace/`, gitignored): user's projects, genres,
+  techniques, AI instructions. AI sessions starting in `workspace/` load
+  `workspace/AI.md` and music-first context.
+
+For music work, `cd workspace && start-your-ai-client`. For tool development,
+work from the repo root.
+
+To create the workspace from the tracked template:
+
+```bash
+npm run init:workspace
+```
+
+This is a one-time setup. The workspace is gitignored — your personal projects
+and notes never get pushed.
+
 ## Findings — load before non-trivial work
 
 `docs/findings/INDEX.md` lists validated facts captured from prior sessions

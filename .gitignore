@@ -50,3 +50,6 @@ report/
 
 # Personal/local-only files (notes, scratch tests, machine-specific configs)
 local/
+
+# User's personal music context (scaffolded from workspace.template/ via npm run init:workspace)
+workspace/
