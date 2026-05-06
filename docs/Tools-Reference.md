@@ -1,6 +1,6 @@
 # Tools Reference
 
-Quick reference for all 21 `adj-*` tools. Read the `.def.ts` files for the full
+Quick reference for all 22 `adj-*` tools. Read the `.def.ts` files for the full
 Zod schemas.
 
 ---
@@ -14,16 +14,14 @@ Connect to Ableton Live. Call this first before any other tool. No parameters.
 ### `adj-context`
 
 Read and write a persistent memory string visible to the AI across tool calls.
-Useful for storing project state, musical decisions, or notes.
+Useful for storing project state, musical decisions, or notes. Also browses the
+configured sample folder.
 
 - `read` — return current context
 - `write` — overwrite context with new content
 - `append` — add to existing context
-
-### `adj-read-samples`
-
-List audio samples available in the configured sample folder. Returns a tree of
-files with metadata. Set `sampleFolder` in config first.
+- `search` — list audio samples in the configured `sampleFolder` (set in config)
+  as a tree with metadata
 
 ---
 
@@ -180,6 +178,21 @@ Control transport, session clips, and Live set history.
 - Response includes `playing`, `currentTime`, optional `arrangementLoop`.
 - For `"undo"` / `"redo"` / `"save"`, response also includes `canUndo` and
   `canRedo` booleans — check these before calling undo/redo to avoid no-ops.
+
+---
+
+## Generative
+
+### `adj-generate`
+
+Generate algorithmic note patterns. Returns notes in bar|beat notation that plug
+directly into `adj-create-clip`'s `notes` param. Pure computation, no Live API
+calls.
+
+- `algorithm`: `"euclidean"` — Bjorklund even-distribution of pulses
+- `pattern` — named pattern overriding `steps` / `pulses` / `rotation`
+  (tresillo, cinquillo, etc.)
+- `pitch`, `steps`, `pulses`, `rotation`, `bars`, `velocity`, `duration`
 
 ---
 
