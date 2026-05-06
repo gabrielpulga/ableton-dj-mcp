@@ -45,12 +45,14 @@ git checkout main && git pull
 npm run build
 cp dist/live-api-adapter.js max-for-live-device/live-api-adapter.js
 cp dist/mcp-server.mjs max-for-live-device/mcp-server.mjs
+npm run install:device   # refresh the copy in your Live User Library
 ```
 
 Then in Ableton Live:
 
 1. Eject the `Ableton_DJ_MCP` device from its MIDI track (or restart Live)
-2. Re-drag `max-for-live-device/Ableton_DJ_MCP.amxd` onto the track
+2. Re-drag the device onto the track (from User Library if installed via
+   `npm run install:device`, otherwise from `max-for-live-device/`)
 3. Verify console shows the new version:
 
 ```

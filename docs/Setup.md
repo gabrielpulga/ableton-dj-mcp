@@ -15,12 +15,34 @@ npm install
 npm run build
 ```
 
-## Load the device in Ableton
+## Install the device in Ableton's User Library
 
-1. Open Ableton Live
-2. From your file manager, drag `max-for-live-device/Ableton_DJ_MCP.amxd` onto
-   any MIDI track
-3. The device's status panel should show `MCP server running on :3350`
+```bash
+npm run install:device
+```
+
+Copies the device + bundled JS into your User Library so it shows up in Live's
+browser permanently. Cross-platform (macOS + Windows). Idempotent — re-run after
+every `npm run build` to refresh.
+
+After running:
+
+1. Open Ableton Live (or refresh the User Library in the browser)
+2. Browser → Categories → Max for Live → Max MIDI Effect → **Ableton DJ MCP**
+3. Drag onto any MIDI track. The status panel should show
+   `MCP server running on :3350`.
+
+To make the device load automatically in every new Live set:
+
+1. Drop the device onto a return or master track
+2. File → Save Live Set as Default Set
+3. Every new Live set will now auto-load the device
+
+### Manual install (alternative)
+
+If you'd rather skip the script, drag `max-for-live-device/Ableton_DJ_MCP.amxd`
+onto any MIDI track from your file manager. The device only persists in that one
+Live set — for permanent install, use `npm run install:device`.
 
 ## Wire up your AI client
 
