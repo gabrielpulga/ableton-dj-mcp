@@ -29287,7 +29287,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.8.0";
+const VERSION = "1.9.0";
 
 const MAX_SPLIT_POINTS = 32;
 
