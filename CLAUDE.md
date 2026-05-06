@@ -84,7 +84,7 @@ To capture a new validated finding, run `/update-docs` (loads
 
 | Domain     | Tools                                           |
 | ---------- | ----------------------------------------------- |
-| Workflow   | `connect`, `context`, `read-samples`            |
+| Workflow   | `connect`, `context`                            |
 | Live Set   | `read-live-set`, `update-live-set`              |
 | Track      | `read-track`, `create-track`, `update-track`    |
 | Scene      | `read-scene`, `create-scene`, `update-scene`    |
