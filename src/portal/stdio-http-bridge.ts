@@ -19,6 +19,7 @@ import { errorMessage } from "#src/shared/error-utils.ts";
 import { formatErrorResponse } from "#src/shared/mcp-response-utils.ts";
 import { VERSION } from "#src/shared/version.ts";
 import { logger } from "./file-logger.ts";
+import { LazyBoot } from "./lazy-boot.ts";
 
 const SETUP_URL = "https://ableton-dj-mcp.org/installation";
 
@@ -59,11 +60,15 @@ export class StdioHttpBridge {
   private isConnected = false;
   private fallbackTools: { tools: FallbackTool[] };
   private smallModelMode: boolean;
+  private lazyBoot: LazyBoot;
 
   constructor(httpUrl: string, options: BridgeOptions = {}) {
     this.httpUrl = httpUrl;
     this.smallModelMode = options.smallModelMode ?? false;
     this.fallbackTools = this._generateFallbackTools();
+    this.lazyBoot = new LazyBoot({
+      serverOrigin: httpUrl.replace(/\/mcp$/, ""),
+    });
   }
 
   private _generateFallbackTools(): { tools: FallbackTool[] } {
@@ -168,6 +173,21 @@ Tell the user to check ${SETUP_URL} for configuration help.
         }
 
         this.httpClient = null;
+      }
+
+      const bootResult = await this.lazyBoot.tryBoot();
+
+      if (bootResult.succeeded) {
+        logger.info("[Bridge] Lazy-boot succeeded, retrying HTTP connection");
+        await this._ensureHttpConnection();
+
+        return;
+      }
+
+      if (bootResult.attempted) {
+        logger.error(
+          `[Bridge] Lazy-boot attempted but did not recover: ${bootResult.reason ?? "unknown"}`,
+        );
       }
 
       throw new Error(
