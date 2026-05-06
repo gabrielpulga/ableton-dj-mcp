@@ -795,7 +795,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.8.0";
+const VERSION = "1.9.0";
 
 var RequestError = class extends Error {
   constructor(message, options) {

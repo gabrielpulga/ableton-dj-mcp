@@ -392,4 +392,18 @@ describe("connect", () => {
     expect(result.liveSet.name).toBeUndefined();
     expect(result.liveSet).not.toHaveProperty("name");
   });
+
+  it("unwraps array return from get_version_string", () => {
+    setupConnectScenario(createLiveSetConfig());
+    vi.mocked(getHostTrackIndex).mockReturnValue(0);
+    registerMockObject("live_app", {
+      path: "live_app",
+      type: "Application",
+      methods: {
+        get_version_string: () => ["12.4b7"],
+      },
+    });
+
+    expect(connect().abletonLiveVersion).toBe("12.4b7");
+  });
 });

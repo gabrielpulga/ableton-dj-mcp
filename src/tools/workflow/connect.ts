@@ -49,7 +49,10 @@ export function connect(
   const returnTrackIds = liveSet.getChildIds("return_tracks");
   const sceneIds = liveSet.getChildIds("scenes");
 
-  const abletonLiveVersion = liveApp.call("get_version_string") as string;
+  const rawVersion = liveApp.call("get_version_string");
+  const abletonLiveVersion = Array.isArray(rawVersion)
+    ? String(rawVersion[0])
+    : String(rawVersion);
 
   // Build liveSet overview matching readLiveSet default response
   const liveSetName = liveSet.getProperty("name");

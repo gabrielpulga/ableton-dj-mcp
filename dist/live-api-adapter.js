@@ -1090,7 +1090,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.8.0";
+const VERSION = "1.9.0";
 
 const MIN_LIVE_VERSION = "12.3.0";
 
@@ -19154,7 +19154,8 @@ function connect(_params = {}, context = {}) {
   const trackIds = liveSet.getChildIds("tracks");
   const returnTrackIds = liveSet.getChildIds("return_tracks");
   const sceneIds = liveSet.getChildIds("scenes");
-  const abletonLiveVersion = liveApp.call("get_version_string");
+  const rawVersion = liveApp.call("get_version_string");
+  const abletonLiveVersion = Array.isArray(rawVersion) ? String(rawVersion[0]) : String(rawVersion);
   const liveSetName = liveSet.getProperty("name");
   const liveSetInfo = {
     ...liveSetName ? {
@@ -19438,7 +19439,8 @@ log(`[${now()}] Ableton DJ MCP ${VERSION} Live API adapter ready`);
 outlet(0, "started");
 
 function checkLiveVersion() {
-  const liveVersion = LiveAPI.from("live_app").call("get_version_string");
+  const raw = LiveAPI.from("live_app").call("get_version_string");
+  const liveVersion = Array.isArray(raw) ? String(raw[0]) : String(raw);
   if (isNewerVersion(liveVersion, MIN_LIVE_VERSION)) {
     outlet(0, "min_live_version_not_met", liveVersion, MIN_LIVE_VERSION);
   }
