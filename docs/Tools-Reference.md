@@ -175,9 +175,16 @@ Control transport, session clips, and Live set history.
   - `"undo"` — undo last Live set action
   - `"redo"` — redo last undone action
   - `"save"` — save Live set to disk
+  - `"back-to-arranger"` — clear session override so arrangement resumes
+  - `"capture-midi"` — capture buffered MIDI into a clip retroactively
+  - `"capture-scene"` — snapshot playing session clips into a new scene
+  - `"record"` — toggle arrangement record mode
+  - `"re-enable-automation"` — re-engage automation overridden by manual edits
 - Response includes `playing`, `currentTime`, optional `arrangementLoop`.
 - For `"undo"` / `"redo"` / `"save"`, response also includes `canUndo` and
   `canRedo` booleans — check these before calling undo/redo to avoid no-ops.
+- For `"record"`, response includes `recording: boolean` reflecting the new
+  record-mode state.
 
 ---
 
