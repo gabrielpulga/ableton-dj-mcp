@@ -17,28 +17,17 @@ docker compose run check  # same as npm run check, in isolation
 
 ## Architecture
 
-```
-AI Client (Claude Desktop, etc.)
-    ↓ stdio
-src/portal/ableton-dj-mcp-portal.ts   ← bridges stdio to HTTP
-    ↓ HTTP :3350
-src/mcp-server/                        ← Express server + MCP protocol handler
-    ↓ internal dispatch
-src/tools/                             ← 21 MCP tool implementations (adj-*)
-    ↓ HTTP to Max
-src/live-api-adapter/                  ← runs in Max's V8 inside .amxd
-    ↓ LiveAPI globals
-Ableton Live
-```
-
 The server runs **inside a Max for Live device** (the `.amxd`). The portal runs
-externally as a standalone Node process.
+externally as a standalone Node process bridging the MCP client over stdio to
+the in-device server on `:3350`.
+
+Full diagram, language choices, build system, message protocol:
+[`docs/contributing/Architecture.md`](docs/contributing/Architecture.md).
 
 ## Project map
 
-See `docs/PROJECT_INDEX.md` — full directory map, tool list, entry points, build
-system, notation system. See `docs/` for deeper documentation on specific
-topics.
+[`docs/PROJECT_INDEX.md`](docs/PROJECT_INDEX.md) — directory map, entry points,
+constants, env flags. [`docs/`](docs/) has deeper docs on specific topics.
 
 ## Music vs dev context
 
@@ -80,48 +69,32 @@ is the lookup key.
 To capture a new validated finding, run `/update-docs` (loads
 `docs/findings/HOW-TO-WRITE.md`).
 
-## 22 Tools (all prefixed `adj-`)
+## Tools
 
-| Domain     | Tools                                           |
-| ---------- | ----------------------------------------------- |
-| Workflow   | `connect`, `context`                            |
-| Live Set   | `read-live-set`, `update-live-set`              |
-| Track      | `read-track`, `create-track`, `update-track`    |
-| Scene      | `read-scene`, `create-scene`, `update-scene`    |
-| Clip       | `read-clip`, `create-clip`, `update-clip`       |
-| Device     | `read-device`, `create-device`, `update-device` |
-| Operations | `delete`, `duplicate`                           |
-| Control    | `select`, `playback`                            |
-| Generative | `generate` (Euclidean rhythms, no Live API)     |
-| Dev-only   | `raw-live-api` (env flag required)              |
-
-Each tool has a `.def.ts` (Zod schema) and a `.ts` (implementation).
+22 tools, all prefixed `adj-`. Each tool has a `.def.ts` (Zod schema) and a
+`.ts` (implementation). Full catalog with action lists and parameters:
+[`docs/Tools-Reference.md`](docs/Tools-Reference.md).
 
 ## Coding rules
 
-- `.js` extensions in all imports (`import x from './foo.js'`)
-- Path alias `#src/*` instead of `../` imports in `src/`
-- Zod schemas: primitives and enums only — no `.object()` nesting in tool params
-- `== null` over `=== null` (catches both null and undefined)
-- Optimistic results for playback operations (don't wait for Live to confirm)
-- Tool functions receive args object: `(args) => fn(args)` not destructured
+Full standards:
+[`docs/contributing/Coding-Standards.md`](docs/contributing/Coding-Standards.md).
 
 ## Notation
 
-- **Bar|beat positions**: `17|1` (bar 17, beat 1). Grammar:
-  `src/notation/barbeat/`
-- **Transform expressions**: `velocity += rand(-5, 5)`. Grammar:
-  `src/notation/transform/`
-- Parsers are Peggy-generated — run `npm run parser:build` after changing
-  `.peggy` files
+Two DSLs, both Peggy-generated. Run `npm run parser:build` after changing
+`.peggy` files.
 
-## Build outputs (`dist/`)
+- **Bar|beat positions** (`17|1`) —
+  [`docs/specs/BarBeat-Spec.md`](docs/specs/BarBeat-Spec.md)
+- **Transform expressions** (`velocity += rand(-5, 5)`) —
+  [`docs/specs/Transforms-Spec.md`](docs/specs/Transforms-Spec.md)
 
-| File                            | Destination                           |
-| ------------------------------- | ------------------------------------- |
-| `dist/live-api-adapter.js`      | Copy into .amxd (runs in Max V8)      |
-| `dist/mcp-server.mjs`           | Copy into .amxd (runs in Node.js)     |
-| `dist/ableton-dj-mcp-portal.js` | Run directly — bridges stdio to :3350 |
+## Build outputs
+
+Three bundles in `dist/`. Full table (entries, targets, purposes) in
+[`docs/contributing/Architecture.md`](docs/contributing/Architecture.md). Deploy
+steps: [`docs/Releasing.md`](docs/Releasing.md).
 
 ## Branching
 

@@ -155,11 +155,15 @@ These come from the MCP SDK's dependencies and don't affect functionality.
 
 ### Build Validation
 
-After building, verify:
+After `npm run build`, verify all three bundles exist in `dist/`:
 
-1. `max-for-live-device/mcp-server.mjs` exists and is > 1MB
-2. `max-for-live-device/main.js` exists
-3. No unexpected errors in build output
+1. `dist/mcp-server.mjs` (large — bundles @modelcontextprotocol/sdk + express)
+2. `dist/live-api-adapter.js`
+3. `dist/ableton-dj-mcp-portal.js`
+4. No unexpected errors in build output
+
+Deploying these to Live requires copying them into `max-for-live-device/`. See
+[Releasing.md](../Releasing.md).
 
 ## Testing Workflows
 

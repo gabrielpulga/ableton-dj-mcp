@@ -1,7 +1,7 @@
 # Tools Reference
 
-Quick reference for all 22 `adj-*` tools. Read the `.def.ts` files for the full
-Zod schemas.
+Canonical catalog of all 22 `adj-*` tools. Other docs link here instead of
+duplicating. Read the `.def.ts` files for the full Zod schemas.
 
 ---
 

@@ -1,35 +1,40 @@
 # Project Index
 
-Quick reference for the entire codebase. Use this to orient before any task.
+Pure index for the codebase. Each line points to a source-of-truth file. Use
+this to orient before any task; load the linked file when relevant.
 
-## Architecture
+## Architecture and build
 
-```
-AI Client (Claude Desktop, etc.)
-  -> MCP protocol (stdio or HTTP)
-    -> Portal bridge (src/portal/) converts stdio <-> HTTP
-      -> Express server on port 3350
-        -> MCP Server (src/mcp-server/) dispatches tool calls
-          -> Tool implementations (src/tools/ + src/live-api-adapter/)
-            -> Ableton Live JS API
-```
+- [contributing/Architecture.md](contributing/Architecture.md) — dataflow
+  diagram, language choices, three rollup bundles, message protocol, Live API
+  interface
+- [Releasing.md](Releasing.md) — release-please flow, local deploy steps
+  (`dist/` → `max-for-live-device/`), version verification
 
-## 22 MCP Tools
+## Tools
 
-All prefixed `adj-`.
+- [Tools-Reference.md](Tools-Reference.md) — canonical catalog of all 22 `adj-*`
+  tools, with actions and parameters
+- [contributing/Read-Tool-Includes.md](contributing/Read-Tool-Includes.md) —
+  `include` parameter conventions for all read tools
+- [contributing/Arrangement-Operations.md](contributing/Arrangement-Operations.md)
+  — Live API constraints driving arrangement clip algorithms
 
-| Domain     | Tools                                                |
-| ---------- | ---------------------------------------------------- |
-| Workflow   | `connect`, `context`                                 |
-| Live Set   | `read-live-set`, `update-live-set`                   |
-| Track      | `read-track`, `create-track`, `update-track`         |
-| Scene      | `read-scene`, `create-scene`, `update-scene`         |
-| Clip       | `read-clip`, `create-clip`, `update-clip`            |
-| Device     | `read-device`, `create-device`, `update-device`      |
-| Operations | `delete`, `duplicate`                                |
-| Control    | `select`, `playback`                                 |
-| Generative | `generate` (algorithmic patterns, no Live API)       |
-| Dev-only   | `raw-live-api` (requires `ENABLE_RAW_LIVE_API=true`) |
+## Notation systems
+
+- [specs/BarBeat-Spec.md](specs/BarBeat-Spec.md) — bar|beat MIDI notation
+  (`src/notation/barbeat/`)
+- [specs/Transforms-Spec.md](specs/Transforms-Spec.md) — transform DSL
+  (`src/notation/transform/`)
+
+## Code conventions and dev workflow
+
+- [contributing/Coding-Standards.md](contributing/Coding-Standards.md) — file
+  naming, imports, style, Zod, `livePath` builders, coverage rules, testing
+- [contributing/Development-Tools.md](contributing/Development-Tools.md) —
+  `adj-client.ts`, raw Live API tool, MCP Inspector, debug builds, log files
+- [findings/INDEX.md](findings/INDEX.md) — validated facts from prior sessions
+  (load before non-trivial work)
 
 ## Code Layers
 
@@ -44,36 +49,28 @@ Each tool has 3 layers:
 
 ## Key Directories
 
-| Dir                     | Purpose                                                |
-| ----------------------- | ------------------------------------------------------ | -------------------------------------------- |
-| `src/mcp-server/`       | MCP server creation, Express app, Max API adapter      |
-| `src/tools/`            | All tool definitions + implementations                 |
-| `src/live-api-adapter/` | Tool dispatch to Ableton Live API (runs in Max V8)     |
-| `src/portal/`           | Node CLI bridge (stdio to HTTP)                        |
-| `src/notation/`         | Bar                                                    | beat parser + transform expression evaluator |
-| `src/skills/`           | Tool set definitions (basic/standard/electronic-music) |
-| `src/shared/`           | Version, pitch, errors, serialization utils            |
-| `e2e/`                  | End-to-end tests against live Ableton instance         |
-| `config/`               | Rollup, Vitest, ESLint, jscpd configs                  |
-| `scripts/`              | Dev utilities: adj-client, loc counter, open-live-set  |
-| `dist/`                 | Build output (git-ignored)                             |
+| Dir                     | Purpose                                                    |
+| ----------------------- | ---------------------------------------------------------- |
+| `src/mcp-server/`       | MCP server creation, Express app, Max API adapter          |
+| `src/tools/`            | All tool definitions + implementations                     |
+| `src/live-api-adapter/` | Tool dispatch to Ableton Live API (runs in Max V8)         |
+| `src/portal/`           | Node CLI bridge (stdio to HTTP)                            |
+| `src/notation/`         | bar\|beat parser + transform expression evaluator          |
+| `src/skills/`           | Tool set definitions (basic / standard / electronic-music) |
+| `src/shared/`           | Version, pitch, errors, serialization, `livePath` builders |
+| `e2e/`                  | End-to-end tests against a live Ableton instance           |
+| `config/`               | Rollup, Vitest, ESLint, jscpd configs                      |
+| `scripts/`              | Dev utilities: `adj-client.ts`, loc counter, open-live-set |
+| `dist/`                 | Build output (git-ignored)                                 |
+| `max-for-live-device/`  | `.amxd` device + sibling JS bundles loaded by Max          |
 
 ## Entry Points
 
 | Method       | Entry                           | What Happens                                          |
 | ------------ | ------------------------------- | ----------------------------------------------------- |
-| Max for Live | `.amxd` device (from dist/)     | Hosts Express on :3350, runs MCP server in Max's Node |
+| Max for Live | `.amxd` device (from `dist/`)   | Hosts Express on :3350, runs MCP server in Max's Node |
 | Portal       | `dist/ableton-dj-mcp-portal.js` | Runs standalone, bridges stdio to :3350               |
 | Dev portal   | `npm run dev`                   | Rollup watch + portal in dev mode                     |
-
-## Notation Systems
-
-- **Bar|Beat**: `17|1` = bar 17, beat 1. Grammar:
-  `src/notation/barbeat/parser/barbeat-grammar.peggy`
-- **Transforms**: `velocity += rand(-5, 5)`. Grammar:
-  `src/notation/transform/parser/transform-grammar.peggy`
-- Both parsers generated by Peggy into `generated-*-parser.js` — run
-  `npm run parser:build`
 
 ## Constants (`src/tools/constants.ts`)
 
@@ -91,14 +88,6 @@ Each tool has 3 layers:
 | `ENABLE_CODE_EXEC`    | Allow code execution in clips   |
 | `ENABLE_DEV_CORS`     | CORS for external MCP Inspector |
 | `ENABLE_WARP_MARKERS` | Enable warp marker read/write   |
-
-## Build Pipeline
-
-```
-npm run build =
-  parser:build  (Peggy -> JS parsers)
-  + rollup      (-> dist/live-api-adapter.js, dist/mcp-server.mjs, dist/ableton-dj-mcp-portal.js)
-```
 
 ## Ports
 
