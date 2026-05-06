@@ -60,6 +60,38 @@ This is the foundation for self-bootstrap: an MCP-aware AI client can call
 `start:live` to bring up Live in the right state without the human having to
 drag anything.
 
+## Self-bootstrap (opt-in)
+
+Set `ADJ_AUTO_BOOT=true` in your MCP client config to let the portal launch Live
+automatically when it can't reach `:3350`. macOS only for now.
+
+Behavior:
+
+- **Live closed** → portal launches Live (`open -b com.ableton.live`), polls
+  `:3350` for up to 30 seconds, then forwards your tool call.
+- **Live open with device** → noop, business as usual.
+- **Live open without device** → portal does **not** auto-relaunch (would
+  destroy unsaved work). Returns the standard setup error.
+- **Single attempt per portal lifetime** — if boot fails, subsequent calls
+  return the standard error.
+
+Example for Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "ableton-dj-mcp": {
+      "command": "node",
+      "args": ["/absolute/path/to/dist/ableton-dj-mcp-portal.js"],
+      "env": { "ADJ_AUTO_BOOT": "true" }
+    }
+  }
+}
+```
+
+For Claude Code, set the env var in the shell that launches it, or pass it
+through `claude mcp add` configuration.
+
 ## Wire up your AI client
 
 ### Claude Code
