@@ -14147,6 +14147,51 @@ function handlePlayScene(sceneIndex, state) {
   };
 }
 
+function handleStandalonePlaybackAction(action) {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+  let recording;
+  switch (action) {
+   case "back-to-arranger":
+    liveSet.set("back_to_arranger", 0);
+    break;
+
+   case "capture-midi":
+    liveSet.call("capture_midi");
+    break;
+
+   case "capture-scene":
+    liveSet.call("capture_and_insert_scene");
+    break;
+
+   case "record":
+    {
+      const current = liveSet.getProperty("record_mode") > 0;
+      const next = !current;
+      liveSet.set("record_mode", next ? 1 : 0);
+      recording = next;
+      break;
+    }
+
+   case "re-enable-automation":
+    liveSet.call("re_enable_automation");
+    break;
+
+   default:
+    throw new Error(`playback failed: unknown standalone action "${String(action)}"`);
+  }
+  const numerator = liveSet.getProperty("signature_numerator");
+  const denominator = liveSet.getProperty("signature_denominator");
+  const currentTimeBeats = liveSet.getProperty("current_song_time");
+  const result = {
+    playing: liveSet.getProperty("is_playing") > 0,
+    currentTime: abletonBeatsToBarBeat(currentTimeBeats, numerator, denominator)
+  };
+  if (recording != null) {
+    result.recording = recording;
+  }
+  return result;
+}
+
 function handleLiveSetHistory(action) {
   const liveSet = LiveAPI.from(livePath.liveSet);
   switch (action) {
@@ -14176,12 +14221,21 @@ function handleLiveSetHistory(action) {
   };
 }
 
+const STANDALONE_ACTIONS = new Set([ "back-to-arranger", "capture-midi", "capture-scene", "record", "re-enable-automation" ]);
+
+function isStandaloneAction(action) {
+  return STANDALONE_ACTIONS.has(action);
+}
+
 function playback({action: action, startTime: startTime, startLocator: startLocator, loop: loop, loopStart: loopStart, loopStartLocator: loopStartLocator, loopEnd: loopEnd, loopEndLocator: loopEndLocator, sceneIndex: sceneIndex, ids: ids, slots: slots, focus: focus} = {}, _context = {}) {
   if (!action) {
     throw new Error("playback failed: action is required");
   }
   if (action === "undo" || action === "redo" || action === "save") {
     return handleLiveSetHistory(action);
+  }
+  if (isStandaloneAction(action)) {
+    return handleStandalonePlaybackAction(action);
   }
   if (ids != null && slots != null) {
     throw new Error("playback failed: ids and slots are mutually exclusive");
