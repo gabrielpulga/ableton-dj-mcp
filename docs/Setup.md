@@ -4,9 +4,7 @@ Install and run Ableton DJ MCP.
 
 ## Requirements
 
-- Ableton Live 12.3+ with Max for Live
-- Node.js 24+
-- An MCP-compatible AI client (Claude Desktop, Claude Code, Cursor)
+See [Requirements](../README.md#requirements) in the README.
 
 ## Install
 
