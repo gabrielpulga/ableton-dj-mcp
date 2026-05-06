@@ -294,6 +294,82 @@ interface LiveSetHistoryResult {
 
 export type LiveSetHistoryAction = "undo" | "redo" | "save";
 
+export type StandalonePlaybackAction =
+  | "back-to-arranger"
+  | "capture-midi"
+  | "capture-scene"
+  | "record"
+  | "re-enable-automation";
+
+interface StandalonePlaybackResult {
+  playing: boolean;
+  currentTime: string;
+  recording?: boolean;
+}
+
+/**
+ * Handle standalone Live set workflow actions that don't take transport or
+ * loop params (back-to-arranger, capture-midi, capture-scene, record,
+ * re-enable-automation).
+ *
+ * @param action - The standalone action to perform
+ * @returns Current transport state plus optional recording flag for record
+ */
+export function handleStandalonePlaybackAction(
+  action: StandalonePlaybackAction,
+): StandalonePlaybackResult {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+  let recording: boolean | undefined;
+
+  switch (action) {
+    case "back-to-arranger":
+      liveSet.set("back_to_arranger", 0);
+      break;
+    case "capture-midi":
+      liveSet.call("capture_midi");
+      break;
+    case "capture-scene":
+      liveSet.call("capture_and_insert_scene");
+      break;
+
+    case "record": {
+      const current = (liveSet.getProperty("record_mode") as number) > 0;
+      const next = !current;
+
+      liveSet.set("record_mode", next ? 1 : 0);
+      recording = next;
+      break;
+    }
+
+    case "re-enable-automation":
+      liveSet.call("re_enable_automation");
+      break;
+    default:
+      throw new Error(
+        `playback failed: unknown standalone action "${String(action)}"`,
+      );
+  }
+
+  const numerator = liveSet.getProperty("signature_numerator") as number;
+  const denominator = liveSet.getProperty("signature_denominator") as number;
+  const currentTimeBeats = liveSet.getProperty("current_song_time") as number;
+
+  const result: StandalonePlaybackResult = {
+    playing: (liveSet.getProperty("is_playing") as number) > 0,
+    currentTime: abletonBeatsToBarBeat(
+      currentTimeBeats,
+      numerator,
+      denominator,
+    ),
+  };
+
+  if (recording != null) {
+    result.recording = recording;
+  }
+
+  return result;
+}
+
 /**
  * Handle undo/redo/save on the Live set.
  *

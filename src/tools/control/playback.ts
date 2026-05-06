@@ -12,11 +12,13 @@ import {
   handleLiveSetHistory,
   handlePlayArrangement,
   handlePlayScene,
+  handleStandalonePlaybackAction,
   resolveLoopEnd,
   resolveLoopStart,
   resolveStartTime,
   validateLocatorOrTime,
   type PlaybackState,
+  type StandalonePlaybackAction,
 } from "./helpers/playback-helpers.ts";
 import { select } from "./select.ts";
 
@@ -50,6 +52,21 @@ interface PlaybackResult {
   arrangementLoop?: { start: string; end: string };
   canUndo?: boolean;
   canRedo?: boolean;
+  recording?: boolean;
+}
+
+const STANDALONE_ACTIONS = new Set<StandalonePlaybackAction>([
+  "back-to-arranger",
+  "capture-midi",
+  "capture-scene",
+  "record",
+  "re-enable-automation",
+]);
+
+function isStandaloneAction(
+  action: string,
+): action is StandalonePlaybackAction {
+  return STANDALONE_ACTIONS.has(action as StandalonePlaybackAction);
 }
 
 interface BuildPlaybackResultParams {
@@ -105,6 +122,12 @@ export function playback(
   // undo/redo/save don't interact with transport or loop params
   if (action === "undo" || action === "redo" || action === "save") {
     return handleLiveSetHistory(action);
+  }
+
+  // back-to-arranger, capture-midi, capture-scene, record, re-enable-automation
+  // are standalone workflow actions that bypass transport/loop param handling
+  if (isStandaloneAction(action)) {
+    return handleStandalonePlaybackAction(action);
   }
 
   if (ids != null && slots != null) {

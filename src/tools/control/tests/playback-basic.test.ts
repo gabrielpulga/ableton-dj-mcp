@@ -624,4 +624,120 @@ describe("transport", () => {
     );
     expect(liveSet.set).not.toHaveBeenCalledWith("loop", expect.anything());
   });
+
+  it("should handle back-to-arranger action", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 8,
+    });
+
+    const result = playback({ action: "back-to-arranger" });
+
+    expectLiveSetProperty(liveSet, "back_to_arranger", 0);
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "3|1",
+    });
+  });
+
+  it("should handle capture-midi action", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 4,
+    });
+
+    const result = playback({ action: "capture-midi" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("capture_midi");
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "2|1",
+    });
+  });
+
+  it("should handle capture-scene action", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "capture-scene" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("capture_and_insert_scene");
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "1|1",
+    });
+  });
+
+  it("should toggle record on when record_mode is off", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 0,
+      current_song_time: 0,
+      record_mode: 0,
+    });
+
+    const result = playback({ action: "record" });
+
+    expectLiveSetProperty(liveSet, "record_mode", 1);
+    expect(result).toStrictEqual({
+      playing: false,
+      currentTime: "1|1",
+      recording: true,
+    });
+  });
+
+  it("should toggle record off when record_mode is on", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+      record_mode: 1,
+    });
+
+    const result = playback({ action: "record" });
+
+    expectLiveSetProperty(liveSet, "record_mode", 0);
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "1|1",
+      recording: false,
+    });
+  });
+
+  it("should handle re-enable-automation action", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "re-enable-automation" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("re_enable_automation");
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "1|1",
+    });
+  });
+
+  it("should not touch transport or loop params for standalone actions", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 0,
+      current_song_time: 0,
+    });
+
+    playback({
+      action: "back-to-arranger",
+      startTime: "5|1",
+      loop: true,
+      loopStart: "1|1",
+      loopEnd: "3|1",
+    });
+
+    expectLiveSetProperty(liveSet, "back_to_arranger", 0);
+    expect(liveSet.set).not.toHaveBeenCalledWith(
+      "start_time",
+      expect.anything(),
+    );
+    expect(liveSet.set).not.toHaveBeenCalledWith("loop", expect.anything());
+  });
 });

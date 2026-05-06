@@ -27,6 +27,11 @@ export const toolDefPlayback = defineTool("adj-playback", {
         "undo",
         "redo",
         "save",
+        "back-to-arranger",
+        "capture-midi",
+        "capture-scene",
+        "record",
+        "re-enable-automation",
       ])
       .describe(
         `play-arrangement: from startTime
@@ -38,7 +43,12 @@ stop-all-session-clips: all
 stop: session and arrangement
 undo: undo last Live set action (check canUndo before)
 redo: redo last undone action (check canRedo before)
-save: save the Live set to disk`,
+save: save the Live set to disk
+back-to-arranger: clear session override so arrangement resumes
+capture-midi: retroactively capture buffered MIDI into a clip
+capture-scene: capture currently playing session clips into a new scene
+record: toggle arrangement record mode (returns recording state)
+re-enable-automation: re-engage automation overridden by manual changes`,
       ),
     startTime: z
       .string()

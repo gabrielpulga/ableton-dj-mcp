@@ -429,6 +429,9 @@ control.
 
 ## Gap 11: Capture MIDI
 
+**Status:** Shipped — `capture-midi` and `capture-scene` actions on
+`adj-playback`.
+
 **What it is:** Trigger Live's "Capture MIDI" feature — retroactively captures
 notes you just played from Live's MIDI buffer, even before you hit record. Also
 `capture_and_insert_scene` — captures all currently playing clips and creates a
@@ -621,6 +624,9 @@ was set. Verify if our read-device already returns them.
 ---
 
 ## Gap 15: `back_to_arranger` / Record
+
+**Status:** Shipped — `back-to-arranger`, `record`, `re-enable-automation`
+actions on `adj-playback`.
 
 **What it is:** `back_to_arranger` dismisses session view override (red "Back to
 Arrangement" button in Live). `start_recording` / `stop_recording` arm
