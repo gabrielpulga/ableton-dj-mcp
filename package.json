@@ -56,6 +56,7 @@
     "loc": "node scripts/loc/loc.ts",
     "init:workspace": "node scripts/init-workspace.ts",
     "install:device": "node scripts/install-device.ts",
+    "start:live": "node scripts/start-live.ts",
     "tc": "npm run typecheck",
     "typecheck": "echo 'Typechecking...' && node scripts/run-parallel.ts typecheck:src typecheck:scripts typecheck:e2e && echo 'No typecheck violations.\n'",
     "typecheck:src": "tsc --project src/tsconfig.json",

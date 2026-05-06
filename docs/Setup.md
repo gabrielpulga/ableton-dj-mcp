@@ -44,6 +44,22 @@ If you'd rather skip the script, drag `max-for-live-device/Ableton_DJ_MCP.amxd`
 onto any MIDI track from your file manager. The device only persists in that one
 Live set — for permanent install, use `npm run install:device`.
 
+## Launch Live from the terminal
+
+```bash
+npm run start:live                 # launch Live (whatever the OS opens by default)
+npm run start:live -- path.als     # launch Live with a specific .als file
+npm run start:live -- --template   # launch Live with the bundled template.als
+```
+
+The `--template` flag opens a bundled `template.als` (a Live set with the device
+pre-loaded on a return track). The template ships separately from this PR — if
+the file doesn't exist yet, the script errors clearly.
+
+This is the foundation for self-bootstrap: an MCP-aware AI client can call
+`start:live` to bring up Live in the right state without the human having to
+drag anything.
+
 ## Wire up your AI client
 
 ### Claude Code
