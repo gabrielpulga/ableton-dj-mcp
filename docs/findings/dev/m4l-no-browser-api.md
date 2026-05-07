@@ -40,8 +40,8 @@ v8liveapi: 'Application' object has no attribute 'browser'
 ## Apply when
 
 Designing tools that need to enumerate Live's library (instruments, effects,
-samples, presets, drum kits) or load items by browser URI. The Python LOM
-docs describing `Application.Browser` do not apply to Max for Live JS. A
-Python remote script sidecar (with UDP/TCP IPC to Node) is the only path
-that fully exposes the Browser API. See
+samples, presets, drum kits) or load items by browser URI. The Python LOM docs
+describing `Application.Browser` do not apply to Max for Live JS. A Python
+remote script sidecar (with UDP/TCP IPC to Node) is the only path that fully
+exposes the Browser API. See
 [`docs/specs/Browser-Bridge-Spec.md`](../../specs/Browser-Bridge-Spec.md).

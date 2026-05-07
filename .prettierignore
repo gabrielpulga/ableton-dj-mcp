@@ -4,6 +4,7 @@ CHANGELOG.md
 coverage
 knowledge-base
 src/**/generated-*-parser.js
+src/generated/
 max-for-live-device
 claude-desktop-extension
 npm/*.js
