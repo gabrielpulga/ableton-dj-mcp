@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.10.0...ableton-dj-mcp-v1.11.0) (2026-05-07)
+
+
+### Features
+
+* build-info banner + [#26](https://github.com/gabrielpulga/ableton-dj-mcp/issues/26) design pivot ([#117](https://github.com/gabrielpulga/ableton-dj-mcp/issues/117)) ([2e07db7](https://github.com/gabrielpulga/ableton-dj-mcp/commit/2e07db7bb3eb623b4524026a153846958d9ce3ad))
+* Live Browser Bridge — adj-browse + browserUri loading via Python sidecar ([#119](https://github.com/gabrielpulga/ableton-dj-mcp/issues/119)) ([cf5b9d7](https://github.com/gabrielpulga/ableton-dj-mcp/commit/cf5b9d7ce12fbdb82a10234867336eb199a56eb1))
+
 ## [1.10.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.9.0...ableton-dj-mcp-v1.10.0) (2026-05-07)
 
 
