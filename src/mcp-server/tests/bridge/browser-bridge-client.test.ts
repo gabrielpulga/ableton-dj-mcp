@@ -125,9 +125,13 @@ describe("BrowserBridgeClient", () => {
     };
 
     const promise = client.browse({}, 50);
+    // Attach the rejection assertion BEFORE advancing fake timers so the
+    // promise's catch handler is in place when the timeout fires. Otherwise
+    // vitest reports a transient unhandled rejection and exits non-zero in CI.
+    const assertion = expect(promise).rejects.toThrow(/timed out/i);
 
     await vi.advanceTimersByTimeAsync(60);
-    await expect(promise).rejects.toThrow(/timed out/i);
+    await assertion;
     vi.useRealTimers();
   });
 
