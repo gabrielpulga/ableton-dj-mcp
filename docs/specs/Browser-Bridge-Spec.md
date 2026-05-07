@@ -1,8 +1,11 @@
 # Browser Bridge — Specification
 
-> Status: DRAFT — under review. Issue [#26]. Supersedes the M4L-JS-only design
+> Status: IMPLEMENTED (Phase 1). Issue [#26]. Supersedes the M4L-JS-only design
 > sketched in the original issue, which was disproven by a runtime probe (see
 > [`docs/findings/dev/m4l-no-browser-api.md`](../findings/dev/m4l-no-browser-api.md)).
+>
+> Source: [`live_browser_bridge/`](../../live_browser_bridge/). Install with
+> `npm run install:bridge`. Phase 2 (auto prefs toggle) still deferred.
 
 ---
 

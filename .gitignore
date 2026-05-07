@@ -33,6 +33,10 @@ src/notation/*/parser/generated-*-parser.js
 # Generated build-info (branch/sha/dirty/buildTime baked at build)
 src/generated/
 
+# Python bytecode caches (live_browser_bridge/ ships as plain source)
+__pycache__/
+*.pyc
+
 # Generated docs artifacts
 docs/_generated
 docs/public/markdown

@@ -735,14 +735,16 @@ import require$$7$1 from "node:buffer";
 
 import require$$1$5 from "node:net";
 
-import crypto$1 from "node:crypto";
+import crypto$1, { randomUUID } from "node:crypto";
+
+import { createSocket } from "node:dgram";
 
 import os from "node:os";
 
 const BUILD_INFO = {
-  branch: "gabriel/browser-api",
-  sha: "027a3947",
-  buildTime: "2026-05-07T16:52:49.948Z"
+  branch: "gabriel/browser-bridge",
+  sha: "724f3daf",
+  buildTime: "2026-05-07T17:33:46.740Z"
 };
 
 function buildIdentifier() {
@@ -30895,6 +30897,289 @@ function errorMessage(err) {
   return err instanceof Error ? err.message : String(err);
 }
 
+const MAX_ERROR_DELIMITER = "$$___MAX_ERRORS___$$";
+
+function formatErrorResponse(errorMessage) {
+  return {
+    content: [ {
+      type: "text",
+      text: errorMessage
+    } ],
+    isError: true
+  };
+}
+
+const DEFAULT_HOST = "127.0.0.1";
+
+const DEFAULT_PORT = 11077;
+
+const DEFAULT_BROWSE_TIMEOUT_MS = 1e4;
+
+const DEFAULT_LOAD_TIMEOUT_MS = 3e4;
+
+const DEFAULT_PING_TIMEOUT_MS = 1500;
+
+const PING_FRESHNESS_MS = 3e4;
+
+const CLIENT_CLOSED_MESSAGE = "client closed";
+
+class BrowserBridgeClient {
+  host;
+  port;
+  socketFactory;
+  socket=null;
+  socketReady=null;
+  pending=new Map;
+  lastPingOkAt=0;
+  closed=false;
+  constructor(options = {}) {
+    this.host = options.host ?? DEFAULT_HOST;
+    const envPort = Number.parseInt(process.env.ADJ_BRIDGE_PORT ?? "", 10);
+    this.port = options.port ?? (Number.isFinite(envPort) ? envPort : DEFAULT_PORT);
+    this.socketFactory = options.socketFactory ?? (() => createSocket("udp4"));
+  }
+  async ping(timeoutMs = DEFAULT_PING_TIMEOUT_MS) {
+    const reply = await this.send("ping", {}, timeoutMs);
+    this.lastPingOkAt = Date.now();
+    return reply;
+  }
+  async ensureAlive() {
+    if (Date.now() - this.lastPingOkAt < PING_FRESHNESS_MS) return true;
+    try {
+      await this.ping();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async browse(args, timeoutMs = DEFAULT_BROWSE_TIMEOUT_MS) {
+    return await this.send("browse", {
+      ...args
+    }, timeoutMs);
+  }
+  async loadItem(args, timeoutMs = DEFAULT_LOAD_TIMEOUT_MS) {
+    return await this.send("load_item", {
+      ...args
+    }, timeoutMs);
+  }
+  close() {
+    this.closed = true;
+    for (const [id, pending] of this.pending) {
+      clearTimeout(pending.timer);
+      pending.resolve({
+        id: id,
+        ok: false,
+        error: {
+          code: "TIMEOUT_INTERNAL",
+          message: CLIENT_CLOSED_MESSAGE
+        }
+      });
+    }
+    this.pending.clear();
+    if (this.socket) {
+      try {
+        this.socket.close();
+      } catch {}
+      this.socket = null;
+      this.socketReady = null;
+    }
+  }
+  async send(op, args, timeoutMs) {
+    if (this.closed) {
+      throw new BridgeCallError({
+        code: "TIMEOUT_INTERNAL",
+        message: CLIENT_CLOSED_MESSAGE
+      });
+    }
+    await this.ensureSocket();
+    const closedNow = this.closed;
+    const socket = this.socket;
+    if (closedNow || !socket) {
+      throw new BridgeCallError({
+        code: closedNow ? "TIMEOUT_INTERNAL" : "BRIDGE_NOT_FOUND",
+        message: closedNow ? CLIENT_CLOSED_MESSAGE : "bridge socket unavailable"
+      });
+    }
+    const id = `req_${randomUUID()}`;
+    const request = {
+      id: id,
+      op: op,
+      args: args
+    };
+    const payload = Buffer.from(JSON.stringify(request), "utf8");
+    const replyPromise = new Promise(resolve => {
+      const timer = setTimeout(() => {
+        if (this.pending.delete(id)) {
+          resolve({
+            id: id,
+            ok: false,
+            error: {
+              code: "TIMEOUT_INTERNAL",
+              message: `bridge ${op} timed out after ${timeoutMs}ms`
+            }
+          });
+        }
+      }, timeoutMs);
+      this.pending.set(id, {
+        resolve: resolve,
+        timer: timer
+      });
+    });
+    await new Promise((resolve, reject) => {
+      socket.send(payload, this.port, this.host, err => {
+        if (err) reject(err); else resolve();
+      });
+    }).catch(err => {
+      const pending = this.pending.get(id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        this.pending.delete(id);
+      }
+      throw new BridgeCallError({
+        code: "BRIDGE_NOT_FOUND",
+        message: `udp send failed: ${err.message}`
+      });
+    });
+    const reply = await replyPromise;
+    if (!reply.ok) {
+      this.lastPingOkAt = 0;
+      throw new BridgeCallError(reply.error);
+    }
+    return reply.result;
+  }
+  ensureSocket() {
+    if (this.socketReady) return this.socketReady;
+    this.socketReady = new Promise((resolve, reject) => {
+      const socket = this.socketFactory();
+      socket.on("message", (msg, _rinfo) => this.onMessage(msg));
+      socket.on("error", err => {
+        for (const [id, pending] of this.pending) {
+          clearTimeout(pending.timer);
+          pending.resolve({
+            id: id,
+            ok: false,
+            error: {
+              code: "BRIDGE_NOT_FOUND",
+              message: `socket error: ${err.message}`
+            }
+          });
+        }
+        this.pending.clear();
+      });
+      socket.bind(0, () => {
+        this.socket = socket;
+        resolve();
+      });
+      socket.once("error", err => {
+        if (!this.socket) reject(err);
+      });
+    });
+    return this.socketReady;
+  }
+  onMessage(buf) {
+    let parsed;
+    try {
+      parsed = JSON.parse(buf.toString("utf8"));
+    } catch {
+      return;
+    }
+    const pending = this.pending.get(parsed.id);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.pending.delete(parsed.id);
+    pending.resolve(parsed);
+  }
+}
+
+class BridgeCallError extends Error {
+  code;
+  constructor(error) {
+    super(error.message);
+    this.name = "BridgeCallError";
+    this.code = error.code;
+  }
+}
+
+const INSTALL_HINT = "Bridge unavailable. Run `npm run install:bridge`, then restart Live and enable AbletonDjMcp under Preferences → Link/Tempo/MIDI → Control Surface.";
+
+function makeBridgeDispatcher(next, bridge) {
+  return async (tool, args) => {
+    if (tool === "adj-browse") {
+      return await handleBrowse(bridge, args);
+    }
+    if (tool === "adj-create-device") {
+      const cdArgs = args;
+      if (cdArgs.browserUri) {
+        return await handleCreateDeviceBrowserUri(bridge, next, cdArgs);
+      }
+    }
+    return await next(tool, args);
+  };
+}
+
+async function handleBrowse(bridge, args) {
+  if (!await bridge.ensureAlive()) {
+    return formatErrorResponse(INSTALL_HINT);
+  }
+  try {
+    const result = await bridge.browse(args);
+    return successPayload(result);
+  } catch (err) {
+    return formatErrorResponse(formatBridgeError("browse", err));
+  }
+}
+
+async function handleCreateDeviceBrowserUri(bridge, next, args) {
+  if (!args.path) {
+    return formatErrorResponse("createDevice failed: path is required when using browserUri");
+  }
+  if (!await bridge.ensureAlive()) {
+    return formatErrorResponse(INSTALL_HINT);
+  }
+  const selectArgs = {
+    path: args.path,
+    detailView: "device"
+  };
+  const selectResult = await next("adj-select", selectArgs);
+  if (selectResult.isError) return selectResult;
+  if (args.deviceName) {
+    const insertArgs = {
+      deviceName: args.deviceName,
+      path: args.path
+    };
+    if (args.name != null) insertArgs.name = args.name;
+    const insertResult = await next("adj-create-device", insertArgs);
+    if (insertResult.isError) return insertResult;
+  }
+  try {
+    const result = await bridge.loadItem({
+      uri: args.browserUri ?? ""
+    });
+    return successPayload(result);
+  } catch (err) {
+    return formatErrorResponse(formatBridgeError("load_item", err));
+  }
+}
+
+function successPayload(value) {
+  return {
+    content: [ {
+      type: "text",
+      text: JSON.stringify(value)
+    } ]
+  };
+}
+
+function formatBridgeError(op, err) {
+  if (err instanceof BridgeCallError) {
+    return `Bridge ${op} failed [${err.code}]: ${err.message}`;
+  }
+  if (err instanceof Error) {
+    return `Bridge ${op} failed: ${err.message}`;
+  }
+  return `Bridge ${op} failed: ${String(err)}`;
+}
+
 var util$2;
 
 (function(util) {
@@ -51334,14 +51619,6 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const MAX_SPLIT_POINTS = 32;
-
-const MONITORING_STATE = {
-  IN: "in",
-  AUTO: "auto",
-  OFF: "off"
-};
-
 function filterSchemaForSmallModel(schema, excludeParams, descriptionOverrides, excludeEnumValues) {
   const hasExclusions = excludeParams && excludeParams.length > 0;
   const hasOverrides = descriptionOverrides && Object.keys(descriptionOverrides).length > 0;
@@ -51426,6 +51703,32 @@ function filterExcludedEnumValues(validated, excludeEnumValues) {
   }
   return result;
 }
+
+const CATEGORY_VALUES = [ "instruments", "audio_effects", "midi_effects", "drums", "sounds", "samples", "clips", "current_project", "user_library", "user_folders", "packs", "plugins", "max_for_live" ];
+
+const toolDefBrowse = defineTool("adj-browse", {
+  title: "Browse",
+  description: "Browse Ableton Live's Library and User Library tree. Returns category roots, folder children, and loadable items with their stable browser URIs. Pair the URI with adj-create-device to load by URI. Requires the Live Browser Bridge — install with `npm run install:bridge`.",
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false
+  },
+  inputSchema: {
+    category: _enum$2(CATEGORY_VALUES).optional().describe("browser category root to enter; omit to list available categories"),
+    path: string$1().optional().describe("slash-separated names walked under the category root (e.g., 'Synths/Operator')"),
+    search: string$1().optional().describe("case-insensitive substring filter applied to children"),
+    depth: number$1().int().min(1).max(3).optional().describe("how many child levels to expand inline (default 1)"),
+    limit: number$1().int().min(1).max(500).optional().describe("maximum number of top-level items to return (default 100)")
+  }
+});
+
+const MAX_SPLIT_POINTS = 32;
+
+const MONITORING_STATE = {
+  IN: "in",
+  AUTO: "auto",
+  OFF: "off"
+};
 
 const toolDefCreateClip = defineTool("adj-create-clip", {
   title: "Create Clip",
@@ -51600,13 +51903,15 @@ const toolDefCreateDevice = defineTool("adj-create-device", {
   inputSchema: {
     deviceName: string$1().optional().describe("device name, omit to list available devices"),
     path: string$1().optional().describe("insertion path(s), required with deviceName, comma-separated for multiple (e.g., 't0' or 't0,t1,t0/d0/c0')"),
-    name: string$1().optional().describe("name for all, or comma-separated for each")
+    name: string$1().optional().describe("name for all, or comma-separated for each"),
+    browserUri: string$1().optional().describe("browser URI from adj-browse to load the exact item; pass with deviceName='Drum Rack' to load a kit into a freshly-inserted rack. Requires the Live Browser Bridge.")
   },
   smallModelModeConfig: {
     excludeParams: [],
     descriptionOverrides: {
       path: "insertion path, required with deviceName (e.g., 't0', 't0/d1', 't0/d0/c0')",
-      name: "display name"
+      name: "display name",
+      browserUri: "URI from adj-browse to load by browser"
     }
   }
 });
@@ -51993,7 +52298,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
 
 const TOOL_NAMES = Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 
@@ -52011,18 +52316,6 @@ function createMcpServer(callLiveApi, options = {}) {
     });
   }
   return server;
-}
-
-const MAX_ERROR_DELIMITER = "$$___MAX_ERRORS___$$";
-
-function formatErrorResponse(errorMessage) {
-  return {
-    content: [ {
-      type: "text",
-      text: errorMessage
-    } ],
-    isError: true
-  };
 }
 
 const SILENCE_WAV = require$$8.join(os.tmpdir(), "adj-silence.wav");
@@ -52250,6 +52543,10 @@ function unwrapMcpResponse(mcpResponse) {
   };
 }
 
+const bridgeClient = new BrowserBridgeClient;
+
+const dispatchLiveApi = makeBridgeDispatcher(callLiveApi, bridgeClient);
+
 const config = {
   memoryEnabled: false,
   memoryContent: "",
@@ -52310,7 +52607,7 @@ function createExpressApp() {
   app.post("/mcp", async (req, res) => {
     try {
       info("New MCP connection: " + JSON.stringify(req.body));
-      const server = createMcpServer(callLiveApi, {
+      const server = createMcpServer(dispatchLiveApi, {
         smallModelMode: config.smallModelMode,
         tools: config.tools
       });
@@ -52338,7 +52635,7 @@ function createExpressApp() {
     res.json(config);
   });
   app.post("/config", handleConfigUpdate);
-  registerRestApiRoutes(app, () => config, callLiveApi);
+  registerRestApiRoutes(app, () => config, dispatchLiveApi);
   return app;
 }
 

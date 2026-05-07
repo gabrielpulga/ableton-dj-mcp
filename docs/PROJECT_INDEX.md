@@ -13,7 +13,7 @@ this to orient before any task; load the linked file when relevant.
 
 ## Tools
 
-- [Tools-Reference.md](Tools-Reference.md) — canonical catalog of all 22 `adj-*`
+- [Tools-Reference.md](Tools-Reference.md) — canonical catalog of all 23 `adj-*`
   tools, with actions and parameters
 - [contributing/Read-Tool-Includes.md](contributing/Read-Tool-Includes.md) —
   `include` parameter conventions for all read tools
@@ -27,7 +27,7 @@ this to orient before any task; load the linked file when relevant.
 - [specs/Transforms-Spec.md](specs/Transforms-Spec.md) — transform DSL
   (`src/notation/transform/`)
 - [specs/Browser-Bridge-Spec.md](specs/Browser-Bridge-Spec.md) — Python
-  remote-script bridge for Live's Browser API (DRAFT, issue #26)
+  remote-script bridge for Live's Browser API (issue #26)
 
 ## Code conventions and dev workflow
 
@@ -65,6 +65,7 @@ Each tool has 3 layers:
 | `scripts/`              | Dev utilities: `adj-client.ts`, loc counter, open-live-set |
 | `dist/`                 | Build output (git-ignored)                                 |
 | `max-for-live-device/`  | `.amxd` device + sibling JS bundles loaded by Max          |
+| `live_browser_bridge/`  | Python remote-script sidecar, exposes Live's Browser API   |
 
 ## Entry Points
 
@@ -93,6 +94,7 @@ Each tool has 3 layers:
 
 ## Ports
 
-| Port | Service              |
-| ---- | -------------------- |
-| 3350 | MCP server (default) |
+| Port  | Service                                              |
+| ----- | ---------------------------------------------------- |
+| 3350  | MCP server (default)                                 |
+| 11077 | Live Browser Bridge UDP (override `ADJ_BRIDGE_PORT`) |

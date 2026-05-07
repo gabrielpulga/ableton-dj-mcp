@@ -71,7 +71,7 @@ To capture a new validated finding, run `/update-docs` (loads
 
 ## Tools
 
-22 tools, all prefixed `adj-`. Each tool has a `.def.ts` (Zod schema) and a
+23 tools, all prefixed `adj-`. Each tool has a `.def.ts` (Zod schema) and a
 `.ts` (implementation). Full catalog with action lists and parameters:
 [`docs/Tools-Reference.md`](docs/Tools-Reference.md).
 

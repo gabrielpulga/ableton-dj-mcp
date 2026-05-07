@@ -10,6 +10,15 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [barbeat-notation-order](dev/barbeat-notation-order.md)
   [src/notation/barbeat/**, src/tools/generative/**, **/notes-formatter*] —
   pitch must precede time pos in barbeat or first note drops + warning
+- [browser-search-shallow](dev/browser-search-shallow.md) [src/tools/browse/**,
+  live_browser_bridge/browser_ops.py, src/mcp-server/bridge-dispatcher.ts] —
+  adj-browse search filters only direct children; user Places not reachable via
+  Live categories
+- [drum-kit-uri-loads-full-rack](dev/drum-kit-uri-loads-full-rack.md)
+  [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
+  live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
+  populated Drum Rack; pre-inserting "Drum Rack" device yields an extra empty
+  rack
 - [empty-drum-rack-silent](dev/empty-drum-rack-silent.md) [src/tools/device/**,
   **/adj-create-device*] — adj-create-device "Drum Rack" returns success but
   rack has no samples = no sound
@@ -19,9 +28,11 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [live-instrument-limit](dev/live-instrument-limit.md) [src/tools/device/**,
   src/tools/track/**] — Live blocks 2nd instrument per track with vague error;
   delete first
-- [m4l-no-browser-api](dev/m4l-no-browser-api.md) [src/tools/browser/**,
-  src/tools/device/create/**, live-browser-bridge/**] — Live Browser object not
-  exposed to M4L LiveAPI JS in 12.4; Python remote script is only path
+- [m4l-no-browser-api](dev/m4l-no-browser-api.md) [src/tools/browse/**,
+  src/tools/device/create/**, live_browser_bridge/**,
+  src/mcp-server/browser-bridge-client.ts, src/mcp-server/bridge-dispatcher.ts]
+  — Live Browser object not exposed to M4L LiveAPI JS in 12.4; Python remote
+  script is only path (now implemented as `live_browser_bridge/`)
 - [release-please-version-sync](dev/release-please-version-sync.md)
   [release-please-config.json, src/shared/version.ts, package.json] — VERSION
   constants need extra-files entry + marker comment

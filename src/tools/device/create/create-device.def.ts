@@ -28,6 +28,12 @@ export const toolDefCreateDevice = defineTool("adj-create-device", {
       .string()
       .optional()
       .describe("name for all, or comma-separated for each"),
+    browserUri: z
+      .string()
+      .optional()
+      .describe(
+        "browser URI from adj-browse to load the exact item; pass with deviceName='Drum Rack' to load a kit into a freshly-inserted rack. Requires the Live Browser Bridge.",
+      ),
   },
 
   smallModelModeConfig: {
@@ -35,6 +41,7 @@ export const toolDefCreateDevice = defineTool("adj-create-device", {
     descriptionOverrides: {
       path: "insertion path, required with deviceName (e.g., 't0', 't0/d1', 't0/d0/c0')",
       name: "display name",
+      browserUri: "URI from adj-browse to load by browser",
     },
   },
 });
