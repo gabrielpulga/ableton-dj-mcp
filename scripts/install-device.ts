@@ -29,6 +29,7 @@ const DEVICE_FILES = [
   "tab-main.maxpat",
   "tab-context.maxpat",
   "tab-setup.maxpat",
+  "adj-logo.png",
 ] as const;
 
 /**

@@ -17,7 +17,8 @@ npm/*.svg
 npm/*.tgz
 npm/LICENSE
 npm/licenses
-max-for-live-device/
+max-for-live-device/*
+!max-for-live-device/adj-logo.png
 *.afdesign~lock~
 release
 scratchpad
