@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.10.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.9.0...ableton-dj-mcp-v1.10.0) (2026-05-07)
+
+
+### Features
+
+* add 5 standalone playback workflow actions ([#100](https://github.com/gabrielpulga/ableton-dj-mcp/issues/100)) ([a1ee67d](https://github.com/gabrielpulga/ableton-dj-mcp/commit/a1ee67d78317f6a5a56fce2e7bf73edff402aad5))
+* add install:device script for User Library install ([#107](https://github.com/gabrielpulga/ableton-dj-mcp/issues/107)) ([2578f62](https://github.com/gabrielpulga/ableton-dj-mcp/commit/2578f62dac499a70e2bc1d9f5cf5f1eb87dfa040))
+* add npm run dev:hot for zero-touch dev loop ([#115](https://github.com/gabrielpulga/ableton-dj-mcp/issues/115)) ([c726a77](https://github.com/gabrielpulga/ableton-dj-mcp/commit/c726a7721d3d73b5de5fb982411d8f0e7ad69558))
+* add opt-in portal lazy-boot for Ableton Live ([#109](https://github.com/gabrielpulga/ableton-dj-mcp/issues/109)) ([f482346](https://github.com/gabrielpulga/ableton-dj-mcp/commit/f4823460df8dde0ce0d853c8531785a3e8b3a30c))
+* add start:live launcher script ([#108](https://github.com/gabrielpulga/ableton-dj-mcp/issues/108)) ([8d5ef09](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8d5ef0923f10198da54934e2ae3aed16950e11d3))
+
+
+### Bug Fixes
+
+* extract shared User Library path resolver, fix CI ([#116](https://github.com/gabrielpulga/ableton-dj-mcp/issues/116)) ([01cf6c7](https://github.com/gabrielpulga/ableton-dj-mcp/commit/01cf6c7a2eda58fb6c9054ac497bd532bbee582e))
+* install:device must copy .maxpat files too ([#110](https://github.com/gabrielpulga/ableton-dj-mcp/issues/110)) ([8a2d390](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8a2d39066d20409273bc7a8f6f1ceb7ef7f6fdc2))
+* unwrap array return from get_version_string Live API call ([#104](https://github.com/gabrielpulga/ableton-dj-mcp/issues/104)) ([0fbb8c7](https://github.com/gabrielpulga/ableton-dj-mcp/commit/0fbb8c723681f1dce50f7ef28f1c4c7e371775c6))
+
+
+### Dependencies
+
+* bump @typescript-eslint/eslint-plugin from 8.59.0 to 8.59.1 ([#99](https://github.com/gabrielpulga/ableton-dj-mcp/issues/99)) ([dcb4fc9](https://github.com/gabrielpulga/ableton-dj-mcp/commit/dcb4fc9a7fbeaf0115cd6da54a5bf4d9b9808e57))
+* bump @typescript-eslint/parser from 8.59.0 to 8.59.1 ([#96](https://github.com/gabrielpulga/ableton-dj-mcp/issues/96)) ([5a1b491](https://github.com/gabrielpulga/ableton-dj-mcp/commit/5a1b491701e11fbbf9bf8d202ff91074d087aed2))
+* bump eslint from 9.39.4 to 10.3.0 ([#97](https://github.com/gabrielpulga/ableton-dj-mcp/issues/97)) ([c72691f](https://github.com/gabrielpulga/ableton-dj-mcp/commit/c72691f2f8a1f09384ce196fbd363dde5e1e141f))
+* bump zod from 4.3.6 to 4.4.2 ([#98](https://github.com/gabrielpulga/ableton-dj-mcp/issues/98)) ([98fe29a](https://github.com/gabrielpulga/ableton-dj-mcp/commit/98fe29a00c400684b1ade7ddab8daa33b0e760c1))
+
 ## [1.9.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.8.1...ableton-dj-mcp-v1.9.0) (2026-04-26)
 
 
