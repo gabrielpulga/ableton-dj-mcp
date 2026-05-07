@@ -10,6 +10,15 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [barbeat-notation-order](dev/barbeat-notation-order.md)
   [src/notation/barbeat/**, src/tools/generative/**, **/notes-formatter*] —
   pitch must precede time pos in barbeat or first note drops + warning
+- [browser-search-shallow](dev/browser-search-shallow.md) [src/tools/browse/**,
+  live_browser_bridge/browser_ops.py, src/mcp-server/bridge-dispatcher.ts] —
+  adj-browse search filters only direct children; user Places not reachable via
+  Live categories
+- [drum-kit-uri-loads-full-rack](dev/drum-kit-uri-loads-full-rack.md)
+  [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
+  live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
+  populated Drum Rack; pre-inserting "Drum Rack" device yields an extra empty
+  rack
 - [empty-drum-rack-silent](dev/empty-drum-rack-silent.md) [src/tools/device/**,
   **/adj-create-device*] — adj-create-device "Drum Rack" returns success but
   rack has no samples = no sound
