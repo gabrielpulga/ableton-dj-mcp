@@ -1,6 +1,6 @@
 # Tools Reference
 
-Canonical catalog of all 22 `adj-*` tools. Other docs link here instead of
+Canonical catalog of all 23 `adj-*` tools. Other docs link here instead of
 duplicating. Read the `.def.ts` files for the full Zod schemas.
 
 ---
@@ -120,10 +120,35 @@ Read device parameters and chain structure.
 
 ### `adj-create-device`
 
-Load a device onto a track by name.
+Load a device onto a track by name, or by browser URI (via the bridge).
 
 - `deviceName` — Ableton native device name (see `src/tools/constants.ts`)
 - `path` — `"trackIndex/deviceIndex"` where to insert
+- `browserUri` — load the exact item from `adj-browse` (e.g., a specific preset
+  or User Library file). Pair with `deviceName: "Drum Rack"` to insert a rack
+  and load a kit into it in one call. Requires the Live Browser Bridge — install
+  with `npm run install:bridge`.
+
+### `adj-browse`
+
+Walk Ableton Live's library tree and return loadable items with their stable
+browser URIs. Use the URIs with `adj-create-device --browserUri` to load.
+
+- `category` — one of `instruments`, `audio_effects`, `midi_effects`, `drums`,
+  `sounds`, `samples`, `clips`, `current_project`, `user_library`, `packs`,
+  `plugins`, `max_for_live` (omit to list available categories)
+- `path` — slash-separated names walked under the category root (e.g.,
+  `"Synths/Operator"`)
+- `search` — case-insensitive substring filter applied to children
+- `depth` — child levels to expand inline (default 1, max 3)
+- `limit` — top-level items to return (default 100, max 500)
+
+Requires the Live Browser Bridge Python sidecar — install with
+`npm run install:bridge`, then enable **AbletonDjMcp** under Live's Preferences
+→ Link/Tempo/MIDI → Control Surface. The bridge is the only path to
+`Application.Browser`; Max-for-Live JavaScript cannot reach it. See
+`docs/specs/Browser-Bridge-Spec.md` and
+`docs/findings/dev/m4l-no-browser-api.md`.
 
 ### `adj-update-device`
 

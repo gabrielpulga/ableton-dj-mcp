@@ -12,10 +12,17 @@ import express, {
 } from "express";
 import Max from "max-api";
 import { errorMessage } from "#src/shared/error-utils.ts";
+import { makeBridgeDispatcher } from "./bridge-dispatcher.ts";
+import { BrowserBridgeClient } from "./browser-bridge-client.ts";
 import { TOOL_NAMES, createMcpServer } from "./create-mcp-server.ts";
 import { callLiveApi } from "./max-api-adapter.ts";
 import * as console from "./node-for-max-logger.ts";
 import { registerRestApiRoutes } from "./rest-api-routes.ts";
+
+// Single browser bridge client lives for the lifetime of the server. The
+// underlying socket is created lazily on first use.
+const bridgeClient = new BrowserBridgeClient();
+const dispatchLiveApi = makeBridgeDispatcher(callLiveApi, bridgeClient);
 
 interface ServerConfig {
   memoryEnabled: boolean;
@@ -130,7 +137,7 @@ export function createExpressApp(): Express {
     try {
       console.info("New MCP connection: " + JSON.stringify(req.body));
 
-      const server = createMcpServer(callLiveApi, {
+      const server = createMcpServer(dispatchLiveApi, {
         smallModelMode: config.smallModelMode,
         tools: config.tools,
       });
@@ -169,7 +176,7 @@ export function createExpressApp(): Express {
 
   app.post("/config", handleConfigUpdate);
 
-  registerRestApiRoutes(app, () => config, callLiveApi);
+  registerRestApiRoutes(app, () => config, dispatchLiveApi);
 
   return app;
 }

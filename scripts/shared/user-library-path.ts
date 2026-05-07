@@ -2,12 +2,30 @@
 // Copyright (C) 2026 Gabriel Pulga
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Shared resolver for the Live User Library Max MIDI Effect dir. Used by
-// scripts/install-device.ts and scripts/dev-hot.ts so both target the same
-// path on every platform.
+// Shared resolvers for Live User Library subdirectories. Used by
+// scripts/install-device.ts, scripts/dev-hot.ts, and scripts/install-bridge.ts
+// so they all target the same paths on every platform.
 
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+
+/**
+ * Resolve the platform-specific root of Live's per-user library, or null on
+ * unsupported platforms (Live runs on macOS/Windows only).
+ * @returns Absolute path or null
+ */
+export function resolveUserLibraryRoot(): string | null {
+  const home = homedir();
+
+  switch (platform()) {
+    case "darwin":
+      return join(home, "Music", "Ableton", "User Library");
+    case "win32":
+      return join(home, "Documents", "Ableton", "User Library");
+    default:
+      return null;
+  }
+}
 
 /**
  * Resolve Live's per-user Max MIDI Effect preset directory for the current
@@ -15,30 +33,21 @@ import { join } from "node:path";
  * @returns Absolute path on macOS/Windows, null on unsupported platforms
  */
 export function resolveUserLibraryDir(): string | null {
-  const home = homedir();
+  const root = resolveUserLibraryRoot();
 
-  switch (platform()) {
-    case "darwin":
-      return join(
-        home,
-        "Music",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    case "win32":
-      return join(
-        home,
-        "Documents",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    default:
-      return null;
-  }
+  return root === null
+    ? null
+    : join(root, "Presets", "MIDI Effects", "Max MIDI Effect");
+}
+
+/**
+ * Resolve the Remote Scripts directory inside Live's per-user library. This
+ * is where Live looks for Python control surface scripts (the browser
+ * bridge ships into here).
+ * @returns Absolute path or null on unsupported platforms
+ */
+export function resolveRemoteScriptsDir(): string | null {
+  const root = resolveUserLibraryRoot();
+
+  return root === null ? null : join(root, "Remote Scripts");
 }
