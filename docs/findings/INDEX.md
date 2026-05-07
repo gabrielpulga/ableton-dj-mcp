@@ -13,6 +13,9 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [empty-drum-rack-silent](dev/empty-drum-rack-silent.md) [src/tools/device/**,
   **/adj-create-device*] — adj-create-device "Drum Rack" returns success but
   rack has no samples = no sound
+- [install-device-file-list](dev/install-device-file-list.md)
+  [scripts/install-device.ts, max-for-live-device/**] — User Library install
+  needs all 7 files (.amxd + 2 JS + 4 .maxpat); missing .maxpat = blank UI
 - [live-instrument-limit](dev/live-instrument-limit.md) [src/tools/device/**,
   src/tools/track/**] — Live blocks 2nd instrument per track with vague error;
   delete first
@@ -31,3 +34,7 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [device-deploy-flow](workflow/device-deploy-flow.md) [max-for-live-device/**,
   dist/**, package.json] — build → copy bundles to max-for-live-device → restart
   Live to load new version
+- [self-bootstrap-prereq](workflow/self-bootstrap-prereq.md)
+  [src/portal/lazy-boot*, scripts/start-live.ts, docs/Setup.md] — lazy-boot only
+  opens Live; device load needs "Save Live Set as Default Set" with device on
+  track
