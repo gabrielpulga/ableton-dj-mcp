@@ -30,6 +30,9 @@ src/portal/*.js.map
 # Generated JS from Peggy grammars
 src/notation/*/parser/generated-*-parser.js
 
+# Generated build-info (branch/sha/dirty/buildTime baked at build)
+src/generated/
+
 # Generated docs artifacts
 docs/_generated
 docs/public/markdown

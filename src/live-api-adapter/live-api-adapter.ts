@@ -6,6 +6,7 @@
 import "./live-api-extensions.ts";
 import "#src/polyfills/es2023-array.ts";
 
+import { buildIdentifier } from "#src/generated/build-info.ts";
 import { toCompactJSLiteral } from "#src/shared/compact-serializer.ts";
 import {
   formatErrorResponse,
@@ -310,7 +311,9 @@ export async function mcp_request(
 
 const now = () => new Date().toLocaleString("sv-SE"); // YYYY-MM-DD HH:mm:ss
 
-console.log(`[${now()}] Ableton DJ MCP ${VERSION} Live API adapter ready`);
+console.log(
+  `[${now()}] Ableton DJ MCP ${VERSION} ${buildIdentifier()} Live API adapter ready`,
+);
 
 // send a "started" signal so UI controls can resync their values
 // while changing the code repeatedly during development:

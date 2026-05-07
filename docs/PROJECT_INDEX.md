@@ -26,6 +26,8 @@ this to orient before any task; load the linked file when relevant.
   (`src/notation/barbeat/`)
 - [specs/Transforms-Spec.md](specs/Transforms-Spec.md) — transform DSL
   (`src/notation/transform/`)
+- [specs/Browser-Bridge-Spec.md](specs/Browser-Bridge-Spec.md) — Python
+  remote-script bridge for Live's Browser API (DRAFT, issue #26)
 
 ## Code conventions and dev workflow
 

@@ -267,6 +267,11 @@ describe("connect", () => {
     expect(result).toStrictEqual({
       connected: true,
       serverVersion: VERSION,
+      serverBuild: expect.objectContaining({
+        branch: expect.any(String),
+        buildTime: expect.any(String),
+        source: expect.stringMatching(/^(local|release|local-no-git)$/),
+      }),
       abletonLiveVersion: "12.3",
       liveSet: {
         name: "Test Project",
