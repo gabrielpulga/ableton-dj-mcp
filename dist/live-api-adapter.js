@@ -970,10 +970,10 @@ if (!Array.prototype.with) {
 }
 
 const BUILD_INFO = {
-  branch: "gabriel/browser-api",
-  sha: "027a3947",
+  branch: "gabriel/browser-bridge",
+  sha: "724f3daf",
   dirty: false,
-  buildTime: "2026-05-07T16:52:49.948Z",
+  buildTime: "2026-05-07T17:33:46.740Z",
   source: "local"
 };
 

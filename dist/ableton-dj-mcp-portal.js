@@ -29578,14 +29578,6 @@ const EMPTY_COMPLETION_RESULT = {
 
 const VERSION = "1.10.0";
 
-const MAX_SPLIT_POINTS = 32;
-
-const MONITORING_STATE = {
-  IN: "in",
-  AUTO: "auto",
-  OFF: "off"
-};
-
 function filterSchemaForSmallModel(schema, excludeParams, descriptionOverrides, excludeEnumValues) {
   const hasExclusions = excludeParams && excludeParams.length > 0;
   const hasOverrides = descriptionOverrides && Object.keys(descriptionOverrides).length > 0;
@@ -29670,6 +29662,32 @@ function filterExcludedEnumValues(validated, excludeEnumValues) {
   }
   return result;
 }
+
+const CATEGORY_VALUES = [ "instruments", "audio_effects", "midi_effects", "drums", "sounds", "samples", "clips", "current_project", "user_library", "user_folders", "packs", "plugins", "max_for_live" ];
+
+const toolDefBrowse = defineTool("adj-browse", {
+  title: "Browse",
+  description: "Browse Ableton Live's Library and User Library tree. Returns category roots, folder children, and loadable items with their stable browser URIs. Pair the URI with adj-create-device to load by URI. Requires the Live Browser Bridge — install with `npm run install:bridge`.",
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false
+  },
+  inputSchema: {
+    category: _enum$2(CATEGORY_VALUES).optional().describe("browser category root to enter; omit to list available categories"),
+    path: string$1().optional().describe("slash-separated names walked under the category root (e.g., 'Synths/Operator')"),
+    search: string$1().optional().describe("case-insensitive substring filter applied to children"),
+    depth: number$1().int().min(1).max(3).optional().describe("how many child levels to expand inline (default 1)"),
+    limit: number$1().int().min(1).max(500).optional().describe("maximum number of top-level items to return (default 100)")
+  }
+});
+
+const MAX_SPLIT_POINTS = 32;
+
+const MONITORING_STATE = {
+  IN: "in",
+  AUTO: "auto",
+  OFF: "off"
+};
 
 const toolDefCreateClip = defineTool("adj-create-clip", {
   title: "Create Clip",
@@ -29844,13 +29862,15 @@ const toolDefCreateDevice = defineTool("adj-create-device", {
   inputSchema: {
     deviceName: string$1().optional().describe("device name, omit to list available devices"),
     path: string$1().optional().describe("insertion path(s), required with deviceName, comma-separated for multiple (e.g., 't0' or 't0,t1,t0/d0/c0')"),
-    name: string$1().optional().describe("name for all, or comma-separated for each")
+    name: string$1().optional().describe("name for all, or comma-separated for each"),
+    browserUri: string$1().optional().describe("browser URI from adj-browse to load the exact item; pass with deviceName='Drum Rack' to load a kit into a freshly-inserted rack. Requires the Live Browser Bridge.")
   },
   smallModelModeConfig: {
     excludeParams: [],
     descriptionOverrides: {
       path: "insertion path, required with deviceName (e.g., 't0', 't0/d1', 't0/d0/c0')",
-      name: "display name"
+      name: "display name",
+      browserUri: "URI from adj-browse to load by browser"
     }
   }
 });
@@ -30237,7 +30257,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
 
 Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 
