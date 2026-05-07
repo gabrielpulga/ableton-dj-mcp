@@ -16,10 +16,10 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { copyFileSync, existsSync } from "node:fs";
-import { homedir, platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
+import { resolveUserLibraryDir } from "./shared/user-library-path.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
@@ -97,7 +97,10 @@ function deploy(): void {
 
   const targets: string[] = [deviceDir];
 
-  if (userLibraryDir !== null && existsSync(join(userLibraryDir, "Ableton_DJ_MCP.amxd"))) {
+  if (
+    userLibraryDir !== null &&
+    existsSync(join(userLibraryDir, "Ableton_DJ_MCP.amxd"))
+  ) {
     targets.push(userLibraryDir);
   }
 
@@ -171,40 +174,6 @@ function killProcessOn3350(): void {
       );
     });
   });
-}
-
-/**
- * Resolve Live's User Library Max MIDI Effect dir. Mirrors the logic in
- * scripts/install-device.ts. Returns null on unsupported platforms.
- * @returns Absolute path or null
- */
-function resolveUserLibraryDir(): string | null {
-  const home = homedir();
-
-  switch (platform()) {
-    case "darwin":
-      return join(
-        home,
-        "Music",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    case "win32":
-      return join(
-        home,
-        "Documents",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    default:
-      return null;
-  }
 }
 
 /**

@@ -12,9 +12,10 @@
 
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { homedir, platform } from "node:os";
+import { platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveUserLibraryDir } from "./shared/user-library-path.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
@@ -30,43 +31,6 @@ const DEVICE_FILES = [
   "tab-context.maxpat",
   "tab-setup.maxpat",
 ] as const;
-
-/**
- * Resolve the path to Live's per-user Max MIDI Effect preset directory.
- * @returns Absolute path on the current platform
- */
-function resolveUserLibraryDir(): string {
-  const home = homedir();
-
-  switch (platform()) {
-    case "darwin":
-      return join(
-        home,
-        "Music",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    case "win32":
-      return join(
-        home,
-        "Documents",
-        "Ableton",
-        "User Library",
-        "Presets",
-        "MIDI Effects",
-        "Max MIDI Effect",
-      );
-    default:
-      console.error(
-        `install-device: unsupported platform '${platform()}'. ` +
-          `Ableton Live runs on macOS or Windows only.`,
-      );
-      process.exit(1);
-  }
-}
 
 /**
  * Verify the source files exist and warn if dist/ has drifted from
@@ -117,6 +81,14 @@ function hashFile(path: string): string {
 assertSourceFresh();
 
 const targetDir = resolveUserLibraryDir();
+
+if (targetDir === null) {
+  console.error(
+    `install-device: unsupported platform '${platform()}'. ` +
+      `Ableton Live runs on macOS or Windows only.`,
+  );
+  process.exit(1);
+}
 
 if (!existsSync(targetDir)) {
   mkdirSync(targetDir, { recursive: true });
