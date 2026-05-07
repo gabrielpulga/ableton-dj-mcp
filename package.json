@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "dev": "npm run parser:build && rollup -c config/rollup.config.mjs -w",
+    "dev:hot": "npm run parser:build && node scripts/dev-hot.ts",
     "build": "npm run parser:build && rollup -c config/rollup.config.mjs",
     "test": "npm run test:setup && vitest run --reporter=./config/vitest-minimal-reporter.mjs --silent=true",
     "test:watch": "npm run test:setup && vitest --reporter=dot --silent=true",
@@ -85,6 +86,7 @@
     "@typescript-eslint/parser": "^8.59.1",
     "@vitest/coverage-v8": "^4.1.2",
     "@vitest/eslint-plugin": "^1.6.16",
+    "chokidar": "^3.6.0",
     "chokidar-cli": "^3.0.0",
     "eslint": "^9.39.4",
     "eslint-import-resolver-alias": "^1.1.2",

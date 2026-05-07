@@ -60,6 +60,29 @@ node.script: [...] Ableton DJ MCP <new-version> running.
 v8: [...] Ableton DJ MCP <new-version> Live API adapter ready
 ```
 
+## Hot dev loop (no manual copy)
+
+For active development, skip the manual `cp` + reload cycle:
+
+```bash
+npm run dev:hot
+```
+
+Runs `rollup -c -w` and a chokidar watcher on `dist/`. On every save:
+
+1. Rollup rebuilds the bundle that changed.
+2. Watcher copies `dist/live-api-adapter.js` + `dist/mcp-server.mjs` into
+   `max-for-live-device/`.
+3. `pkill -f mcp-server.mjs` kills the running node.script child; Max respawns
+   it from the new bundle.
+
+Edits to V8-only paths (`live-api-adapter.ts`) don't trigger Max to respawn the
+v8 engine — click the device's reload button or eject + reinsert if you don't
+see the new version line in the console.
+
+This script is dev-only. Releases still go through the manual flow above so the
+committed `dist/` artefacts match the tag.
+
 ## Why the manual copy step
 
 The `.amxd` references sibling JS files via relative path
