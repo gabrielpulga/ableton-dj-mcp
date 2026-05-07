@@ -969,6 +969,20 @@ if (!Array.prototype.with) {
   };
 }
 
+const BUILD_INFO = {
+  branch: "gabriel/browser-api",
+  sha: "027a3947",
+  dirty: false,
+  buildTime: "2026-05-07T16:52:49.948Z",
+  source: "local"
+};
+
+function buildIdentifier() {
+  const i = BUILD_INFO;
+  const dirtyMark = "";
+  return `[${i.branch}@${i.sha}${dirtyMark}] built ${i.buildTime}`;
+}
+
 function toCompactJSLiteral(obj) {
   function convert(val) {
     if (val === null) {
@@ -1090,7 +1104,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.9.0";
+const VERSION = "1.10.0";
 
 const MIN_LIVE_VERSION = "12.3.0";
 
@@ -19238,6 +19252,13 @@ function connect(_params = {}, context = {}) {
   const result = {
     connected: true,
     serverVersion: VERSION,
+    serverBuild: {
+      branch: BUILD_INFO.branch,
+      sha: BUILD_INFO.sha,
+      dirty: BUILD_INFO.dirty,
+      buildTime: BUILD_INFO.buildTime,
+      source: BUILD_INFO.source
+    },
     abletonLiveVersion: abletonLiveVersion,
     liveSet: liveSetInfo,
     skills: context.smallModelMode ? skills$1 : skills,
@@ -19488,7 +19509,7 @@ async function mcp_request(requestId, tool, argsJSON, contextJSON) {
 
 const now = () => (new Date).toLocaleString("sv-SE");
 
-log(`[${now()}] Ableton DJ MCP ${VERSION} Live API adapter ready`);
+log(`[${now()}] Ableton DJ MCP ${VERSION} ${buildIdentifier()} Live API adapter ready`);
 
 outlet(0, "started");
 
