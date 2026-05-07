@@ -25,6 +25,10 @@ const DEVICE_FILES = [
   "Ableton_DJ_MCP.amxd",
   "live-api-adapter.js",
   "mcp-server.mjs",
+  "server-status.maxpat",
+  "tab-main.maxpat",
+  "tab-context.maxpat",
+  "tab-setup.maxpat",
 ] as const;
 
 /**
