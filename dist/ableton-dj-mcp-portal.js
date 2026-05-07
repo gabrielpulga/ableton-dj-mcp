@@ -704,6 +704,8 @@ const pkceChallenge = () => { throw new Error("Authorization not supported - Abl
 
 import process$2 from "node:process";
 
+import { spawn } from "node:child_process";
+
 function errorMessage(err) {
   return err instanceof Error ? err.message : String(err);
 }
@@ -29574,7 +29576,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.9.0";
+const VERSION = "1.10.0";
 
 const MAX_SPLIT_POINTS = 32;
 
@@ -30265,6 +30267,134 @@ function formatErrorResponse(errorMessage) {
   };
 }
 
+const ABLETON_BUNDLE_ID = "com.ableton.live";
+
+const DEFAULT_TIMEOUT_MS = 3e4;
+
+const DEFAULT_POLL_INTERVAL_MS = 500;
+
+class LazyBoot {
+  constructor(options) {
+    this.options = options;
+  }
+  hasAttempted=false;
+  isEnabled() {
+    return process.env.ADJ_AUTO_BOOT === "true";
+  }
+  async tryBoot() {
+    if (!this.isEnabled()) {
+      return {
+        attempted: false,
+        succeeded: false,
+        reason: "disabled"
+      };
+    }
+    if (this.hasAttempted) {
+      return {
+        attempted: false,
+        succeeded: false,
+        reason: "already-attempted"
+      };
+    }
+    this.hasAttempted = true;
+    if (await this.isLiveRunning()) {
+      logger.info("[LazyBoot] Live is running but :3350 is unreachable — device not loaded. Skipping auto-boot to preserve user state.");
+      return {
+        attempted: true,
+        succeeded: false,
+        reason: "live-running-without-device"
+      };
+    }
+    if (!this.canLaunch()) {
+      return {
+        attempted: true,
+        succeeded: false,
+        reason: `unsupported-platform-${process.platform}`
+      };
+    }
+    logger.info("[LazyBoot] Launching Ableton Live");
+    this.launchLive();
+    const reachable = await this.waitForServer();
+    return reachable ? {
+      attempted: true,
+      succeeded: true
+    } : {
+      attempted: true,
+      succeeded: false,
+      reason: "timeout"
+    };
+  }
+  async isLiveRunning() {
+    if (process.platform === "darwin") {
+      return await new Promise(resolve => {
+        const child = spawn("pgrep", [ "-if", "Ableton Live" ], {
+          stdio: "ignore"
+        });
+        child.on("close", code => {
+          resolve(code === 0);
+        });
+        child.on("error", () => {
+          resolve(false);
+        });
+      });
+    }
+    if (process.platform === "win32") {
+      return await new Promise(resolve => {
+        const child = spawn("tasklist", [ "/FI", "IMAGENAME eq Ableton Live*" ], {
+          stdio: [ "ignore", "pipe", "ignore" ]
+        });
+        let output = "";
+        child.stdout.on("data", chunk => {
+          output += chunk.toString();
+        });
+        child.on("close", () => {
+          resolve(output.toLowerCase().includes("ableton live"));
+        });
+        child.on("error", () => {
+          resolve(false);
+        });
+      });
+    }
+    return false;
+  }
+  canLaunch() {
+    return process.platform === "darwin";
+  }
+  launchLive() {
+    try {
+      const child = spawn("open", [ "-b", ABLETON_BUNDLE_ID ], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.on("error", error => {
+        logger.error(`[LazyBoot] Failed to spawn Live: ${errorMessage(error)}`);
+      });
+      child.unref();
+    } catch (error) {
+      logger.error(`[LazyBoot] Spawn threw: ${errorMessage(error)}`);
+    }
+  }
+  async waitForServer() {
+    const timeoutMs = this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const intervalMs = this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        const response = await fetch(this.options.serverOrigin, {
+          method: "GET"
+        });
+        if (response.status < 500) {
+          logger.info(`[LazyBoot] Server reachable at ${this.options.serverOrigin}`);
+          return true;
+        }
+      } catch {}
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+    logger.error(`[LazyBoot] Server did not become reachable within ${String(timeoutMs)}ms`);
+    return false;
+  }
+}
+
 const SETUP_URL = "https://ableton-dj-mcp.org/installation";
 
 class StdioHttpBridge {
@@ -30274,10 +30404,14 @@ class StdioHttpBridge {
   isConnected=false;
   fallbackTools;
   smallModelMode;
+  lazyBoot;
   constructor(httpUrl, options = {}) {
     this.httpUrl = httpUrl;
     this.smallModelMode = options.smallModelMode ?? false;
     this.fallbackTools = this._generateFallbackTools();
+    this.lazyBoot = new LazyBoot({
+      serverOrigin: httpUrl.replace(/\/mcp$/, "")
+    });
   }
   _generateFallbackTools() {
     const server = createMcpServer(null, {
@@ -30344,6 +30478,15 @@ class StdioHttpBridge {
           logger.error(`Error closing failed client: ${errorMessage(closeError)}`);
         }
         this.httpClient = null;
+      }
+      const bootResult = await this.lazyBoot.tryBoot();
+      if (bootResult.succeeded) {
+        logger.info("[Bridge] Lazy-boot succeeded, retrying HTTP connection");
+        await this._ensureHttpConnection();
+        return;
+      }
+      if (bootResult.attempted) {
+        logger.error(`[Bridge] Lazy-boot attempted but did not recover: ${bootResult.reason ?? "unknown"}`);
       }
       throw new Error(`Failed to connect to Ableton DJ MCP MCP server at ${this.httpUrl}: ${errorMessage(error)}`);
     }

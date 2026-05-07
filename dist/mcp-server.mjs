@@ -739,6 +739,18 @@ import crypto$1 from "node:crypto";
 
 import os from "node:os";
 
+const BUILD_INFO = {
+  branch: "gabriel/browser-api",
+  sha: "027a3947",
+  buildTime: "2026-05-07T16:52:49.948Z"
+};
+
+function buildIdentifier() {
+  const i = BUILD_INFO;
+  const dirtyMark = "";
+  return `[${i.branch}@${i.sha}${dirtyMark}] built ${i.buildTime}`;
+}
+
 const RELEASES_URL = "https://api.github.com/repos/gabrielpulga/ableton-dj-mcp/releases/latest";
 
 const TIMEOUT_MS = 5e3;
@@ -795,7 +807,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.9.0";
+const VERSION = "1.10.0";
 
 var RequestError = class extends Error {
   constructor(message, options) {
@@ -52415,13 +52427,13 @@ for (const [index, arg] of args.entries()) {
   }
 }
 
-log(`Ableton DJ MCP ${VERSION} starting MCP server on port ${port}...`);
+log(`Ableton DJ MCP ${VERSION} ${buildIdentifier()} starting MCP server on port ${port}...`);
 
 const appServer = createExpressApp();
 
 appServer.listen(port, () => {
   const url = `http://localhost:${port}/mcp`;
-  log(`Ableton DJ MCP ${VERSION} running.\nConnect Claude Desktop or another MCP client to ${url}`);
+  log(`Ableton DJ MCP ${VERSION} ${buildIdentifier()} running.\nConnect Claude Desktop or another MCP client to ${url}`);
   void Max.outlet("version", VERSION);
   void Max.outlet("started");
   void checkForUpdate(VERSION).then(update => {

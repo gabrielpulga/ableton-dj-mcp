@@ -19,6 +19,9 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [live-instrument-limit](dev/live-instrument-limit.md) [src/tools/device/**,
   src/tools/track/**] — Live blocks 2nd instrument per track with vague error;
   delete first
+- [m4l-no-browser-api](dev/m4l-no-browser-api.md) [src/tools/browser/**,
+  src/tools/device/create/**, live-browser-bridge/**] — Live Browser object not
+  exposed to M4L LiveAPI JS in 12.4; Python remote script is only path
 - [release-please-version-sync](dev/release-please-version-sync.md)
   [release-please-config.json, src/shared/version.ts, package.json] — VERSION
   constants need extra-files entry + marker comment

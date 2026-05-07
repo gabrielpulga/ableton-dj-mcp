@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gabriel Pulga
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { BUILD_INFO } from "#src/generated/build-info.ts";
 import {
   intervalsToPitchClasses,
   PITCH_CLASS_NAMES,
@@ -22,9 +23,18 @@ interface LiveSetInfo {
   scalePitches?: string;
 }
 
+interface ServerBuild {
+  branch: string;
+  sha: string | null;
+  dirty: boolean;
+  buildTime: string;
+  source: "local" | "release" | "local-no-git";
+}
+
 interface ConnectResult {
   connected: boolean;
   serverVersion: string;
+  serverBuild: ServerBuild;
   abletonLiveVersion: string;
   liveSet: LiveSetInfo;
   skills?: string;
@@ -93,6 +103,13 @@ export function connect(
   const result: ConnectResult = {
     connected: true,
     serverVersion: VERSION,
+    serverBuild: {
+      branch: BUILD_INFO.branch,
+      sha: BUILD_INFO.sha,
+      dirty: BUILD_INFO.dirty,
+      buildTime: BUILD_INFO.buildTime,
+      source: BUILD_INFO.source,
+    },
     abletonLiveVersion,
     liveSet: liveSetInfo,
     skills: context.smallModelMode ? basicSkills : skills,

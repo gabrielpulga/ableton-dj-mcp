@@ -4,6 +4,7 @@
 
 // the entry point / loader script for the MCP server running inside Ableton Live via Node for Max
 import Max from "max-api";
+import { buildIdentifier } from "#src/generated/build-info.ts";
 import { checkForUpdate } from "#src/shared/version-check.ts";
 import { VERSION } from "#src/shared/version.ts";
 import { createExpressApp } from "./create-express-app.ts";
@@ -34,7 +35,9 @@ for (const [index, arg] of args.entries()) {
   }
 }
 
-console.log(`Ableton DJ MCP ${VERSION} starting MCP server on port ${port}...`);
+console.log(
+  `Ableton DJ MCP ${VERSION} ${buildIdentifier()} starting MCP server on port ${port}...`,
+);
 
 const appServer = createExpressApp();
 
@@ -43,7 +46,7 @@ appServer
     const url = `http://localhost:${port}/mcp`;
 
     console.log(
-      `Ableton DJ MCP ${VERSION} running.\nConnect Claude Desktop or another MCP client to ${url}`,
+      `Ableton DJ MCP ${VERSION} ${buildIdentifier()} running.\nConnect Claude Desktop or another MCP client to ${url}`,
     );
     void Max.outlet("version", VERSION);
 

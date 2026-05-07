@@ -334,6 +334,7 @@ export default [
       "release/**",
       "test-results/**",
       "**/generated-*-parser.js", // Generated parsers
+      "src/generated/**", // Generated build-info baked at build time
       "**/*.d.ts", // TypeScript declaration files
     ],
   },
