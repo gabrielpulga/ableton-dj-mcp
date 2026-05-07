@@ -25,24 +25,68 @@ Copies the device + bundled JS into your User Library so it shows up in Live's
 browser permanently. Cross-platform (macOS + Windows). Idempotent — re-run after
 every `npm run build` to refresh.
 
+The script writes to (these paths are real after running it — Live's browser
+mirrors them 1:1):
+
+- macOS: `~/Music/Ableton/User Library/Presets/MIDI Effects/Max MIDI Effect/`
+- Windows:
+  `%USERPROFILE%\Documents\Ableton\User Library\Presets\MIDI Effects\Max MIDI Effect\`
+
 After running:
 
-1. Open Ableton Live (or refresh the User Library in the browser)
-2. Browser → Categories → Max for Live → Max MIDI Effect → **Ableton DJ MCP**
+1. Open Ableton Live (or refresh the User Library in the browser — right-click
+   User Library → Refresh if the device doesn't appear).
+2. In the browser, look under **Places → User Library → Presets → MIDI Effects →
+   Max MIDI Effect → Ableton_DJ_MCP**. Live 12 also surfaces it under
+   **Categories → Max for Live → Max MIDI Effect**. (Folder names follow
+   filesystem layout; localized Live builds translate the Live-side labels but
+   the User Library folder structure is the same.)
 3. Drag onto any MIDI track. The status panel should show
    `MCP server running on :3350`.
 
-To make the device load automatically in every new Live set:
+Sanity check from a terminal — files should match what's in the User Library
+folder on disk:
 
-1. Drop the device onto a return or master track
-2. File → Save Live Set as Default Set
-3. Every new Live set will now auto-load the device
+```bash
+ls "$HOME/Music/Ableton/User Library/Presets/MIDI Effects/Max MIDI Effect/"
+# Ableton_DJ_MCP.amxd  live-api-adapter.js  mcp-server.mjs
+# server-status.maxpat tab-context.maxpat   tab-main.maxpat  tab-setup.maxpat
+```
 
 ### Manual install (alternative)
 
 If you'd rather skip the script, drag `max-for-live-device/Ableton_DJ_MCP.amxd`
 onto any MIDI track from your file manager. The device only persists in that one
 Live set — for permanent install, use `npm run install:device`.
+
+## Make the device load on every Live launch
+
+**Strongly recommended.** Without this step, every new Live set is empty — the
+device isn't loaded, and `:3350` is down until you drag the device in.
+Self-bootstrap (next section) depends on this.
+
+One-time setup:
+
+1. Open a Live set and drop the device onto a **return or master track** (return
+   tracks survive switching between Session and Arrangement views; regular
+   tracks can be deleted accidentally).
+2. Wait until the device's status panel reads `MCP server running on :3350`.
+3. **File → Save Live Set as Default Set**. Live confirms the new default.
+
+Every fresh Live set now auto-loads the device. `adj-connect` works without any
+drag-and-drop.
+
+### How to verify
+
+Quit Live entirely. Reopen it. The device should appear on your default track
+and the status panel should immediately show `MCP server running on :3350`.
+Confirm with:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3350/mcp
+```
+
+A non-zero HTTP status means the device is up.
 
 ## Launch Live from the terminal
 
@@ -65,6 +109,11 @@ drag anything.
 Set `ADJ_AUTO_BOOT=true` in your MCP client config to let the portal launch Live
 automatically when it can't reach `:3350`. macOS only for now.
 
+> **Prerequisite:** the device must auto-load on every Live launch. See
+> [Make the device load on every Live launch](#make-the-device-load-on-every-live-launch)
+> above. Without it, the portal will open Live but the device won't load, and
+> your tool call will still fail.
+
 Behavior:
 
 - **Live closed** → portal launches Live (`open -b com.ableton.live`), polls
@@ -75,7 +124,18 @@ Behavior:
 - **Single attempt per portal lifetime** — if boot fails, subsequent calls
   return the standard error.
 
-Example for Claude Desktop (`claude_desktop_config.json`):
+### Claude Code
+
+```bash
+claude mcp add ableton-dj-mcp \
+  -e ADJ_AUTO_BOOT=true \
+  -- node /absolute/path/to/ableton-dj-mcp/dist/ableton-dj-mcp-portal.js
+```
+
+If you already added the server, remove it first
+(`claude mcp remove ableton-dj-mcp`) and re-add with the `-e` flag.
+
+### Claude Desktop
 
 ```json
 {
@@ -88,9 +148,6 @@ Example for Claude Desktop (`claude_desktop_config.json`):
   }
 }
 ```
-
-For Claude Code, set the env var in the shell that launches it, or pass it
-through `claude mcp add` configuration.
 
 ## Wire up your AI client
 
@@ -172,9 +229,11 @@ artists, and style rules. The file is read by your AI on every session.
 
 ## Troubleshooting
 
-| Symptom                    | Fix                                                       |
-| -------------------------- | --------------------------------------------------------- |
-| Device console silent      | Reload device: eject + reinsert on track, or restart Live |
-| Tool list empty in client  | Restart MCP client after `claude mcp add`                 |
-| `connection refused :3350` | Device not loaded in Live — check the MIDI track          |
-| Wrong version in console   | Stale bundle. See [Releasing.md](Releasing.md)            |
+| Symptom                                         | Fix                                                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Device console silent                           | Reload device: eject + reinsert on track, or restart Live                                                                   |
+| Tool list empty in client                       | Restart MCP client after `claude mcp add`                                                                                   |
+| `connection refused :3350`                      | Device not loaded in Live — check the MIDI track                                                                            |
+| Lazy-boot launches Live but `:3350` never opens | Default Live set has no device. See [Make the device load on every Live launch](#make-the-device-load-on-every-live-launch) |
+| `bpatcher: error loading patcher tab-*.maxpat`  | User Library install is missing the `.maxpat` files. Re-run `npm run install:device` (fixed in #110)                        |
+| Wrong version in console                        | Stale bundle. See [Releasing.md](Releasing.md)                                                                              |
