@@ -1,12 +1,16 @@
 ---
 name: progressive-pad-reveal
-description: 16-bar intro pad that builds Cm chord one note at a time over 4-bar phases — drone → fifth → triad → octave
+description:
+  16-bar intro pad that builds Cm chord one note at a time over 4-bar phases —
+  drone → fifth → triad → octave
 type: technique
 ---
 
 # Progressive pad reveal (16-bar intro)
 
-For dreamy melodic intros (Adam Ten / indie dance), build pad chord progressively across 16 bars instead of dropping full chord at bar 1. Each 4-bar phase adds one chord tone, so the harmonic content thickens organically.
+For dreamy melodic intros (Adam Ten / indie dance), build pad chord
+progressively across 16 bars instead of dropping full chord at bar 1. Each 4-bar
+phase adds one chord tone, so the harmonic content thickens organically.
 
 ## Pattern (C minor, 4-bar phases)
 
@@ -29,14 +33,17 @@ v70 t16 C3 13|1 Eb3 13|1 G3 13|1 C4 13|1 // bars 13-16: + octave on top
 - No melodic decisions needed — pure mood/texture.
 - Listener feels harmony fill in over time without conscious tracking.
 - Pairs with kick from bar 1 — pad provides atmosphere, kick provides pulse.
-- 4-bar phase length aligns with phrasing — listener subconsciously expects change.
+- 4-bar phase length aligns with phrasing — listener subconsciously expects
+  change.
 
 ## When to use
 
 - Dreamy intro section (16 bars).
 - Any "atmospheric build" without melody.
-- When you want chord progression complexity without writing one — single Cm sustained the whole time, complexity comes from voicing reveal.
+- When you want chord progression complexity without writing one — single Cm
+  sustained the whole time, complexity comes from voicing reveal.
 
 ## Validated in
 
-- Project: chill-sunday-with-my-adj-pal (2026-04-26). User reaction: "I dig this one, has a nice progressive feel."
+- Project: chill-sunday-with-my-adj-pal (2026-04-26). User reaction: "I dig this
+  one, has a nice progressive feel."

@@ -1,12 +1,16 @@
 ---
 name: maccabi-house-foundational-bass
-description: 2-bar question/response bass pattern for Maccabi House (Adam Ten style) — 6 hits with built-in breath, off-beat groove, color tones in response bar
+description:
+  2-bar question/response bass pattern for Maccabi House (Adam Ten style) — 6
+  hits with built-in breath, off-beat groove, color tones in response bar
 type: genre
 ---
 
 # Maccabi House foundational bass — question/response
 
-Maccabi House (Adam Ten / Mita Gami scene) bass character per the genre: filtered saw, **short rhythmically-placed notes that leave space**. The space is the groove. Don't fill it.
+Maccabi House (Adam Ten / Mita Gami scene) bass character per the genre:
+filtered saw, **short rhythmically-placed notes that leave space**. The space is
+the groove. Don't fill it.
 
 ## 2-bar pattern (C minor, tile across 16 bars)
 
@@ -37,14 +41,18 @@ v120 t/8 C1 2|4.75
 
 ## Why it works
 
-- 6 hits across 2 bars = lots of space. Maccabi House signature is what's NOT played.
-- Bar-end 16th-note roll (1|4.25-4.75 and 2|4.25-4.75) creates rhythmic tension that resolves on next bar's downbeat.
-- Color tones (Eb1, Bb0) only in response bar = subtle harmonic movement without losing the groove anchor.
+- 6 hits across 2 bars = lots of space. Maccabi House signature is what's NOT
+  played.
+- Bar-end 16th-note roll (1|4.25-4.75 and 2|4.25-4.75) creates rhythmic tension
+  that resolves on next bar's downbeat.
+- Color tones (Eb1, Bb0) only in response bar = subtle harmonic movement without
+  losing the groove anchor.
 - Velocity dynamics (v95-120) avoid robotic feel.
 
 ## Production notes
 
-- **Bass synth**: filtered saw (steep low-pass / MG Low 24 in Serum, or Drift saw + lowpass).
+- **Bass synth**: filtered saw (steep low-pass / MG Low 24 in Serum, or Drift
+  saw + lowpass).
 - **Sidechain to kick** is essential — Maccabi House requires the pump.
 - Kick on every beat, bass off-beat. Off-beat groove against four-on-floor.
 
@@ -56,4 +64,5 @@ v120 t/8 C1 2|4.75
 
 ## Validated in
 
-- Project: chill-sunday-with-my-adj-pal (2026-04-26). User reaction: "I like it."
+- Project: chill-sunday-with-my-adj-pal (2026-04-26). User reaction: "I like
+  it."

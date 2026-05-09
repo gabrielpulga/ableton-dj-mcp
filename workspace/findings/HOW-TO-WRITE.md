@@ -1,18 +1,24 @@
 # How to Write a Music Finding
 
-Format spec for `workspace/findings/`. Loaded by `/update-docs` skill before writing. AI-optimized: lazy loading, no duplicates, no boilerplate.
+Format spec for `workspace/findings/`. Loaded by `/update-docs` skill before
+writing. AI-optimized: lazy loading, no duplicates, no boilerplate.
 
-Mirror of `docs/findings/HOW-TO-WRITE.md` (the tool/dev findings spec) but tuned for music production knowledge.
+Mirror of `docs/findings/HOW-TO-WRITE.md` (the tool/dev findings spec) but tuned
+for music production knowledge.
 
 ## What goes here
 
-Validated music production knowledge captured during real sessions. Each finding is one technique, one observation, or one rule with concrete evidence from your own work.
+Validated music production knowledge captured during real sessions. Each finding
+is one technique, one observation, or one rule with concrete evidence from your
+own work.
 
 ## What does NOT go here
 
-- Tool bugs or feature requests → file as a GitHub issue in `gabrielpulga/ableton-dj-mcp` instead
+- Tool bugs or feature requests → file as a GitHub issue in
+  `gabrielpulga/ableton-dj-mcp` instead
 - Generic music theory available anywhere on the web
-- Things from a tutorial or article (unless you tested them yourself and it worked)
+- Things from a tutorial or article (unless you tested them yourself and it
+  worked)
 - Speculation: "I think X would sound good"
 - Restating what's already in `AI.md`
 
@@ -26,7 +32,8 @@ A music finding is valid only if proven in a real session by ONE of:
 - A failure that taught you what NOT to do (cite the symptom)
 - A technique you applied across multiple projects with consistent results
 
-If you can't point to a specific session, project, or audio output → don't write the finding.
+If you can't point to a specific session, project, or audio output → don't write
+the finding.
 
 ## File layout
 
@@ -45,7 +52,8 @@ Add new domains as needed. Mirror the routing-by-glob pattern.
 
 - Path: `<domain>/<slug>.md`
 - Slug: kebab-case, ≤ 5 words
-- Slug names the technique, not the symptom: `bass-off-beat-rule` not `bass-sounds-bad-fix`
+- Slug names the technique, not the symptom: `bass-off-beat-rule` not
+  `bass-sounds-bad-fix`
 - Lowercase only
 
 ## Strict file template
@@ -60,15 +68,18 @@ evidence: <project name | reference track | session description>
 ---
 
 ## Fact
+
 <one or two sentences. The technique itself. No buildup.>
 
 ## Evidence
-<concrete proof: project where it worked, reference track that uses it,
-A/B comparison, or failed attempt that taught the lesson.>
+
+<concrete proof: project where it worked, reference track that uses it, A/B
+comparison, or failed attempt that taught the lesson.>
 
 ## Apply when
-<condition that triggers relevance: genre, section type, instrument,
-or production stage.>
+
+<condition that triggers relevance: genre, section type, instrument, or
+production stage.>
 ```
 
 ### Section rules
@@ -126,16 +137,18 @@ Two files for same fact = wasted context.
 
 ## When in doubt, skip
 
-Better to capture nothing than to capture noise. Bad findings rot the knowledge base faster than good ones grow it.
+Better to capture nothing than to capture noise. Bad findings rot the knowledge
+base faster than good ones grow it.
 
 ## Tool vs music findings
 
-| Discovery type | Where to capture |
-|---|---|
-| MCP tool bug or missing feature | GitHub issue in `gabrielpulga/ableton-dj-mcp` |
-| MCP tool quirk that affects how you use it | `docs/findings/dev/` (in tool repo, public) |
-| Music technique that worked | `workspace/findings/technique/` (here, private) |
-| Genre-specific pattern from analysis | `workspace/findings/genre/` (here, private) |
-| Sound design recipe | `workspace/findings/sound-design/` (here, private) |
+| Discovery type                             | Where to capture                                   |
+| ------------------------------------------ | -------------------------------------------------- |
+| MCP tool bug or missing feature            | GitHub issue in `gabrielpulga/ableton-dj-mcp`      |
+| MCP tool quirk that affects how you use it | `docs/findings/dev/` (in tool repo, public)        |
+| Music technique that worked                | `workspace/findings/technique/` (here, private)    |
+| Genre-specific pattern from analysis       | `workspace/findings/genre/` (here, private)        |
+| Sound design recipe                        | `workspace/findings/sound-design/` (here, private) |
 
-When unsure: if it's about HOW to use the tool, it's tool. If it's about WHAT to make musically, it's music.
+When unsure: if it's about HOW to use the tool, it's tool. If it's about WHAT to
+make musically, it's music.
