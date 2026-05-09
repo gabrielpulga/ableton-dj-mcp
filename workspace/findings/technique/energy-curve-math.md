@@ -76,6 +76,43 @@ Every 16 bars, full layer in or out. This is the visible structure: intro / buil
 
 These are the section boundaries the listener consciously tracks.
 
+### Every-32 macro boundary
+
+Every 32 bars marks a macro section transition: intro → break → drop → break → drop → outro. Cross-genre rule. Track structure decisions live at this scale.
+
+## Section-length conventions per genre
+
+All sections divisible by 8. DJ-friendly tracks need a 16+ bar percussive intro and outro for mixing.
+
+| Genre | BPM | Intro | Breakdown | Build | Drop A | Drop B |
+|-------|-----|-------|-----------|-------|--------|--------|
+| Tech house | 124-128 | 32 | 16-32 | 8 | 32 | 32 |
+| Peak-time techno | 130-138 | 32-64 | 16 | 8-16 | 32-64 | 32-64 |
+| Melodic techno | 122-128 | 16-32 | 32 | 8-16 | 32 | 32 |
+| Indie dance | 118-124 | 16-32 | 16-32 | 8 | 32 (16 bass + 16 melodic B-part) | 32 |
+| Progressive psy | 138-142 | 32-64 | 4-8 | 8-16 | 64-128 | 64-128 |
+| Full-on psy | 142-148 | 16-32 | 8-16 | 8 | 32-64 | 32-64 |
+
+Use as a default skeleton. Diverge intentionally, not by accident.
+
+## The 1-9 reference scoring scale
+
+Quick way to compare your in-progress arrangement to a reference track without building a full energy table.
+
+Method:
+
+1. Pick a reference track and divide it into 8-bar blocks.
+2. Score each 8-bar block from 1 (silence / atmospheric only) to 9 (peak — every element at full velocity).
+3. Write the sequence as a number string. Example reference (Innellea-style melodic techno):
+   ```
+   2-3-4-5-7-9-3-8-9-5
+   ```
+   Reads as: quiet intro climbing, breakdown to 3, build to 8, peak at 9, outro back to 5.
+4. Score your own track the same way.
+5. Compare. If yours is `5-5-5-5-7-7-5-5-5-5` → flat-curve problem. If yours is `2-9-2-9-2-9-2-9` → too oscillating, no arc.
+
+A good track has a sequence that rises, peaks once or twice, and falls. The numbers form a shape, not a line.
+
 ## How to read an existing track's energy curve
 
 Bar-by-bar listening method (use on reference tracks):
