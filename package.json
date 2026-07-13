@@ -85,7 +85,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.0",
     "@typescript-eslint/eslint-plugin": "^8.62.1",
-    "@typescript-eslint/parser": "^8.62.1",
+    "@typescript-eslint/parser": "^8.63.0",
     "@vitest/coverage-v8": "^4.1.6",
     "@vitest/eslint-plugin": "^1.6.21",
     "chokidar": "^5.0.0",
