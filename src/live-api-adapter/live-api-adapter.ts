@@ -19,6 +19,7 @@ import * as console from "#src/shared/v8-max-console.ts";
 import { isNewerVersion } from "#src/shared/version-check.ts";
 import { MIN_LIVE_VERSION, VERSION } from "#src/shared/version.ts";
 import { createClip } from "#src/tools/clip/create/create-clip.ts";
+import { microsectionMute } from "#src/tools/clip/microsection-mute/microsection-mute.ts";
 import { readClip } from "#src/tools/clip/read/read-clip.ts";
 import { updateClip } from "#src/tools/clip/update/update-clip.ts";
 import { playback } from "#src/tools/control/playback.ts";
@@ -91,6 +92,11 @@ const tools: Record<string, (args: unknown) => unknown> = {
     initHoldingArea();
 
     return updateClip(args as any, context);
+  },
+  "adj-microsection-mute": (args) => {
+    initHoldingArea();
+
+    return microsectionMute(args as any, context);
   },
   "adj-create-device": (args) => createDevice(args as any, context),
   "adj-read-device": (args) => readDevice(args as any, context),
