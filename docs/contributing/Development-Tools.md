@@ -214,7 +214,7 @@ ENABLE_LOGGING=true VERBOSE_LOGGING=true node scripts/test/test-claude-desktop-e
 **macOS:**
 
 ```bash
-tail -f ~/Library/Logs/Producer\ Pal/*.log
+tail -f ~/Library/Logs/Ableton\ DJ\ MCP/*.log
 ```
 
 **Windows:**
