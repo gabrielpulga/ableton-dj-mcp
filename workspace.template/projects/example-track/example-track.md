@@ -8,14 +8,14 @@ Sample project file. Delete this directory or rename it for your own work.
 - **BPM:** 124
 - **Key:** B minor
 - **Target length:** ~7 minutes (140 bars)
-- **Reference:** Innellea — Spectrum
+- **Reference:** [your reference track here]
 
 ## Status
 
 - [x] Drums skeleton (kick + open hat)
 - [ ] Bass (working on off-beat pattern, first hit at 1.25)
-- [ ] Lead (Innellea-style anchor + off-beat melody)
-- [ ] Arrangement structure (using Spectrum template)
+- [ ] Lead (low-anchor + off-beat melody)
+- [ ] Arrangement structure
 - [ ] Mix + master
 
 ## Open decisions

@@ -21,6 +21,6 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [psy-acid-bassline](genre/psy-acid-bassline.md) [psy*, acid*, bass*] — 16th-note pattern with filter env, root + b2 + root within bar
 
 ## sound-design
-- [innellea-pluck-velocity](sound-design/innellea-pluck-velocity.md) [pluck*, melodic*, arp*] — root v94, 3rd v45, 5th v59, octave v72 — velocity shapes the arp
+- [pluck-velocity-shaping](sound-design/pluck-velocity-shaping.md) [pluck*, melodic*, arp*] — root v94, 3rd v45, 5th v59, octave v72 — velocity shapes the arp
 
 -->

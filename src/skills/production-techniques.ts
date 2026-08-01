@@ -25,7 +25,7 @@ export const productionTechniquesSkills = `
 ### Bass
 
 - **Driving bass**: Continuous 8th notes, no gaps. Mix t/8 stabs, t/4 punches, t/2 sustains. Root notes get long sustains; passing tones get short stabs.
-- **Off-beat rule (Innellea)**: Bass does NOT hit on the downbeat. First note at 1.25 (the "e" of beat 1) creates the pump against the kick. This is the #1 groove trick.
+- **Off-beat rule**: Bass does NOT hit on the downbeat. First note at 1.25 (the "e" of beat 1) creates the pump against the kick. This is the #1 groove trick.
 - **Two velocity levels**: Accent hits v127 (on 1.25 and 3.25), fill hits v100. Mix note lengths (t/2 and t3/4) for rhythmic interest through duration, not just timing.
 - **Build complexity progressively across clips**: pure roots → one passing tone → walking bass.
 - **Four-layer bass architecture (melodic techno)**: Sub/low layer (long notes), top/mid layer (same rhythm, shorter notes), acid layer (16ths, sections only), breakdown layer (sustained chords).
@@ -40,17 +40,17 @@ export const productionTechniquesSkills = `
 
 ### Leads
 
-- **ARTBAT style**: 2-4 note motifs, mono mode, portamento/glide 100-150ms. Intervals of 4ths and 5ths glide best.
+- **Sustain+staccato pattern**: 2-4 note motifs, mono mode, portamento/glide 100-150ms. Intervals of 4ths and 5ths glide best.
 - **Mix long and short**: t3-t4 sustained notes + t/4 staccato. Let notes ring and breathe.
 - **Sound design creates emotion** — don't write complex melodies. LFO on filter cutoff for evolving tone. Auto-pan for width.
-- **Innellea lead pattern**: Low octave anchor on every beat (e.g., B0), melody notes on off-beats above (e.g., Gb2, E2, D2 on 1.5/2.5/3.5). Short t/2 notes — percussive, not washy. Ornamental runs (fast 3/8 descending fragments) for variation.
+- **Low-anchor lead pattern**: Low octave anchor on every beat (e.g., B0), melody notes on off-beats above (e.g., Gb2, E2, D2 on 1.5/2.5/3.5). Short t/2 notes — percussive, not washy. Ornamental runs (fast 3/8 descending fragments) for variation.
 - **Tease before entering** — hint at the lead 2-4 bars before it fully arrives. Enter late. One lead is enough; two layers overcomplicates.
 
 ### Plucks & Arps
 
 - **Use 2-note dyads (root+fifth)**, not single notes — single-note arps sound robotic.
 - **Repeat anchor chord** multiple times per bar for hypnotic feel. One contrast chord for movement.
-- **Pluck arp (Innellea)**: Chord tones cycling every 16th note (e.g., B2→E3→Gb3→B3 on 1, 1.25, 1.5, 1.75). Velocity-shaped: root v94 (loud), 3rd v45 (soft), 5th v59 (medium), octave v72 (strong). All t/8 (32nd notes) — very short and percussive.
+- **Velocity-shaped pluck arp**: Chord tones cycling every 16th note (e.g., B2→E3→Gb3→B3 on 1, 1.25, 1.5, 1.75). Velocity-shaped: root v94 (loud), 3rd v45 (soft), 5th v59 (medium), octave v72 (strong). All t/8 (32nd notes) — very short and percussive.
 - **Blend into the groove** — pluck should not stand out as a separate melody.
 
 ### Arrangement & Energy
