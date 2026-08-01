@@ -971,9 +971,9 @@ if (!Array.prototype.with) {
 
 const BUILD_INFO = {
   branch: "gabriel/scrub-personal-refs",
-  sha: "8eb23094",
+  sha: "afb9de86",
   dirty: true,
-  buildTime: "2026-08-01T21:24:00.219Z",
+  buildTime: "2026-08-01T21:52:40.185Z",
   source: "local"
 };
 

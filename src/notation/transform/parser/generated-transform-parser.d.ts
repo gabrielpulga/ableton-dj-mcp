@@ -40,10 +40,7 @@ export interface FunctionNode {
 
 /** Expression AST node */
 export type ExpressionNode =
-  | number
-  | VariableNode
-  | BinaryOpNode
-  | FunctionNode;
+  number | VariableNode | BinaryOpNode | FunctionNode;
 
 /** Pitch range filter */
 export interface PitchRange {
