@@ -99,7 +99,7 @@ steps: [`docs/Releasing.md`](docs/Releasing.md).
 ## Branching
 
 - `main` — stable
-- Feature branches: `gabriel/<description>`
+- Feature branches: `<your-username>/<description>`
 
 ## Pull requests
 

@@ -59,7 +59,6 @@ report/
 local/
 
 # User's personal music context (scaffolded from workspace.template/ via npm run init:workspace)
-# Track validated findings (workspace/findings/) so they can be shared via PR.
-# Keep projects/, AI.md, genres/, techniques/ private (per-user session data).
-workspace/*
-!workspace/findings/
+# Entirely private — projects, findings, genres, techniques, AI instructions
+# never leave the user's machine.
+workspace/

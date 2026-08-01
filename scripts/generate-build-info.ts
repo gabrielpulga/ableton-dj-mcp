@@ -122,7 +122,7 @@ export const BUILD_INFO: BuildInfo = ${JSON.stringify(info, null, 2)} as const;
  * Compact build identifier for the startup banner.
  * Examples:
  *   "[main@a1b2c3d4] built 2026-05-07T12:47:18Z"
- *   "[gabriel/browser-api@a1b2c3d4*] built 2026-05-07T12:47:18Z"
+ *   "[feature/browser-api@a1b2c3d4*] built 2026-05-07T12:47:18Z"
  *   "[release] built 2026-05-07T08:00:00Z"
  *   "[local-no-git] built 2026-05-07T08:00:00Z"
  * @returns Compact build identifier string

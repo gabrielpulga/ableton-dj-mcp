@@ -25,6 +25,8 @@ ramp.
 
 ## Apply when
 
-Generating section transitions in tech house / techno / psy. Use `pulses=3-5`
-for intros and breakdowns, `pulses=7-9` for main groove, `pulses=11+` for peaks.
-Stays inside the bar grid — no rhythmic chaos, just density curve.
+Generating section transitions where a rising or falling energy arc is wanted.
+Lower `pulses` values (relative to `steps`) read as sparse/low-energy, higher
+values read as dense/high-energy. Stays inside the bar grid — no rhythmic chaos,
+just density curve. Pick the exact range for your genre/section in your own
+workspace notes.

@@ -742,14 +742,14 @@ import { createSocket } from "node:dgram";
 import os from "node:os";
 
 const BUILD_INFO = {
-  branch: "gabriel/browser-bridge",
-  sha: "724f3daf",
-  buildTime: "2026-05-07T17:33:46.740Z"
+  branch: "gabriel/scrub-personal-refs",
+  sha: "8eb23094",
+  buildTime: "2026-08-01T21:24:00.219Z"
 };
 
 function buildIdentifier() {
   const i = BUILD_INFO;
-  const dirtyMark = "";
+  const dirtyMark = "*";
   return `[${i.branch}@${i.sha}${dirtyMark}] built ${i.buildTime}`;
 }
 
@@ -809,7 +809,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.10.0";
+const VERSION = "1.11.0";
 
 var RequestError = class extends Error {
   constructor(message, options) {
