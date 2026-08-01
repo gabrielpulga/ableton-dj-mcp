@@ -278,21 +278,31 @@ Bar 16     : 32nd notes + tail cut on beat 4.5  (silence into drop)
 
 ## Common failures
 
-| Symptom                           | Cause                                            | Fix                                                                            |
-| --------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ | --- | --------------------------- |
-| Drop feels weak                   | No silence before bar 1                          | Empty last bar of build (no reverb tail either)                                |
-| "Wall of sound" drop              | All elements enter simultaneously on bar 1       | Stagger entries across bars 1-4 (one element per bar)                          |
-| Sub bass loses impact             | Sub played throughout breakdown                  | HPF roll-off across breakdown, return only at drop                             |
-| Build out-louds the drop          | Master/lead too loud during build                | Volume-automate down 2-3 dB across last 4 bars of build                        |
-| Flat energy across drop           | All elements at same velocity bars 17-32         | Add every-4 accent: drop or add one element on bar 4 of every 4-bar phrase     |
-| Single-note arps sound robotic    | No dyads on lead/pluck                           | Use 2-note chords (root + 5th) on plucks/leads                                 |
-| Mechanical perc                   | AI-generated from theory                         | Reference real track bar-by-bar first, transcribe note-by-note                 |
-| Repetition fatigue                | Same loop 16+ bars without change                | Insert micro-variation every 4 bars (single note, velocity tweak, filter open) |
-| Sub overpowers kick or vice versa | Same frequency range                             | EQ split: punchy kick (60 Hz) + sub (40 Hz), or deep kick + mid bass           |
-| Reverb tail kills silence         | Reverb send still active in pre-drop bar         | Cut reverb send via automation before pre-drop bar                             |
-| Kick returns late                 | Kick at 17                                       | 1.25 instead of 17                                                             | 1.0 | Snap kick to exact downbeat |
-| Build melody too rich             | Full melodic phrase in build steals drop payload | Build = riser + snare + filter sweeps. Save melody for drop bar                |
-| Drop = build energy               | Build climbed to 85%, drop is 80%                | Drop must equal or exceed highest build energy point                           |
+| Symptom | Cause | Fix | | --------------------------------- |
+
+| ------------------------------------------------        |
+| ------------------------------------------------------- |
+| ---                                                     | ---------------------------                                         |                                         | Drop feels weak                          | No silence before bar 1 |
+| Empty last bar of build (no reverb tail either)         |                                                                     | "Wall of sound" drop                    | All                                      |
+| elements enter simultaneously on bar 1                  | Stagger entries across bars 1-4 (one                                |
+| element per bar)                                        |                                                                     | Sub bass loses impact                   | Sub played throughout breakdown          |
+| HPF roll-off across breakdown, return only at drop      |                                                                     | Build out-louds the drop                |
+| Master/lead too loud during build                       | Volume-automate down 2-3 dB across last 4                           |
+| bars of build                                           |                                                                     | Flat energy across drop                 | All elements at same velocity bars       |
+| 17-32                                                   | Add every-4 accent: drop or add one element on bar 4 of every 4-bar |
+| phrase                                                  |                                                                     | Single-note arps sound robotic          | No dyads on lead/pluck                   | Use 2-note              |
+| chords (root + 5th) on plucks/leads                     |                                                                     | Mechanical perc                         | AI-generated from                        |
+| theory                                                  | Reference real track bar-by-bar first, transcribe note-by-note      |                                         |
+| Repetition fatigue                                      | Same loop 16+ bars without change                                   | Insert micro-variation                  |
+| every 4 bars (single note, velocity tweak, filter open) |                                                                     | Sub overpowers kick                     |
+| or vice versa                                           | Same frequency range                                                | EQ split: punchy kick (60 Hz) + sub (40 |
+| Hz), or deep kick + mid bass                            |                                                                     | Reverb tail kills silence               | Reverb send still                        |
+| active in pre-drop bar                                  | Cut reverb send via automation before pre-drop bar                  |                                         |
+| Kick returns late                                       | Kick at 17                                                          | 1.25 instead of 17                      | 1.0                                      | Snap kick to exact      |
+| downbeat                                                |                                                                     | Build melody too rich                   | Full melodic phrase in build steals drop |
+| payload                                                 | Build = riser + snare + filter sweeps. Save melody for drop bar     |                                         |
+| Drop = build energy                                     | Build climbed to 85%, drop is 80%                                   | Drop must equal or                      |
+| exceed highest build energy point                       |
 
 ## Worked example — indie-dance subtractive drop (16-bar build → 16-bar drop)
 

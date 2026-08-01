@@ -31,8 +31,7 @@ export interface BarCopyDestination {
 
 /** Bar copy source */
 export type BarCopySource =
-  | { bar?: number; range?: [number, number] }
-  | "previous";
+  { bar?: number; range?: [number, number] } | "previous";
 
 /** AST element produced by the parser */
 export interface ASTElement {
