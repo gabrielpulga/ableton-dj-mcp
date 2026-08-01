@@ -12,7 +12,7 @@ npm test               # run unit tests
 npm run check          # full quality gate: lint + typecheck + format + duplication + coverage
 npm run fix            # auto-fix lint and formatting
 npm run build          # bundle all three outputs to dist/
-docker compose run check  # same as npm run check, in isolation
+docker compose -f docker/docker-compose.yml run check  # same as npm run check, in isolation
 ```
 
 ## Architecture

@@ -10,7 +10,7 @@ const __dirname = import.meta.dirname;
 export default defineConfig({
   resolve: {
     alias: {
-      "#src": join(__dirname, "src"),
+      "#src": join(__dirname, "../src"),
     },
   },
   test: {
