@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.12.0...ableton-dj-mcp-v1.13.0) (2026-08-02)
+
+
+### Features
+
+* expose track freeze and flatten ([#241](https://github.com/gabrielpulga/ableton-dj-mcp/issues/241)) ([7811c1e](https://github.com/gabrielpulga/ableton-dj-mcp/commit/7811c1eca3a6e1394e88c0024a52199f086d1bd6)), closes [#30](https://github.com/gabrielpulga/ableton-dj-mcp/issues/30)
+
 ## [1.12.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.11.0...ableton-dj-mcp-v1.12.0) (2026-08-02)
 
 
