@@ -107,9 +107,9 @@ steps: [`docs/Releasing.md`](docs/Releasing.md).
 
 Every PR must include:
 
-- **Assignee**: `gabrielpulga` (project maintainer — every PR gets this
-  assignee for review, regardless of who opens it; not a placeholder for your
-  own username)
+- **Assignee**: `gabrielpulga` (project maintainer — every PR gets this assignee
+  for review, regardless of who opens it; not a placeholder for your own
+  username)
 - **Label**: one of the 5 standard labels (pick the best fit):
   - `bug` — fixes a defect
   - `feature` — new functionality
