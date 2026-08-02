@@ -66,7 +66,7 @@ For each INDEX line, match the bracketed globs against your task's file paths.
 Read the linked file ONLY if matched. Skip if no match — the INDEX line itself
 is the lookup key.
 
-To capture a new validated finding, run `/update-docs` (loads
+To capture a new validated finding, run `/update-ableton-dj-mcp-docs` (loads
 `docs/findings/HOW-TO-WRITE.md`).
 
 ## Tools
