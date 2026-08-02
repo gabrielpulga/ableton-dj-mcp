@@ -33,6 +33,15 @@ function isTrackFrozen(track: LiveAPI): boolean {
  * is skipped for this track and `freezeStatus: "in_progress"` is reported
  * instead of blocking; the AI can confirm completion with adj-read-track.
  *
+ * KNOWN RISK: Cycling '74's published Track reference
+ * (docs.cycling74.com/apiref/lom/track/) only documents `can_be_frozen`
+ * (get) and `is_frozen` (getobserve) - no settable `freeze` property or
+ * callable `freeze`/`flatten` function is listed. `track.set("freeze", ...)`
+ * and `track.call("flatten")` below may be targeting API surface that
+ * doesn't exist, in which case this bounded poll will always end in
+ * `freezeStatus: "in_progress"` rather than ever confirming completion. See
+ * docs/findings/dev/track-freeze-missing-from-lom.md (unverified live).
+ *
  * @param track - Track object
  * @param freeze - Desired freeze state (true = freeze, false = unfreeze), or undefined to skip
  * @param flatten - Whether to flatten (commit frozen audio, remove devices)

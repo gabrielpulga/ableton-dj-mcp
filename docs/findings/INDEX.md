@@ -9,6 +9,14 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ## dev
 
+- [track-freeze-missing-from-lom](dev/track-freeze-missing-from-lom.md)
+  [src/tools/track/update/helpers/update-track-freeze-helpers.ts] — Live Object
+  Model has no freeze/flatten trigger on Track, only get/observe can_be_frozen
+  and is_frozen
+- [v8-task-needs-persistent-ref](dev/v8-task-needs-persistent-ref.md)
+  [src/shared/v8-sleep.ts, src/live-api-adapter/**] — inline
+  `new Task(cb).schedule(ms)` with no stored reference risks GC before it fires
+
 ### notation
 
 - [barbeat-notation-order](dev/notation/barbeat-notation-order.md)
