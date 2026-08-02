@@ -8,7 +8,6 @@
    ██║  ██║██████╔╝╚█████╔╝    ██║ ╚═╝ ██║╚██████╗██║
    ╚═╝  ╚═╝╚═════╝  ╚════╝     ╚═╝     ╚═╝ ╚═════╝╚═╝
    ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▁▂▃▄▅▆▇█▇▆▅▄▃▂▁▁▂▃▄▅▆▇█
-                  ideas in. music out.
 ```
 
 [![CI](https://github.com/gabrielpulga/ableton-dj-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielpulga/ableton-dj-mcp/actions/workflows/ci.yml)
