@@ -33,27 +33,33 @@ const skipped: string[] = [];
 for (const entry of readdirSync(templateDir)) {
   const src = join(templateDir, entry);
   const dst = join(targetDir, entry);
+
   if (existsSync(dst)) {
     skipped.push(entry);
     continue;
   }
+
   cpSync(src, dst, { recursive: true });
   copied.push(entry);
 }
 
 if (copied.length === 0) {
   console.log(`workspace already populated at ${targetDir} — nothing to copy`);
+
   if (skipped.length > 0) {
     console.log(`  existing entries left untouched: ${skipped.join(", ")}`);
   }
+
   process.exit(0);
 }
 
 console.log(`workspace populated at ${targetDir}`);
 console.log(`  copied: ${copied.join(", ")}`);
+
 if (skipped.length > 0) {
   console.log(`  preserved (existing): ${skipped.join(", ")}`);
 }
+
 console.log("");
 console.log("Next steps:");
 console.log("  1. Edit workspace/AI.md to add your own production preferences");
