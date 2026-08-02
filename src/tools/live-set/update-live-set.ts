@@ -29,6 +29,9 @@ interface UpdateLiveSetArgs {
   timeSignature?: string;
   groove?: number;
   scale?: string;
+  punchIn?: boolean;
+  punchOut?: boolean;
+  overdub?: boolean;
   locatorOperation?: string;
   locatorId?: string;
   locatorTime?: string;
@@ -61,6 +64,9 @@ type UpdateLiveSetContext = Partial<ToolContext> & { silenceWavPath?: string };
  * @param args.timeSignature - Time signature in format "4/4"
  * @param args.groove - Global groove pool amount (0.0-1.0)
  * @param args.scale - Scale in format "Root ScaleName"
+ * @param args.punchIn - Enable/disable punch-in recording
+ * @param args.punchOut - Enable/disable punch-out recording
+ * @param args.overdub - Enable/disable arrangement overdub mode
  * @param args.locatorOperation - Locator operation: "create", "delete", or "rename"
  * @param args.locatorId - Locator ID for delete/rename
  * @param args.locatorTime - Bar|beat position for create/delete/rename
@@ -75,6 +81,9 @@ export async function updateLiveSet(
     timeSignature,
     groove,
     scale,
+    punchIn,
+    punchOut,
+    overdub,
     locatorOperation,
     locatorId,
     locatorTime,
@@ -115,6 +124,21 @@ export async function updateLiveSet(
     (result.$meta as string[]).push(
       "Scale applied to selected clips and defaults for new clips.",
     );
+  }
+
+  if (punchIn != null) {
+    liveSet.set("punch_in", punchIn);
+    result.punchIn = punchIn;
+  }
+
+  if (punchOut != null) {
+    liveSet.set("punch_out", punchOut);
+    result.punchOut = punchOut;
+  }
+
+  if (overdub != null) {
+    liveSet.set("arrangement_overdub", overdub);
+    result.overdub = overdub;
   }
 
   if (arrangementFollower != null) {

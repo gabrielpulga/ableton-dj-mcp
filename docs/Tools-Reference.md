@@ -30,14 +30,14 @@ configured sample folder.
 ### `adj-read-live-set`
 
 Read the current Live Set overview: name, tempo, time signature, groove amount,
-tracks, scenes.
+punch in/out and overdub state, tracks, scenes.
 
 - `include: ["tracks", "scenes", "locators"]` for details
 
 ### `adj-update-live-set`
 
-Update Live Set properties: tempo, time signature, groove amount, name,
-locators.
+Update Live Set properties: tempo, time signature, groove amount, name, punch
+in/out (`punchIn`/`punchOut`), arrangement overdub (`overdub`), locators.
 
 ---
 

@@ -55,6 +55,9 @@ export function readLiveSet(
     tempo: liveSet.getProperty("tempo"),
     timeSignature: liveSet.timeSignature,
     grooveAmount: liveSet.getProperty("groove_amount"),
+    punchIn: (liveSet.getProperty("punch_in") as number) > 0,
+    punchOut: (liveSet.getProperty("punch_out") as number) > 0,
+    overdub: (liveSet.getProperty("arrangement_overdub") as number) > 0,
   };
 
   // Include full scene details or just the count
