@@ -184,6 +184,12 @@ export function addOptionalBooleanProperties(
   if (isFolded) {
     result.isFolded = isFolded;
   }
+
+  const isFrozen = (track.getProperty("is_frozen") as number) > 0;
+
+  if (isFrozen) {
+    result.isFrozen = isFrozen;
+  }
 }
 
 /**

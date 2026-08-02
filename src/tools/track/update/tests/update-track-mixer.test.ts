@@ -43,8 +43,8 @@ describe("updateTrack - mixer properties", () => {
     });
   });
 
-  it("should update gain only", () => {
-    updateTrack({
+  it("should update gain only", async () => {
+    await updateTrack({
       ids: "123",
       gainDb: -6,
     });
@@ -52,8 +52,8 @@ describe("updateTrack - mixer properties", () => {
     expect(volumeParam1.set).toHaveBeenCalledWith("display_value", -6);
   });
 
-  it("should update pan only", () => {
-    updateTrack({
+  it("should update pan only", async () => {
+    await updateTrack({
       ids: "123",
       pan: 0.5,
     });
@@ -61,8 +61,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).toHaveBeenCalledWith("value", 0.5);
   });
 
-  it("should update both gain and pan", () => {
-    updateTrack({
+  it("should update both gain and pan", async () => {
+    await updateTrack({
       ids: "123",
       gainDb: -3,
       pan: -0.25,
@@ -72,8 +72,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).toHaveBeenCalledWith("value", -0.25);
   });
 
-  it("should update gain/pan with other properties", () => {
-    updateTrack({
+  it("should update gain/pan with other properties", async () => {
+    await updateTrack({
       ids: "123",
       name: "Test Track",
       gainDb: -12,
@@ -87,8 +87,8 @@ describe("updateTrack - mixer properties", () => {
     expect(track123.set).toHaveBeenCalledWith("mute", true);
   });
 
-  it("should handle minimum gain value", () => {
-    updateTrack({
+  it("should handle minimum gain value", async () => {
+    await updateTrack({
       ids: "123",
       gainDb: -70,
     });
@@ -96,8 +96,8 @@ describe("updateTrack - mixer properties", () => {
     expect(volumeParam1.set).toHaveBeenCalledWith("display_value", -70);
   });
 
-  it("should handle maximum gain value", () => {
-    updateTrack({
+  it("should handle maximum gain value", async () => {
+    await updateTrack({
       ids: "123",
       gainDb: 6,
     });
@@ -105,8 +105,8 @@ describe("updateTrack - mixer properties", () => {
     expect(volumeParam1.set).toHaveBeenCalledWith("display_value", 6);
   });
 
-  it("should handle minimum pan value (full left)", () => {
-    updateTrack({
+  it("should handle minimum pan value (full left)", async () => {
+    await updateTrack({
       ids: "123",
       pan: -1,
     });
@@ -114,8 +114,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).toHaveBeenCalledWith("value", -1);
   });
 
-  it("should handle maximum pan value (full right)", () => {
-    updateTrack({
+  it("should handle maximum pan value (full right)", async () => {
+    await updateTrack({
       ids: "123",
       pan: 1,
     });
@@ -123,8 +123,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).toHaveBeenCalledWith("value", 1);
   });
 
-  it("should handle zero gain and center pan", () => {
-    updateTrack({
+  it("should handle zero gain and center pan", async () => {
+    await updateTrack({
       ids: "123",
       gainDb: 0,
       pan: 0,
@@ -134,8 +134,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).toHaveBeenCalledWith("value", 0);
   });
 
-  it("should update mixer properties for multiple tracks", () => {
-    updateTrack({
+  it("should update mixer properties for multiple tracks", async () => {
+    await updateTrack({
       ids: "123,456",
       gainDb: -6,
       pan: 0.5,
@@ -147,13 +147,13 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam2.set).toHaveBeenCalledWith("value", 0.5);
   });
 
-  it("should handle missing mixer device gracefully", () => {
+  it("should handle missing mixer device gracefully", async () => {
     // Override mixer to be non-existent for this test
     registerMockObject("id 0", {
       path: livePath.track(0).mixerDevice(),
     });
 
-    updateTrack({
+    await updateTrack({
       ids: "123",
       gainDb: -6,
       pan: 0.5,
@@ -164,8 +164,8 @@ describe("updateTrack - mixer properties", () => {
     expect(panningParam1.set).not.toHaveBeenCalled();
   });
 
-  it("should set panning mode to split", () => {
-    updateTrack({
+  it("should set panning mode to split", async () => {
+    await updateTrack({
       ids: "123",
       panningMode: "split",
     });
@@ -173,8 +173,8 @@ describe("updateTrack - mixer properties", () => {
     expect(mixer1.set).toHaveBeenCalledWith("panning_mode", 1);
   });
 
-  it("should set panning mode to stereo", () => {
-    updateTrack({
+  it("should set panning mode to stereo", async () => {
+    await updateTrack({
       ids: "123",
       panningMode: "stereo",
     });
@@ -182,7 +182,7 @@ describe("updateTrack - mixer properties", () => {
     expect(mixer1.set).toHaveBeenCalledWith("panning_mode", 0);
   });
 
-  it("should update leftPan and rightPan in split mode", () => {
+  it("should update leftPan and rightPan in split mode", async () => {
     const { leftSplitParam1, rightSplitParam1 } = registerSplitPanParams();
 
     mixer1.get.mockImplementation((prop: string) => {
@@ -191,7 +191,7 @@ describe("updateTrack - mixer properties", () => {
       return [0];
     });
 
-    updateTrack({
+    await updateTrack({
       ids: "123",
       leftPan: -0.75,
       rightPan: 0.5,
@@ -201,7 +201,7 @@ describe("updateTrack - mixer properties", () => {
     expect(rightSplitParam1.set).toHaveBeenCalledWith("value", 0.5);
   });
 
-  it("should warn when setting pan in split mode", () => {
+  it("should warn when setting pan in split mode", async () => {
     const errorSpy = vi.spyOn(console, "warn");
 
     mixer1.get.mockImplementation((prop: string) => {
@@ -210,7 +210,7 @@ describe("updateTrack - mixer properties", () => {
       return [0];
     });
 
-    updateTrack({
+    await updateTrack({
       ids: "123",
       pan: 0.5,
     });
@@ -222,12 +222,12 @@ describe("updateTrack - mixer properties", () => {
     errorSpy.mockRestore();
   });
 
-  it("should warn when setting leftPan/rightPan in stereo mode", () => {
+  it("should warn when setting leftPan/rightPan in stereo mode", async () => {
     const errorSpy = vi.spyOn(console, "warn");
 
     // Default panning_mode is 0 (stereo) from createGetMock fallback
 
-    updateTrack({
+    await updateTrack({
       ids: "123",
       leftPan: -0.5,
       rightPan: 0.5,
@@ -242,12 +242,12 @@ describe("updateTrack - mixer properties", () => {
     errorSpy.mockRestore();
   });
 
-  it("should switch mode and update panning in one call", () => {
+  it("should switch mode and update panning in one call", async () => {
     const { leftSplitParam1, rightSplitParam1 } = registerSplitPanParams();
 
     // Start in stereo mode (default)
 
-    updateTrack({
+    await updateTrack({
       ids: "123",
       panningMode: "split",
       leftPan: -1,

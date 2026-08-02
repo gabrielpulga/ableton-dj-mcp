@@ -209,6 +209,38 @@ describe("readTrack", () => {
     expect(result.isGroupMember).toBeUndefined();
   });
 
+  it("returns isFrozen when the track is frozen", () => {
+    setupTrackPathMappedMocks({
+      trackId: "track1",
+      objects: {
+        Track: createSoloedMidiTrackProperties({ is_frozen: 1 }),
+      },
+    });
+
+    const result = readTrack({ trackIndex: 0 });
+
+    expect(result).toStrictEqual({
+      ...expectedSoloedMidiTrackResult(),
+      isArmed: true,
+      isFrozen: true,
+      playingSlotIndex: 2,
+      firedSlotIndex: 3,
+    });
+  });
+
+  it("omits isFrozen when the track is not frozen", () => {
+    setupTrackPathMappedMocks({
+      trackId: "track1",
+      objects: {
+        Track: createSoloedMidiTrackProperties({ is_frozen: 0 }),
+      },
+    });
+
+    const result = readTrack({ trackIndex: 0 });
+
+    expect(result).not.toHaveProperty("isFrozen");
+  });
+
   it("should detect Ableton DJ MCP host track", () => {
     mockThisDeviceOnTrack1();
 

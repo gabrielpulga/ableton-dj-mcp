@@ -134,6 +134,7 @@ Returns track overview by default. Use `include` to add detail.
 | `isGroupMember`        | `true`   | Only present when inside a group                              |
 | `isGrouped`            | `true`   | Only present when inside a group (alias of `isGroupMember`)   |
 | `isFolded`             | `true`   | Only present when a group track is folded                     |
+| `isFrozen`             | `true`   | Only present when the track is frozen                         |
 | `playingSlotIndex`     | `number` | 0-based playing clip slot (only when >= 0)                    |
 | `firedSlotIndex`       | `number` | 0-based triggered clip slot (only when >= 0)                  |
 | `state`                | `string` | Only present when not "ACTIVE" (e.g., muted, soloed)          |
