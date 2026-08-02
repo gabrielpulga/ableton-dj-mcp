@@ -150,16 +150,16 @@ describe("setAudioParameters", () => {
     ]);
   });
 
-  it("should set clip_mode to 1 when ramMode is true", () => {
+  it("should set ram_mode to 1 when ramMode is true", () => {
     setAudioParameters(mockClip, { ramMode: true });
 
-    expect(mockClip.set).toHaveBeenCalledWith("clip_mode", 1);
+    expect(mockClip.set).toHaveBeenCalledWith("ram_mode", 1);
   });
 
-  it("should set clip_mode to 0 when ramMode is false", () => {
+  it("should set ram_mode to 0 when ramMode is false", () => {
     setAudioParameters(mockClip, { ramMode: false });
 
-    expect(mockClip.set).toHaveBeenCalledWith("clip_mode", 0);
+    expect(mockClip.set).toHaveBeenCalledWith("ram_mode", 0);
   });
 
   it("should not set any properties when no parameters provided", () => {

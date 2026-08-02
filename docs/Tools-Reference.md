@@ -103,6 +103,9 @@ Read clip content and properties.
 - Arrangement clip: `trackIndex` + `arrangementStart`
 - `include: ["notes", "timing", "sample", "warp"]` for details
 - `playingPosition` in the response while the clip is playing
+- `notes` include also surfaces `velocityAmount` (MIDI, when scaled from 1.0)
+- `sample` include also surfaces `pitchFine` (cents, when non-zero) and
+  `ramMode` (when true)
 
 ### `adj-create-clip`
 

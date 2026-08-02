@@ -123,7 +123,7 @@ export async function updateLiveSet(
   }
 
   if (link != null) {
-    liveSet.set("link_enable", link);
+    liveSet.set("is_ableton_link_enabled", link);
     result.link = link;
   }
 

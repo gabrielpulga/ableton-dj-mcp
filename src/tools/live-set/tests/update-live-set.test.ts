@@ -85,14 +85,14 @@ describe("updateLiveSet", () => {
   it("should enable Ableton Link", async () => {
     const result = await updateLiveSet({ link: true });
 
-    expect(liveSet.set).toHaveBeenCalledWith("link_enable", true);
+    expect(liveSet.set).toHaveBeenCalledWith("is_ableton_link_enabled", true);
     expect(result).toStrictEqual({ id: "live_set_id", link: true });
   });
 
   it("should disable Ableton Link", async () => {
     const result = await updateLiveSet({ link: false });
 
-    expect(liveSet.set).toHaveBeenCalledWith("link_enable", false);
+    expect(liveSet.set).toHaveBeenCalledWith("is_ableton_link_enabled", false);
     expect(result).toStrictEqual({ id: "live_set_id", link: false });
   });
 
