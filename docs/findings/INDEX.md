@@ -14,6 +14,10 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
   live_browser_bridge/browser_ops.py, src/mcp-server/bridge-dispatcher.ts] —
   adj-browse search filters only direct children; user Places not reachable via
   Live categories
+- [ci-format-job-ignores-untracked](dev/ci-format-job-ignores-untracked.md)
+  [.github/workflows/ci.yml, .prettierignore, src/generated/**] — CI Format job
+  (write + git diff) misses formatting bugs in gitignored files; use
+  format:check for a true signal
 - [drum-kit-uri-loads-full-rack](dev/drum-kit-uri-loads-full-rack.md)
   [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
   live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
@@ -22,6 +26,9 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 - [empty-drum-rack-silent](dev/empty-drum-rack-silent.md)
   [src/tools/device/**, *_/adj-create-device_] — adj-create-device "Drum Rack"
   returns success but rack has no samples = no sound
+- [eslint-unicorn-import-peer-conflict](dev/eslint-unicorn-import-peer-conflict.md)
+  [package.json, package-lock.json] — eslint-plugin-unicorn>=66 needs
+  eslint>=10.4, eslint-plugin-import caps at eslint^9; mutually exclusive
 - [install-device-file-list](dev/install-device-file-list.md)
   [scripts/install-device.ts, max-for-live-device/**] — User Library install
   needs all 7 files (.amxd + 2 JS + 4 .maxpat); missing .maxpat = blank UI
@@ -33,6 +40,17 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
   src/mcp-server/browser-bridge-client.ts, src/mcp-server/bridge-dispatcher.ts]
   — Live Browser object not exposed to M4L LiveAPI JS in 12.4; Python remote
   script is only path (now implemented as `live_browser_bridge/`)
+- [new-readonly-field-breaks-strictequal](dev/new-readonly-field-breaks-strictequal.md)
+  [src/tools/_/read/\**, src/tools/live-set/read-live-set.ts,
+  \**/tests/_-basic.test.ts] — new always-present read field breaks existing
+  toStrictEqual fixtures; add mock-default value to each
+- [prettier-ignore-path-cwd-relative](dev/prettier-ignore-path-cwd-relative.md)
+  [.prettierignore, config/prettier.config.mjs, package.json] — --ignore-path
+  resolves relative to the ignore file's dir, not cwd (unlike --config)
+- [release-please-config-relocatable](dev/release-please-config-relocatable.md)
+  [config/release-please-config.json, config/.release-please-manifest.json,
+  .github/workflows/release.yml] — config-file/manifest-file inputs can be
+  relocated; internal paths stay repo-root-relative
 - [release-please-version-sync](dev/release-please-version-sync.md)
   [config/release-please-config.json, src/shared/version.ts, package.json] —
   VERSION constants need extra-files entry + marker comment
