@@ -34,8 +34,8 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
   — Live Browser object not exposed to M4L LiveAPI JS in 12.4; Python remote
   script is only path (now implemented as `live_browser_bridge/`)
 - [release-please-version-sync](dev/release-please-version-sync.md)
-  [release-please-config.json, src/shared/version.ts, package.json] — VERSION
-  constants need extra-files entry + marker comment
+  [config/release-please-config.json, src/shared/version.ts, package.json] —
+  VERSION constants need extra-files entry + marker comment
 
 ## music
 
