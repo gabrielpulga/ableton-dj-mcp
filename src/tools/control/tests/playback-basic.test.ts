@@ -719,6 +719,47 @@ describe("transport", () => {
     });
   });
 
+  it("should nudge tempo up", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "nudge-tempo", nudge: "up" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("nudge_up");
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "1|1",
+    });
+  });
+
+  it("should nudge tempo down", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+    });
+
+    const result = playback({ action: "nudge-tempo", nudge: "down" });
+
+    expect(liveSet.call).toHaveBeenCalledWith("nudge_down");
+    expect(result).toStrictEqual({
+      playing: true,
+      currentTime: "1|1",
+    });
+  });
+
+  it("should throw when nudge-tempo is missing nudge param", () => {
+    liveSet = setupPlaybackLiveSet({
+      is_playing: 1,
+      current_song_time: 0,
+    });
+
+    expect(() => playback({ action: "nudge-tempo" })).toThrow(
+      'nudge-tempo requires nudge param ("up" or "down")',
+    );
+  });
+
   it("should not touch transport or loop params for standalone actions", () => {
     liveSet = setupPlaybackLiveSet({
       is_playing: 0,

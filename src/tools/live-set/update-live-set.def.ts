@@ -21,6 +21,11 @@ export const toolDefUpdateLiveSet = defineTool("adj-update-live-set", {
       .max(1)
       .optional()
       .describe("Global groove pool amount (0.0-1.0)"),
+    link: z.boolean().optional().describe("Enable/disable Ableton Link"),
+    forceLinkBeatTime: z.coerce
+      .number()
+      .optional()
+      .describe("Force all Link peers to this beat time"),
     scale: z
       .string()
       .optional()

@@ -125,6 +125,43 @@ describe("setAudioParameters", () => {
     expect(mockClip.set).toHaveBeenCalledWith("warping", 0);
   });
 
+  it("should set pitch_fine directly when pitchFine is provided alone", () => {
+    setAudioParameters(mockClip, { pitchFine: -25 });
+
+    expect(mockClip.set).toHaveBeenCalledWith("pitch_fine", -25);
+    expect(mockClip.set).not.toHaveBeenCalledWith(
+      "pitch_coarse",
+      expect.anything(),
+    );
+  });
+
+  it("should let pitchFine override pitchShift's derived fine value", () => {
+    setAudioParameters(mockClip, { pitchShift: 5.5, pitchFine: -25 });
+
+    expect(mockClip.set).toHaveBeenCalledWith("pitch_coarse", 5);
+    // pitch_fine called twice: 50 (from pitchShift), then -25 (explicit override wins)
+    const pitchFineCalls = mockClip.set.mock.calls.filter(
+      (call: unknown[]) => call[0] === "pitch_fine",
+    );
+
+    expect(pitchFineCalls).toStrictEqual([
+      ["pitch_fine", 50],
+      ["pitch_fine", -25],
+    ]);
+  });
+
+  it("should set clip_mode to 1 when ramMode is true", () => {
+    setAudioParameters(mockClip, { ramMode: true });
+
+    expect(mockClip.set).toHaveBeenCalledWith("clip_mode", 1);
+  });
+
+  it("should set clip_mode to 0 when ramMode is false", () => {
+    setAudioParameters(mockClip, { ramMode: false });
+
+    expect(mockClip.set).toHaveBeenCalledWith("clip_mode", 0);
+  });
+
   it("should not set any properties when no parameters provided", () => {
     setAudioParameters(mockClip, {});
 

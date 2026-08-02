@@ -53,6 +53,7 @@ interface UpdateTrackArgs {
   mute?: boolean;
   solo?: boolean;
   arm?: boolean;
+  folded?: boolean;
   inputRoutingTypeId?: string;
   inputRoutingChannelId?: string;
   outputRoutingTypeId?: string;
@@ -133,6 +134,28 @@ function applyMonitoringState(
   }
 
   track.set("current_monitoring_state", monitoringValue);
+}
+
+/**
+ * Apply fold state to a group track
+ * @param track - Track object
+ * @param folded - Whether the group track should be folded (unfolded when false)
+ * @throws Error if folded is provided but the track is not a group track
+ */
+function applyFoldState(track: LiveAPI, folded: boolean | undefined): void {
+  if (folded == null) {
+    return;
+  }
+
+  const isFoldable = (track.getProperty("is_foldable") as number) > 0;
+
+  if (!isFoldable) {
+    throw new Error(
+      `updateTrack failed: folded requires a group track (track ${track.id} is not foldable)`,
+    );
+  }
+
+  track.set("fold_state", folded ? 1 : 0);
 }
 
 /**
@@ -336,6 +359,7 @@ function applyMixerProperties(track: LiveAPI, params: MixerParams): void {
  * @param args.mute - Optional mute state
  * @param args.solo - Optional solo state
  * @param args.arm - Optional arm state
+ * @param args.folded - Optional fold state; only applies to group tracks
  * @param args.inputRoutingTypeId - Optional input routing type identifier
  * @param args.inputRoutingChannelId - Optional input routing channel identifier
  * @param args.outputRoutingTypeId - Optional output routing type identifier
@@ -360,6 +384,7 @@ export function updateTrack(
     mute,
     solo,
     arm,
+    folded,
     inputRoutingTypeId,
     inputRoutingChannelId,
     outputRoutingTypeId,
@@ -434,6 +459,9 @@ export function updateTrack(
     if (arrangementFollower != null) {
       track.set("back_to_arranger", arrangementFollower ? 0 : 1);
     }
+
+    // Handle fold state (group tracks only)
+    applyFoldState(track, folded);
 
     // Handle monitoring state
     applyMonitoringState(track, monitoringState);

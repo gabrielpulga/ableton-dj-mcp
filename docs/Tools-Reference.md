@@ -30,14 +30,15 @@ configured sample folder.
 ### `adj-read-live-set`
 
 Read the current Live Set overview: name, tempo, time signature, groove amount,
-punch in/out and overdub state, tracks, scenes.
+Ableton Link status, punch in/out and overdub state, tracks, scenes.
 
 - `include: ["tracks", "scenes", "locators"]` for details
 
 ### `adj-update-live-set`
 
-Update Live Set properties: tempo, time signature, groove amount, name, punch
-in/out (`punchIn`/`punchOut`), arrangement overdub (`overdub`), locators.
+Update Live Set properties: tempo, time signature, groove amount, Ableton Link
+(enable/disable, force beat time), punch in/out (`punchIn`/`punchOut`),
+arrangement overdub (`overdub`), name, locators.
 
 ---
 
@@ -45,7 +46,8 @@ in/out (`punchIn`/`punchOut`), arrangement overdub (`overdub`), locators.
 
 ### `adj-read-track`
 
-Read track properties: name, color, routing, mute/solo/arm state.
+Read track properties: name, color, routing, mute/solo/arm state, group/fold
+state.
 
 - `include: ["session-clips", "arrangement-clips", "devices", "routings"]`
 - `trackIndex` — zero-based track index
@@ -59,7 +61,8 @@ Create a new MIDI, audio, or return track.
 
 ### `adj-update-track`
 
-Update track properties: name, color, volume, pan, mute, solo, arm, routing.
+Update track properties: name, color, volume, pan, mute, solo, arm, routing,
+folded (group tracks only).
 
 ---
 
@@ -90,6 +93,7 @@ Read clip content and properties.
 - Session clip: `slot: "trackIndex/sceneIndex"` (e.g., `"0/3"`)
 - Arrangement clip: `trackIndex` + `arrangementStart`
 - `include: ["notes", "timing", "sample", "warp"]` for details
+- `playingPosition` in the response while the clip is playing
 
 ### `adj-create-clip`
 
@@ -105,7 +109,9 @@ Create MIDI or audio clips.
 Update existing clip content or properties.
 
 - Add/remove/transform notes via barbeat notation
-- Update name, color, loop settings, volume, pitch
+- Update name, color, loop settings, volume, pitch (`pitchShift` coarse,
+  `pitchFine` cents), `legato`, `muted`, `ramMode`, `velocityAmount` (MIDI)
+- `duplicateLoop: true` doubles the clip's loop length in-place
 - Transform expressions: `velocity *= 0.8`, `pitch += 12`
 
 ---
@@ -207,6 +213,7 @@ Control transport, session clips, and Live set history.
   - `"capture-scene"` — snapshot playing session clips into a new scene
   - `"record"` — toggle arrangement record mode
   - `"re-enable-automation"` — re-engage automation overridden by manual edits
+  - `"nudge-tempo"` — brief tempo bump for beat matching (requires `nudge`)
 - Response includes `playing`, `currentTime`, optional `arrangementLoop`.
 - For `"undo"` / `"redo"` / `"save"`, response also includes `canUndo` and
   `canRedo` booleans — check these before calling undo/redo to avoid no-ops.

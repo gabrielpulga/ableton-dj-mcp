@@ -130,7 +130,10 @@ Returns track overview by default. Use `include` to add detail.
 | `groupId`              | `string` | Parent group track ID (only when grouped)                     |
 | `isArmed`              | `true`   | Only present when armed                                       |
 | `isGroup`              | `true`   | Only present for group tracks                                 |
+| `isFoldable`           | `true`   | Only present for group tracks (alias of `isGroup`)            |
 | `isGroupMember`        | `true`   | Only present when inside a group                              |
+| `isGrouped`            | `true`   | Only present when inside a group (alias of `isGroupMember`)   |
+| `isFolded`             | `true`   | Only present when a group track is folded                     |
 | `playingSlotIndex`     | `number` | 0-based playing clip slot (only when >= 0)                    |
 | `firedSlotIndex`       | `number` | 0-based triggered clip slot (only when >= 0)                  |
 | `state`                | `string` | Only present when not "ACTIVE" (e.g., muted, soloed)          |

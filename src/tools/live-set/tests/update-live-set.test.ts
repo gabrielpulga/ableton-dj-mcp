@@ -82,6 +82,30 @@ describe("updateLiveSet", () => {
     expect(resultMax).toStrictEqual({ id: "live_set_id", groove: 1 });
   });
 
+  it("should enable Ableton Link", async () => {
+    const result = await updateLiveSet({ link: true });
+
+    expect(liveSet.set).toHaveBeenCalledWith("link_enable", true);
+    expect(result).toStrictEqual({ id: "live_set_id", link: true });
+  });
+
+  it("should disable Ableton Link", async () => {
+    const result = await updateLiveSet({ link: false });
+
+    expect(liveSet.set).toHaveBeenCalledWith("link_enable", false);
+    expect(result).toStrictEqual({ id: "live_set_id", link: false });
+  });
+
+  it("should force Link beat time", async () => {
+    const result = await updateLiveSet({ forceLinkBeatTime: 16.5 });
+
+    expect(liveSet.call).toHaveBeenCalledWith("force_link_beat_time", 16.5);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      forceLinkBeatTime: 16.5,
+    });
+  });
+
   it("should update time signature", async () => {
     const result = await updateLiveSet({ timeSignature: "3/4" });
 

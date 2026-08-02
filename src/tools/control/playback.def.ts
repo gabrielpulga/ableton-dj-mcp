@@ -32,6 +32,7 @@ export const toolDefPlayback = defineTool("adj-playback", {
         "capture-scene",
         "record",
         "re-enable-automation",
+        "nudge-tempo",
       ])
       .describe(
         `play-arrangement: from startTime
@@ -48,7 +49,8 @@ back-to-arranger: clear session override so arrangement resumes
 capture-midi: retroactively capture buffered MIDI into a clip
 capture-scene: capture currently playing session clips into a new scene
 record: toggle arrangement record mode (returns recording state)
-re-enable-automation: re-engage automation overridden by manual changes`,
+re-enable-automation: re-engage automation overridden by manual changes
+nudge-tempo: brief tempo bump for beat matching (requires nudge param)`,
       ),
     startTime: z
       .string()
@@ -87,6 +89,10 @@ re-enable-automation: re-engage automation overridden by manual changes`,
       .min(0)
       .optional()
       .describe("0-based scene index for play-scene"),
+    nudge: z
+      .enum(["up", "down"])
+      .optional()
+      .describe("Direction for nudge-tempo action"),
   },
 
   smallModelModeConfig: {
