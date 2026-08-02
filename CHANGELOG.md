@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.13.0...ableton-dj-mcp-v2.0.0) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* adj-update-track no longer accepts freeze/flatten params or returns isFrozen/freezeStatus/flattened fields on write. Read-only isFrozen on adj-read-track is unaffected.
+
+### Bug Fixes
+
+* correct Live API property/arg mismatches found in live validation ([#251](https://github.com/gabrielpulga/ableton-dj-mcp/issues/251)) ([3b7f870](https://github.com/gabrielpulga/ableton-dj-mcp/commit/3b7f87064462443eefcbde928de7413e1c3c257d))
+* remove dead Open Chat UI button, point Docs button at Tools-Reference ([#250](https://github.com/gabrielpulga/ableton-dj-mcp/issues/250)) ([1a8cf58](https://github.com/gabrielpulga/ableton-dj-mcp/commit/1a8cf588bdbd2cc9345289799c7350c44acadb4b))
+* remove track freeze/flatten, fix v8 sleep Task GC hang ([#254](https://github.com/gabrielpulga/ableton-dj-mcp/issues/254)) ([18b2a04](https://github.com/gabrielpulga/ableton-dj-mcp/commit/18b2a04879d1ea65289ef478d996539b1749a292))
+
 ## [1.13.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.12.0...ableton-dj-mcp-v1.13.0) (2026-08-02)
 
 
