@@ -16,5 +16,5 @@ jobs:
       - uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+          config-file: config/release-please-config.json
+          manifest-file: config/.release-please-manifest.json

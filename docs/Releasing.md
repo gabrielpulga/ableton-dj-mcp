@@ -22,19 +22,19 @@ Driven by [release-please](https://github.com/googleapis/release-please).
 
 ## Files release-please updates
 
-| File                            | What                                                          |
-| ------------------------------- | ------------------------------------------------------------- |
-| `package.json`                  | `version` field                                               |
-| `package-lock.json`             | `version` field                                               |
-| `src/shared/version.ts`         | `VERSION` constant (via `// x-release-please-version` marker) |
-| `CHANGELOG.md`                  | new release section                                           |
-| `.release-please-manifest.json` | tracking                                                      |
+| File                                   | What                                                          |
+| -------------------------------------- | ------------------------------------------------------------- |
+| `package.json`                         | `version` field                                               |
+| `package-lock.json`                    | `version` field                                               |
+| `src/shared/version.ts`                | `VERSION` constant (via `// x-release-please-version` marker) |
+| `CHANGELOG.md`                         | new release section                                           |
+| `config/.release-please-manifest.json` | tracking                                                      |
 
 To add a new file with a hardcoded version:
 
 1. Annotate the version line:
    `export const X = "1.0.0"; // x-release-please-version`
-2. Add to `release-please-config.json` under `extra-files`
+2. Add to `config/release-please-config.json` under `extra-files`
 
 ## Deploying a new version locally
 

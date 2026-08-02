@@ -17,7 +17,7 @@ v1.7.0 and v1.8.0 dist bundles both reported
 `Ableton DJ MCP 1.6.0 Live API adapter ready` because `src/shared/version.ts`
 was hardcoded `"1.6.0"`. Release-please bumped `package.json` only.
 
-Fix in `release-please-config.json`:
+Fix in `config/release-please-config.json`:
 
 ```json
 {
