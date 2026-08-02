@@ -971,9 +971,9 @@ if (!Array.prototype.with) {
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "fd486f4f",
+  sha: "3b7f8706",
   dirty: false,
-  buildTime: "2026-08-02T16:38:19.533Z",
+  buildTime: "2026-08-02T18:42:33.571Z",
   source: "local"
 };
 
@@ -12232,7 +12232,7 @@ function setAudioParameters(clip, {gainDb: gainDb, pitchShift: pitchShift, pitch
     clip.set("pitch_fine", pitchFine);
   }
   if (ramMode !== void 0) {
-    clip.set("clip_mode", ramMode ? 1 : 0);
+    clip.set("ram_mode", ramMode ? 1 : 0);
   }
   if (warpMode !== void 0) {
     const warpModeValue = {
@@ -14045,6 +14045,9 @@ function addBooleanStateProperties(result, clip) {
   if (clip.getProperty("muted") > 0) {
     result.muted = true;
   }
+  if (clip.getProperty("legato") > 0) {
+    result.legato = true;
+  }
 }
 
 function addTimingProperties(result, clip) {
@@ -14069,6 +14072,10 @@ function addTimingProperties(result, clip) {
 
 function processMidiClip(result, clip, includeClipNotes) {
   if (!includeClipNotes) return;
+  const velocityAmount = clip.getProperty("velocity_amount");
+  if (velocityAmount !== 1) {
+    result.velocityAmount = velocityAmount;
+  }
   const timeSigNumerator = clip.getProperty("signature_numerator");
   const timeSigDenominator = clip.getProperty("signature_denominator");
   const lengthBeats = clip.getProperty("length");
@@ -14098,6 +14105,12 @@ function processAudioClip(result, clip, includeSample, includeWarp) {
     const pitchShift = pitchCoarse + pitchFine / 100;
     if (pitchShift !== 0) {
       result.pitchShift = pitchShift;
+    }
+    if (pitchFine !== 0) {
+      result.pitchFine = pitchFine;
+    }
+    if (clip.getProperty("ram_mode") > 0) {
+      result.ramMode = true;
     }
   }
   if (includeWarp) {
@@ -17529,8 +17542,7 @@ function readLiveSet(args = {}, _context = {}) {
     tempo: liveSet.getProperty("tempo"),
     timeSignature: liveSet.timeSignature,
     grooveAmount: liveSet.getProperty("groove_amount"),
-    linkEnabled: liveSet.getProperty("link_enable") > 0,
-    linkPeers: liveSet.getProperty("link_num_peers"),
+    linkEnabled: liveSet.getProperty("is_ableton_link_enabled") > 0,
     punchIn: liveSet.getProperty("punch_in") > 0,
     punchOut: liveSet.getProperty("punch_out") > 0,
     overdub: liveSet.getProperty("arrangement_overdub") > 0
@@ -17885,7 +17897,7 @@ async function updateLiveSet({tempo: tempo, timeSignature: timeSignature, groove
     result.groove = groove;
   }
   if (link != null) {
-    liveSet.set("link_enable", link);
+    liveSet.set("is_ableton_link_enabled", link);
     result.link = link;
   }
   if (forceLinkBeatTime != null) {

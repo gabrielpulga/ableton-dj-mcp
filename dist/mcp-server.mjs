@@ -743,8 +743,8 @@ import os from "node:os";
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "fd486f4f",
-  buildTime: "2026-08-02T16:38:19.533Z"
+  sha: "3b7f8706",
+  buildTime: "2026-08-02T18:42:33.571Z"
 };
 
 function buildIdentifier() {
@@ -31143,9 +31143,12 @@ async function handleCreateDeviceBrowserUri(bridge, next, args) {
   if (!await bridge.ensureAlive()) {
     return formatErrorResponse(INSTALL_HINT);
   }
+  const trackIndex = parseTrackIndex(args.path);
+  if (trackIndex === null) {
+    return formatErrorResponse(`createDevice failed: could not parse a track index from path "${args.path}"`);
+  }
   const selectArgs = {
-    path: args.path,
-    detailView: "device"
+    trackIndex: trackIndex
   };
   const selectResult = await next("adj-select", selectArgs);
   if (selectResult.isError) return selectResult;
@@ -31166,6 +31169,12 @@ async function handleCreateDeviceBrowserUri(bridge, next, args) {
   } catch (err) {
     return formatErrorResponse(formatBridgeError("load_item", err));
   }
+}
+
+function parseTrackIndex(path) {
+  const match = /^t(\d+)/.exec(path);
+  if (!match) return null;
+  return Number(match[1]);
 }
 
 function successPayload(value) {
