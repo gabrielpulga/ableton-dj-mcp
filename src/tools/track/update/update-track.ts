@@ -4,7 +4,6 @@
 
 import { livePath } from "#src/shared/live-api-path-builders.ts";
 import * as console from "#src/shared/v8-max-console.ts";
-import { computeLoopDeadline } from "#src/tools/clip/helpers/loop-deadline.ts";
 import {
   LIVE_API_MONITORING_STATE_AUTO,
   LIVE_API_MONITORING_STATE_IN,
@@ -26,7 +25,6 @@ import {
   getNameForIndex,
   parseNames,
 } from "#src/tools/shared/validation/name-utils.ts";
-import { applyFreezeAndFlatten } from "./helpers/update-track-freeze-helpers.ts";
 import { applyRoutingProperties } from "./helpers/update-track-routing-helpers.ts";
 
 interface MixerParams {
@@ -58,15 +56,10 @@ interface UpdateTrackArgs {
   arrangementFollower?: boolean;
   sendGainDb?: number;
   sendReturn?: string;
-  freeze?: boolean;
-  flatten?: boolean;
 }
 
 export interface UpdateTrackResult {
   id: string;
-  isFrozen?: boolean;
-  freezeStatus?: string;
-  flattened?: boolean;
   $meta?: string[];
 }
 
@@ -332,9 +325,7 @@ function applyMixerProperties(track: LiveAPI, params: MixerParams): void {
  * @param args.arrangementFollower - Whether the track should follow the arrangement timeline
  * @param args.sendGainDb - Optional send gain in dB (-70 to 0), requires sendReturn
  * @param args.sendReturn - Optional return track name (exact or letter prefix), requires sendGainDb
- * @param args.freeze - Freeze (true) or unfreeze (false) the track. Freezing is async in Live
- * @param args.flatten - Flatten a frozen track: irreversible, removes devices
- * @param context - Internal context object, used for the freeze polling deadline
+ * @param _context - Internal context object (unused)
  * @returns Single track object or array of track objects
  */
 export async function updateTrack(
@@ -359,16 +350,12 @@ export async function updateTrack(
     arrangementFollower,
     sendGainDb,
     sendReturn,
-    freeze,
-    flatten,
   }: UpdateTrackArgs,
-  context: Partial<ToolContext> = {},
+  _context: Partial<ToolContext> = {},
 ): Promise<UpdateTrackResult | UpdateTrackResult[]> {
   if (!ids) {
     throw new Error("updateTrack failed: ids is required");
   }
-
-  const deadline = computeLoopDeadline(context.timeoutMs);
 
   // Parse comma-separated string into array
   const trackIds = parseCommaSeparatedIds(ids);
@@ -441,17 +428,6 @@ export async function updateTrack(
 
     // Build optimistic result object
     const trackResult: UpdateTrackResult = { id: track.id };
-
-    // Handle freeze/unfreeze and flatten (async: freeze completion is polled)
-    if (freeze != null || flatten) {
-      await applyFreezeAndFlatten(
-        track,
-        freeze,
-        flatten,
-        deadline,
-        trackResult,
-      );
-    }
 
     updatedTracks.push(trackResult);
   }
