@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupSelectMock } from "#src/test/focus-test-helpers.ts";
 import { mockNonExistentObjects } from "#src/test/mocks/mock-registry.ts";
 import {
+  setupAudioClipMock,
   setupMidiClipMock,
   setupUpdateClipMocks,
   type UpdateClipMocks,
@@ -68,6 +69,72 @@ describe("updateClip - Properties and ID handling", () => {
     });
 
     expect(mocks.clip123.set).toHaveBeenCalledWith("looping", false);
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should set legato", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      legato: true,
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith("legato", true);
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should set muted", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      muted: true,
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith("muted", true);
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should set velocityAmount on MIDI clips", async () => {
+    setupMidiClipMock(mocks.clip123);
+
+    const result = await updateClip({
+      ids: "123",
+      velocityAmount: 0.5,
+    });
+
+    expect(mocks.clip123.set).toHaveBeenCalledWith("velocity_amount", 0.5);
+    expect(result).toStrictEqual({ id: "123" });
+  });
+
+  it("should not set velocityAmount on audio clips", async () => {
+    setupAudioClipMock(mocks.clip123);
+
+    await updateClip({
+      ids: "123",
+      velocityAmount: 0.5,
+    });
+
+    expect(mocks.clip123.set).not.toHaveBeenCalledWith(
+      "velocity_amount",
+      expect.anything(),
+    );
+  });
+
+  it("should duplicate the loop, doubling loop_end from loop_start", async () => {
+    setupMidiClipMock(mocks.clip123, {
+      loop_start: 4,
+      loop_end: 8,
+    });
+
+    const result = await updateClip({
+      ids: "123",
+      duplicateLoop: true,
+    });
+
+    // loop length 4, doubled -> loop_start(4) + 4*2 = 12
+    expect(mocks.clip123.set).toHaveBeenCalledWith("loop_end", 12);
     expect(result).toStrictEqual({ id: "123" });
   });
 

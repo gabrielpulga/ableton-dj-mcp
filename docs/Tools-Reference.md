@@ -90,6 +90,7 @@ Read clip content and properties.
 - Session clip: `slot: "trackIndex/sceneIndex"` (e.g., `"0/3"`)
 - Arrangement clip: `trackIndex` + `arrangementStart`
 - `include: ["notes", "timing", "sample", "warp"]` for details
+- `playingPosition` in the response while the clip is playing
 
 ### `adj-create-clip`
 
@@ -105,7 +106,9 @@ Create MIDI or audio clips.
 Update existing clip content or properties.
 
 - Add/remove/transform notes via barbeat notation
-- Update name, color, loop settings, volume, pitch
+- Update name, color, loop settings, volume, pitch (`pitchShift` coarse,
+  `pitchFine` cents), `legato`, `muted`, `ramMode`, `velocityAmount` (MIDI)
+- `duplicateLoop: true` doubles the clip's loop length in-place
 - Transform expressions: `velocity *= 0.8`, `pitch += 12`
 
 ---

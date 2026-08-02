@@ -12,6 +12,8 @@ export interface ClipPropsToSet {
   loop_end?: number;
   start_marker?: number;
   end_marker?: number;
+  legato?: boolean;
+  muted?: boolean;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -66,6 +68,8 @@ export interface BuildClipPropertiesArgs {
   startBeats: number | null;
   endBeats: number | null;
   currentLoopEnd: number | null;
+  legato?: boolean;
+  muted?: boolean;
 }
 
 /**
@@ -82,6 +86,8 @@ export interface BuildClipPropertiesArgs {
  * @param args.startBeats - Start position in beats
  * @param args.endBeats - End position in beats
  * @param args.currentLoopEnd - Current loop end position in beats
+ * @param args.legato - Clip keeps playing when re-launched during playback
+ * @param args.muted - Mute individual clip (distinct from track mute)
  * @returns Properties object ready for clip.setAll()
  */
 export function buildClipPropertiesToSet({
@@ -96,6 +102,8 @@ export function buildClipPropertiesToSet({
   startBeats,
   endBeats,
   currentLoopEnd,
+  legato,
+  muted,
 }: BuildClipPropertiesArgs): ClipPropsToSet {
   // Must expand loop_end BEFORE setting loop_start when new start >= old end
   // (otherwise Live rejects with "Cannot set LoopStart behind LoopEnd")
@@ -113,6 +121,8 @@ export function buildClipPropertiesToSet({
     signature_numerator: timeSignature != null ? timeSigNumerator : null,
     signature_denominator: timeSignature != null ? timeSigDenominator : null,
     looping: looping,
+    legato: legato,
+    muted: muted,
   };
 
   // Set loop properties for looping clips (order matters!)

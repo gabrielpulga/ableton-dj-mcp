@@ -252,6 +252,7 @@ describe("readClip", () => {
       end: "2|2", // loop_end (5 beats = 2|2)
       length: "1:0", // 1 bar
       playing: true,
+      playingPosition: "1|1", // mock defaults playing_position to 0
       gainDb: -70, // gain=0 maps to -70 dB
       sampleLength: 0,
       sampleRate: 0,

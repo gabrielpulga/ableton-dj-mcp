@@ -42,6 +42,28 @@ export const toolDefUpdateClip = defineTool("adj-update-clip", {
       .optional()
       .describe("duration in bar:beat (e.g., '4:0' = 4 bars)"),
     looping: z.boolean().optional().describe("enable looping for the clip"),
+
+    legato: z
+      .boolean()
+      .optional()
+      .describe("clip keeps playing when re-launched during playback"),
+    muted: z
+      .boolean()
+      .optional()
+      .describe("mute individual clip (distinct from track mute)"),
+    velocityAmount: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("scales all MIDI note velocities (MIDI clips only)"),
+    duplicateLoop: z
+      .boolean()
+      .optional()
+      .describe(
+        "double the clip's loop length in-place (Live's Duplicate Loop)",
+      ),
+
     firstStart: z
       .string()
       .optional()
@@ -86,6 +108,21 @@ export const toolDefUpdateClip = defineTool("adj-update-clip", {
       .describe(
         "audio clip pitch shift in semitones, supports decimals (ignored for MIDI)",
       ),
+    pitchFine: z.coerce
+      .number()
+      .min(-100)
+      .max(100)
+      .optional()
+      .describe(
+        "audio clip fine pitch in cents, independent of pitchShift's coarse semitones (ignored for MIDI)",
+      ),
+    ramMode: z
+      .boolean()
+      .optional()
+      .describe(
+        "load full audio into RAM, prevents seek glitches on short loops (ignored for MIDI)",
+      ),
+
     warpMode: z
       .enum(["beats", "tones", "texture", "repitch", "complex", "pro"])
       .optional()

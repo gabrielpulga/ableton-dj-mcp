@@ -50,6 +50,10 @@ interface UpdateClipArgs extends ClipAudioWarpQuantizeParams {
   length?: string;
   firstStart?: string;
   looping?: boolean;
+  legato?: boolean;
+  muted?: boolean;
+  velocityAmount?: number;
+  duplicateLoop?: boolean;
   arrangementStart?: string;
   arrangementLength?: string;
   toSlot?: string;
@@ -78,14 +82,20 @@ interface ClipResult {
  * @param args.length - Duration in bar:beat format. end = start + length
  * @param args.firstStart - Bar|beat position for initial playback start
  * @param args.looping - Enable looping for the clip
+ * @param args.legato - Clip keeps playing when re-launched during playback
+ * @param args.muted - Mute individual clip (distinct from track mute)
+ * @param args.velocityAmount - Scales all MIDI note velocities (MIDI clips only)
+ * @param args.duplicateLoop - Double the clip's loop length in-place
  * @param args.arrangementStart - Bar|beat position to move arrangement clip
  * @param args.arrangementLength - Bar:beat duration for arrangement span
  * @param args.toSlot - Session clip destination slot (trackIndex/sceneIndex)
  * @param args.split - Comma-separated bar|beat positions to split clip
  * @param args.gainDb - Audio clip gain in decibels (-70 to 24)
  * @param args.pitchShift - Audio clip pitch shift in semitones (-48 to 48)
+ * @param args.pitchFine - Audio clip fine pitch in cents (-100 to 100)
  * @param args.warpMode - Audio clip warp mode
  * @param args.warping - Audio clip warping on/off
+ * @param args.ramMode - Load full audio into RAM (audio clips only)
  * @param args.warpOp - Warp marker operation: add, move, remove
  * @param args.warpBeatTime - Beat time for warp marker operation
  * @param args.warpSampleTime - Sample time for warp marker operation
@@ -111,12 +121,18 @@ export async function updateClip(
     length,
     firstStart,
     looping,
+    legato,
+    muted,
+    velocityAmount,
+    duplicateLoop,
     arrangementStart,
     arrangementLength,
     toSlot,
     split,
     gainDb,
     pitchShift,
+    pitchFine,
+    ramMode,
     warpMode,
     warping,
     warpOp,
@@ -183,8 +199,14 @@ export async function updateClip(
       length,
       firstStart,
       looping,
+      legato,
+      muted,
+      velocityAmount,
+      duplicateLoop,
       gainDb,
       pitchShift,
+      pitchFine,
+      ramMode,
       warpMode,
       warping,
       warpOp,
