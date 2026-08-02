@@ -163,16 +163,26 @@ export function addOptionalBooleanProperties(
     result.isArmed = isArmed;
   }
 
-  const isGroup = (track.getProperty("is_foldable") as number) > 0;
+  const isFoldable = (track.getProperty("is_foldable") as number) > 0;
 
-  if (isGroup) {
-    result.isGroup = isGroup;
+  if (isFoldable) {
+    result.isGroup = isFoldable;
+    result.isFoldable = isFoldable;
   }
 
-  const isGroupMember = (track.getProperty("is_grouped") as number) > 0;
+  const isGrouped = (track.getProperty("is_grouped") as number) > 0;
 
-  if (isGroupMember) {
-    result.isGroupMember = isGroupMember;
+  if (isGrouped) {
+    result.isGroupMember = isGrouped;
+    result.isGrouped = isGrouped;
+  }
+
+  // fold_state is only meaningful for group tracks; avoid querying it otherwise
+  const isFolded =
+    isFoldable && (track.getProperty("fold_state") as number) > 0;
+
+  if (isFolded) {
+    result.isFolded = isFolded;
   }
 }
 

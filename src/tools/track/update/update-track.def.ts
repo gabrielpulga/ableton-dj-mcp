@@ -60,6 +60,10 @@ export const toolDefUpdateTrack = defineTool("adj-update-track", {
     mute: z.boolean().optional().describe("muted?"),
     solo: z.boolean().optional().describe("soloed?"),
     arm: z.boolean().optional().describe("record armed?"),
+    folded: z
+      .boolean()
+      .optional()
+      .describe("fold/unfold a group track; only applies to group tracks"),
 
     inputRoutingTypeId: z
       .string()

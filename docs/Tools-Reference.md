@@ -45,7 +45,8 @@ locators.
 
 ### `adj-read-track`
 
-Read track properties: name, color, routing, mute/solo/arm state.
+Read track properties: name, color, routing, mute/solo/arm state, group/fold
+state.
 
 - `include: ["session-clips", "arrangement-clips", "devices", "routings"]`
 - `trackIndex` — zero-based track index
@@ -59,7 +60,8 @@ Create a new MIDI, audio, or return track.
 
 ### `adj-update-track`
 
-Update track properties: name, color, volume, pan, mute, solo, arm, routing.
+Update track properties: name, color, volume, pan, mute, solo, arm, routing,
+folded (group tracks only).
 
 ---
 

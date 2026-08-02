@@ -332,6 +332,74 @@ describe("updateTrack", () => {
     });
   });
 
+  describe("folded parameter", () => {
+    it("should fold a group track", () => {
+      track123.get.mockImplementation((prop: string) =>
+        prop === "is_foldable" ? [1] : [0],
+      );
+
+      const result = updateTrack({
+        ids: "123",
+        folded: true,
+      });
+
+      expect(track123.set).toHaveBeenCalledWith("fold_state", 1);
+      expect(result).toStrictEqual({ id: "123" });
+    });
+
+    it("should unfold a group track", () => {
+      track123.get.mockImplementation((prop: string) =>
+        prop === "is_foldable" ? [1] : [0],
+      );
+
+      const result = updateTrack({
+        ids: "123",
+        folded: false,
+      });
+
+      expect(track123.set).toHaveBeenCalledWith("fold_state", 0);
+      expect(result).toStrictEqual({ id: "123" });
+    });
+
+    it("should throw a descriptive error when folded is set on a non-foldable track", () => {
+      // track123 defaults to is_foldable: 0 (not a group track)
+      expect(() => updateTrack({ ids: "123", folded: true })).toThrow(
+        "updateTrack failed: folded requires a group track (track 123 is not foldable)",
+      );
+    });
+
+    it("should not touch fold_state when folded is not provided", () => {
+      const result = updateTrack({
+        ids: "123",
+        name: "Only Name Update",
+      });
+
+      expect(track123.set).not.toHaveBeenCalledWith(
+        "fold_state",
+        expect.anything(),
+      );
+      expect(result).toStrictEqual({ id: "123" });
+    });
+
+    it("should fold/unfold across multiple group tracks", () => {
+      track123.get.mockImplementation((prop: string) =>
+        prop === "is_foldable" ? [1] : [0],
+      );
+      track456.get.mockImplementation((prop: string) =>
+        prop === "is_foldable" ? [1] : [0],
+      );
+
+      const result = updateTrack({
+        ids: "123,456",
+        folded: true,
+      });
+
+      expect(track123.set).toHaveBeenCalledWith("fold_state", 1);
+      expect(track456.set).toHaveBeenCalledWith("fold_state", 1);
+      expect(result).toStrictEqual([{ id: "123" }, { id: "456" }]);
+    });
+  });
+
   describe("color quantization verification", () => {
     it("should emit warning when color is quantized by Live", async () => {
       const consoleModule = await import("#src/shared/v8-max-console.ts");
