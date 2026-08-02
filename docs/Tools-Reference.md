@@ -65,14 +65,6 @@ Create a new MIDI, audio, or return track.
 Update track properties: name, color, volume, pan, mute, solo, arm, routing,
 folded (group tracks only).
 
-- `freeze: true | false` — freeze (render to audio, frees CPU) or unfreeze.
-  Async in Live: response reports `isFrozen` once confirmed, or
-  `freezeStatus: "in_progress"` if still rendering — follow up with
-  `adj-read-track`
-- `flatten: true` — commit frozen audio permanently and remove devices.
-  **Irreversible.** Requires the track to already be frozen (combine with
-  `freeze: true` to freeze then flatten in one call)
-
 ---
 
 ## Scene

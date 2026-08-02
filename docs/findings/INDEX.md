@@ -13,6 +13,14 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/live-set/**, src/tools/track/**, src/tools/clip/**] — mocked tests
   can't catch a wrong LOM property name; verify against AbletonOSC/Adam Murray's
   LOM reference before shipping a new `.set`/`getProperty` call
+- [track-freeze-missing-from-lom](dev/track-freeze-missing-from-lom.md)
+  [src/tools/track/update/**] — no LOM hook to trigger freeze/flatten on a
+  track, only read-only can_be_frozen/is_frozen; feature removed, don't re-add
+  without a real API path
+- [v8-task-needs-persistent-ref](dev/v8-task-needs-persistent-ref.md)
+  [src/shared/v8-sleep.ts, src/live-api-adapter/**] — inline
+  `new Task(cb).schedule(ms)` risks GC before firing; keep a persistent
+  reference until the callback runs
 
 ### notation
 
