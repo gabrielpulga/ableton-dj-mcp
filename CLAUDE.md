@@ -66,8 +66,10 @@ For each INDEX line, match the bracketed globs against your task's file paths.
 Read the linked file ONLY if matched. Skip if no match — the INDEX line itself
 is the lookup key.
 
-To capture a new validated finding, run `/update-ableton-dj-mcp-docs` (loads
-`docs/findings/HOW-TO-WRITE.md`).
+To capture a new validated finding, follow the format in
+`docs/findings/HOW-TO-WRITE.md` and add it directly. (The maintainer uses a
+personal Claude Code slash command to automate this — it's local tooling, not
+part of this repo, so don't expect it to exist on a fresh clone.)
 
 ## Tools
 

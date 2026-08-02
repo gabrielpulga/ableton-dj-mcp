@@ -134,9 +134,11 @@ fades, sessions get long.
 
 ### How to capture
 
-Run `/update-docs` in your AI client. It loads
-`workspace/findings/HOW-TO-WRITE.md` for the format spec, then scans the
-conversation, dedups against INDEX, and writes only validated findings.
+Ask your AI client to write a finding following the format in
+`workspace/findings/HOW-TO-WRITE.md` — scan the conversation, dedup against
+INDEX, write only validated findings. (If you've set up your own automation for
+this, e.g. a custom slash command, use that instead — there's no built-in one
+shipped with this repo.)
 
 For tool issues: ask the AI to file a GitHub issue with concrete reproduction
 steps.
