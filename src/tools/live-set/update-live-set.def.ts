@@ -15,6 +15,12 @@ export const toolDefUpdateLiveSet = defineTool("adj-update-live-set", {
   inputSchema: {
     tempo: z.coerce.number().min(20).max(999).optional().describe("BPM"),
     timeSignature: z.string().optional().describe("N/D (4/4)"),
+    groove: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Global groove pool amount (0.0-1.0)"),
     scale: z
       .string()
       .optional()

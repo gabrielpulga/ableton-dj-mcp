@@ -29,13 +29,15 @@ configured sample folder.
 
 ### `adj-read-live-set`
 
-Read the current Live Set overview: name, tempo, time signature, tracks, scenes.
+Read the current Live Set overview: name, tempo, time signature, groove amount,
+tracks, scenes.
 
 - `include: ["tracks", "scenes", "locators"]` for details
 
 ### `adj-update-live-set`
 
-Update Live Set properties: tempo, time signature, name, locators.
+Update Live Set properties: tempo, time signature, groove amount, name,
+locators.
 
 ---
 
