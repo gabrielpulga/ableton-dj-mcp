@@ -31,6 +31,9 @@ interface UpdateLiveSetArgs {
   link?: boolean;
   forceLinkBeatTime?: number;
   scale?: string;
+  punchIn?: boolean;
+  punchOut?: boolean;
+  overdub?: boolean;
   locatorOperation?: string;
   locatorId?: string;
   locatorTime?: string;
@@ -65,6 +68,9 @@ type UpdateLiveSetContext = Partial<ToolContext> & { silenceWavPath?: string };
  * @param args.link - Enable/disable Ableton Link
  * @param args.forceLinkBeatTime - Force all Link peers to this beat time
  * @param args.scale - Scale in format "Root ScaleName"
+ * @param args.punchIn - Enable/disable punch-in recording
+ * @param args.punchOut - Enable/disable punch-out recording
+ * @param args.overdub - Enable/disable arrangement overdub mode
  * @param args.locatorOperation - Locator operation: "create", "delete", or "rename"
  * @param args.locatorId - Locator ID for delete/rename
  * @param args.locatorTime - Bar|beat position for create/delete/rename
@@ -81,6 +87,9 @@ export async function updateLiveSet(
     link,
     forceLinkBeatTime,
     scale,
+    punchIn,
+    punchOut,
+    overdub,
     locatorOperation,
     locatorId,
     locatorTime,
@@ -131,6 +140,21 @@ export async function updateLiveSet(
     (result.$meta as string[]).push(
       "Scale applied to selected clips and defaults for new clips.",
     );
+  }
+
+  if (punchIn != null) {
+    liveSet.set("punch_in", punchIn);
+    result.punchIn = punchIn;
+  }
+
+  if (punchOut != null) {
+    liveSet.set("punch_out", punchOut);
+    result.punchOut = punchOut;
+  }
+
+  if (overdub != null) {
+    liveSet.set("arrangement_overdub", overdub);
+    result.overdub = overdub;
   }
 
   if (arrangementFollower != null) {

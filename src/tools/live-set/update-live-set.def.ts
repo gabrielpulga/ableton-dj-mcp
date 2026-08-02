@@ -33,6 +33,19 @@ export const toolDefUpdateLiveSet = defineTool("adj-update-live-set", {
         '"Root ScaleName" ("C Major", "F# Minor", "Bb Dorian"). Empty string disables scale',
       ),
 
+    punchIn: z
+      .boolean()
+      .optional()
+      .describe("Enable/disable punch-in recording"),
+    punchOut: z
+      .boolean()
+      .optional()
+      .describe("Enable/disable punch-out recording"),
+    overdub: z
+      .boolean()
+      .optional()
+      .describe("Enable/disable arrangement overdub mode"),
+
     locatorOperation: z
       .enum(["create", "delete", "rename"])
       .optional()

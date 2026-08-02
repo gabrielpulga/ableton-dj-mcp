@@ -57,6 +57,9 @@ export function readLiveSet(
     grooveAmount: liveSet.getProperty("groove_amount"),
     linkEnabled: (liveSet.getProperty("link_enable") as number) > 0,
     linkPeers: liveSet.getProperty("link_num_peers"),
+    punchIn: (liveSet.getProperty("punch_in") as number) > 0,
+    punchOut: (liveSet.getProperty("punch_out") as number) > 0,
+    overdub: (liveSet.getProperty("arrangement_overdub") as number) > 0,
   };
 
   // Include full scene details or just the count

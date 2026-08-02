@@ -30,14 +30,15 @@ configured sample folder.
 ### `adj-read-live-set`
 
 Read the current Live Set overview: name, tempo, time signature, groove amount,
-Ableton Link status, tracks, scenes.
+Ableton Link status, punch in/out and overdub state, tracks, scenes.
 
 - `include: ["tracks", "scenes", "locators"]` for details
 
 ### `adj-update-live-set`
 
 Update Live Set properties: tempo, time signature, groove amount, Ableton Link
-(enable/disable, force beat time), name, locators.
+(enable/disable, force beat time), punch in/out (`punchIn`/`punchOut`),
+arrangement overdub (`overdub`), name, locators.
 
 ---
 

@@ -355,6 +355,87 @@ describe("updateLiveSet", () => {
     });
   });
 
+  it("should enable punch-in recording", async () => {
+    const result = await updateLiveSet({ punchIn: true });
+
+    expect(liveSet.set).toHaveBeenCalledWith("punch_in", true);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      punchIn: true,
+    });
+  });
+
+  it("should disable punch-in recording", async () => {
+    const result = await updateLiveSet({ punchIn: false });
+
+    expect(liveSet.set).toHaveBeenCalledWith("punch_in", false);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      punchIn: false,
+    });
+  });
+
+  it("should enable punch-out recording", async () => {
+    const result = await updateLiveSet({ punchOut: true });
+
+    expect(liveSet.set).toHaveBeenCalledWith("punch_out", true);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      punchOut: true,
+    });
+  });
+
+  it("should disable punch-out recording", async () => {
+    const result = await updateLiveSet({ punchOut: false });
+
+    expect(liveSet.set).toHaveBeenCalledWith("punch_out", false);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      punchOut: false,
+    });
+  });
+
+  it("should enable arrangement overdub mode", async () => {
+    const result = await updateLiveSet({ overdub: true });
+
+    expect(liveSet.set).toHaveBeenCalledWith("arrangement_overdub", true);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      overdub: true,
+    });
+  });
+
+  it("should disable arrangement overdub mode", async () => {
+    const result = await updateLiveSet({ overdub: false });
+
+    expect(liveSet.set).toHaveBeenCalledWith("arrangement_overdub", false);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      overdub: false,
+    });
+  });
+
+  it("should combine punchIn, punchOut, and overdub with other parameters", async () => {
+    const result = await updateLiveSet({
+      tempo: 128,
+      punchIn: true,
+      punchOut: true,
+      overdub: true,
+    });
+
+    expect(liveSet.set).toHaveBeenCalledWith("tempo", 128);
+    expect(liveSet.set).toHaveBeenCalledWith("punch_in", true);
+    expect(liveSet.set).toHaveBeenCalledWith("punch_out", true);
+    expect(liveSet.set).toHaveBeenCalledWith("arrangement_overdub", true);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      tempo: 128,
+      punchIn: true,
+      punchOut: true,
+      overdub: true,
+    });
+  });
+
   it("should set arrangementFollower to true (all tracks follow arrangement) - hidden from interface but implementation remains", async () => {
     const result = await updateLiveSet({ arrangementFollower: true });
 
