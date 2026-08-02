@@ -4,6 +4,7 @@
 
 import { livePath } from "#src/shared/live-api-path-builders.ts";
 import * as console from "#src/shared/v8-max-console.ts";
+import { computeLoopDeadline } from "#src/tools/clip/helpers/loop-deadline.ts";
 import {
   LIVE_API_MONITORING_STATE_AUTO,
   LIVE_API_MONITORING_STATE_IN,
@@ -25,13 +26,8 @@ import {
   getNameForIndex,
   parseNames,
 } from "#src/tools/shared/validation/name-utils.ts";
-
-interface RoutingParams {
-  inputRoutingTypeId?: string;
-  inputRoutingChannelId?: string;
-  outputRoutingTypeId?: string;
-  outputRoutingChannelId?: string;
-}
+import { applyFreezeAndFlatten } from "./helpers/update-track-freeze-helpers.ts";
+import { applyRoutingProperties } from "./helpers/update-track-routing-helpers.ts";
 
 interface MixerParams {
   gainDb?: number;
@@ -62,48 +58,16 @@ interface UpdateTrackArgs {
   arrangementFollower?: boolean;
   sendGainDb?: number;
   sendReturn?: string;
+  freeze?: boolean;
+  flatten?: boolean;
 }
 
-interface UpdateTrackResult {
+export interface UpdateTrackResult {
   id: string;
-}
-
-/**
- * Apply routing properties to a track
- * @param track - Track object
- * @param params - Routing properties
- */
-function applyRoutingProperties(track: LiveAPI, params: RoutingParams): void {
-  const {
-    inputRoutingTypeId,
-    inputRoutingChannelId,
-    outputRoutingTypeId,
-    outputRoutingChannelId,
-  } = params;
-
-  if (inputRoutingTypeId != null) {
-    track.setProperty("input_routing_type", {
-      identifier: Number(inputRoutingTypeId),
-    });
-  }
-
-  if (inputRoutingChannelId != null) {
-    track.setProperty("input_routing_channel", {
-      identifier: Number(inputRoutingChannelId),
-    });
-  }
-
-  if (outputRoutingTypeId != null) {
-    track.setProperty("output_routing_type", {
-      identifier: Number(outputRoutingTypeId),
-    });
-  }
-
-  if (outputRoutingChannelId != null) {
-    track.setProperty("output_routing_channel", {
-      identifier: Number(outputRoutingChannelId),
-    });
-  }
+  isFrozen?: boolean;
+  freezeStatus?: string;
+  flattened?: boolean;
+  $meta?: string[];
 }
 
 /**
@@ -368,10 +332,12 @@ function applyMixerProperties(track: LiveAPI, params: MixerParams): void {
  * @param args.arrangementFollower - Whether the track should follow the arrangement timeline
  * @param args.sendGainDb - Optional send gain in dB (-70 to 0), requires sendReturn
  * @param args.sendReturn - Optional return track name (exact or letter prefix), requires sendGainDb
- * @param _context - Internal context object (unused)
+ * @param args.freeze - Freeze (true) or unfreeze (false) the track. Freezing is async in Live
+ * @param args.flatten - Flatten a frozen track: irreversible, removes devices
+ * @param context - Internal context object, used for the freeze polling deadline
  * @returns Single track object or array of track objects
  */
-export function updateTrack(
+export async function updateTrack(
   {
     ids,
     name,
@@ -393,12 +359,16 @@ export function updateTrack(
     arrangementFollower,
     sendGainDb,
     sendReturn,
+    freeze,
+    flatten,
   }: UpdateTrackArgs,
-  _context: Partial<ToolContext> = {},
-): UpdateTrackResult | UpdateTrackResult[] {
+  context: Partial<ToolContext> = {},
+): Promise<UpdateTrackResult | UpdateTrackResult[]> {
   if (!ids) {
     throw new Error("updateTrack failed: ids is required");
   }
+
+  const deadline = computeLoopDeadline(context.timeoutMs);
 
   // Parse comma-separated string into array
   const trackIds = parseCommaSeparatedIds(ids);
@@ -470,9 +440,20 @@ export function updateTrack(
     applySendProperties(track, sendGainDb, sendReturn);
 
     // Build optimistic result object
-    updatedTracks.push({
-      id: track.id,
-    });
+    const trackResult: UpdateTrackResult = { id: track.id };
+
+    // Handle freeze/unfreeze and flatten (async: freeze completion is polled)
+    if (freeze != null || flatten) {
+      await applyFreezeAndFlatten(
+        track,
+        freeze,
+        flatten,
+        deadline,
+        trackResult,
+      );
+    }
+
+    updatedTracks.push(trackResult);
   }
 
   return unwrapSingleResult(updatedTracks);

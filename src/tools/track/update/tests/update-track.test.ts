@@ -24,8 +24,8 @@ describe("updateTrack", () => {
     track789 = registerMockObject("789", { path: livePath.track(2) });
   });
 
-  it("should update a single track by ID", () => {
-    const result = updateTrack({
+  it("should update a single track by ID", async () => {
+    const result = await updateTrack({
       ids: "123",
       name: "Updated Track",
       color: "#FF0000",
@@ -42,8 +42,8 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should update multiple tracks by comma-separated IDs", () => {
-    const result = updateTrack({
+  it("should update multiple tracks by comma-separated IDs", async () => {
+    const result = await updateTrack({
       ids: "123, 456",
       color: "#00FF00",
       mute: true,
@@ -57,8 +57,8 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual([{ id: "123" }, { id: "456" }]);
   });
 
-  it("should handle 'id ' prefixed track IDs", () => {
-    const result = updateTrack({
+  it("should handle 'id ' prefixed track IDs", async () => {
+    const result = await updateTrack({
       ids: "id 123",
       name: "Prefixed ID Track",
     });
@@ -67,8 +67,8 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should not update properties when not provided", () => {
-    const result = updateTrack({
+  it("should not update properties when not provided", async () => {
+    const result = await updateTrack({
       ids: "123",
       name: "Only Name Update",
     });
@@ -78,8 +78,8 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should handle boolean false values correctly", () => {
-    const result = updateTrack({
+  it("should handle boolean false values correctly", async () => {
+    const result = await updateTrack({
       ids: "123",
       mute: false,
       solo: false,
@@ -92,21 +92,21 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should throw error when ids is missing", () => {
-    expect(() =>
+  it("should throw error when ids is missing", async () => {
+    await expect(
       updateTrack({} as unknown as Parameters<typeof updateTrack>[0]),
-    ).toThrow("updateTrack failed: ids is required");
-    expect(() =>
+    ).rejects.toThrow("updateTrack failed: ids is required");
+    await expect(
       updateTrack({ name: "Test" } as unknown as Parameters<
         typeof updateTrack
       >[0]),
-    ).toThrow("updateTrack failed: ids is required");
+    ).rejects.toThrow("updateTrack failed: ids is required");
   });
 
-  it("should log warning when track ID doesn't exist", () => {
+  it("should log warning when track ID doesn't exist", async () => {
     mockNonExistentObjects();
 
-    const result = updateTrack({ ids: "nonexistent" });
+    const result = await updateTrack({ ids: "nonexistent" });
 
     expect(result).toStrictEqual([]);
     expect(outlet).toHaveBeenCalledWith(
@@ -115,10 +115,10 @@ describe("updateTrack", () => {
     );
   });
 
-  it("should skip invalid track IDs in comma-separated list and update valid ones", () => {
+  it("should skip invalid track IDs in comma-separated list and update valid ones", async () => {
     mockNonExistentObjects();
 
-    const result = updateTrack({ ids: "123, nonexistent", name: "Test" });
+    const result = await updateTrack({ ids: "123, nonexistent", name: "Test" });
 
     expect(result).toStrictEqual({ id: "123" });
     expect(outlet).toHaveBeenCalledWith(
@@ -128,16 +128,19 @@ describe("updateTrack", () => {
     expect(track123.set).toHaveBeenCalledWith("name", "Test");
   });
 
-  it("should return single object for single ID and array for comma-separated IDs", () => {
-    const singleResult = updateTrack({ ids: "123", name: "Single" });
-    const arrayResult = updateTrack({ ids: "123, 456", name: "Multiple" });
+  it("should return single object for single ID and array for comma-separated IDs", async () => {
+    const singleResult = await updateTrack({ ids: "123", name: "Single" });
+    const arrayResult = await updateTrack({
+      ids: "123, 456",
+      name: "Multiple",
+    });
 
     expect(singleResult).toStrictEqual({ id: "123" });
     expect(arrayResult).toStrictEqual([{ id: "123" }, { id: "456" }]);
   });
 
-  it("should handle whitespace in comma-separated IDs", () => {
-    const result = updateTrack({
+  it("should handle whitespace in comma-separated IDs", async () => {
+    const result = await updateTrack({
       ids: " 123 , 456 , 789 ",
       color: "#0000FF",
     });
@@ -145,8 +148,8 @@ describe("updateTrack", () => {
     expect(result).toStrictEqual([{ id: "123" }, { id: "456" }, { id: "789" }]);
   });
 
-  it("should filter out empty IDs from comma-separated list", () => {
-    const result = updateTrack({
+  it("should filter out empty IDs from comma-separated list", async () => {
+    const result = await updateTrack({
       ids: "123,,456,  ,789",
       name: "Filtered",
     });
@@ -158,8 +161,8 @@ describe("updateTrack", () => {
   });
 
   describe("routing properties", () => {
-    it("should update routing properties when provided", () => {
-      const result = updateTrack({
+    it("should update routing properties when provided", async () => {
+      const result = await updateTrack({
         ids: "123",
         inputRoutingTypeId: "17",
         inputRoutingChannelId: "1",
@@ -187,8 +190,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should update monitoring state when provided", () => {
-      const result = updateTrack({
+    it("should update monitoring state when provided", async () => {
+      const result = await updateTrack({
         ids: "123",
         monitoringState: MONITORING_STATE.AUTO,
       });
@@ -198,25 +201,25 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should update monitoring state for all valid values", () => {
+    it("should update monitoring state for all valid values", async () => {
       // Test IN state
-      updateTrack({
+      await updateTrack({
         ids: "123",
         monitoringState: MONITORING_STATE.IN,
       });
       expect(track123.set).toHaveBeenCalledWith("current_monitoring_state", 0);
 
       // Test OFF state
-      updateTrack({
+      await updateTrack({
         ids: "456",
         monitoringState: MONITORING_STATE.OFF,
       });
       expect(track456.set).toHaveBeenCalledWith("current_monitoring_state", 2);
     });
 
-    it("should warn and skip for invalid monitoring state", () => {
+    it("should warn and skip for invalid monitoring state", async () => {
       // Should not throw, just warn and skip the monitoring state update
-      const result = updateTrack({
+      const result = await updateTrack({
         ids: "123",
         monitoringState: "invalid",
       });
@@ -224,8 +227,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should handle mixed routing and basic properties", () => {
-      const result = updateTrack({
+    it("should handle mixed routing and basic properties", async () => {
+      const result = await updateTrack({
         ids: "123",
         name: "Test Track",
         color: "#FF0000",
@@ -246,8 +249,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should handle routing properties in bulk operations", () => {
-      const result = updateTrack({
+    it("should handle routing properties in bulk operations", async () => {
+      const result = await updateTrack({
         ids: "123, 456",
         outputRoutingTypeId: "25",
         monitoringState: MONITORING_STATE.AUTO,
@@ -267,8 +270,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual([{ id: "123" }, { id: "456" }]);
     });
 
-    it("should not update routing properties when not provided", () => {
-      const result = updateTrack({
+    it("should not update routing properties when not provided", async () => {
+      const result = await updateTrack({
         ids: "123",
         name: "Only Name Update",
       });
@@ -282,8 +285,8 @@ describe("updateTrack", () => {
   });
 
   describe("arrangementFollower parameter", () => {
-    it("should set arrangementFollower to true (track follows arrangement)", () => {
-      const result = updateTrack({
+    it("should set arrangementFollower to true (track follows arrangement)", async () => {
+      const result = await updateTrack({
         ids: "123",
         arrangementFollower: true,
       });
@@ -293,8 +296,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should set arrangementFollower to false (track doesn't follow arrangement)", () => {
-      const result = updateTrack({
+    it("should set arrangementFollower to false (track doesn't follow arrangement)", async () => {
+      const result = await updateTrack({
         ids: "123",
         arrangementFollower: false,
       });
@@ -304,8 +307,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should set arrangementFollower for multiple tracks", () => {
-      const result = updateTrack({
+    it("should set arrangementFollower for multiple tracks", async () => {
+      const result = await updateTrack({
         ids: "123,456",
         arrangementFollower: true,
       });
@@ -316,8 +319,8 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual([{ id: "123" }, { id: "456" }]);
     });
 
-    it("should combine arrangementFollower with other parameters", () => {
-      const result = updateTrack({
+    it("should combine arrangementFollower with other parameters", async () => {
+      const result = await updateTrack({
         ids: "123",
         name: "Updated Track",
         mute: true,
@@ -333,12 +336,12 @@ describe("updateTrack", () => {
   });
 
   describe("folded parameter", () => {
-    it("should fold a group track", () => {
+    it("should fold a group track", async () => {
       track123.get.mockImplementation((prop: string) =>
         prop === "is_foldable" ? [1] : [0],
       );
 
-      const result = updateTrack({
+      const result = await updateTrack({
         ids: "123",
         folded: true,
       });
@@ -347,12 +350,12 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should unfold a group track", () => {
+    it("should unfold a group track", async () => {
       track123.get.mockImplementation((prop: string) =>
         prop === "is_foldable" ? [1] : [0],
       );
 
-      const result = updateTrack({
+      const result = await updateTrack({
         ids: "123",
         folded: false,
       });
@@ -361,15 +364,15 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should throw a descriptive error when folded is set on a non-foldable track", () => {
+    it("should throw a descriptive error when folded is set on a non-foldable track", async () => {
       // track123 defaults to is_foldable: 0 (not a group track)
-      expect(() => updateTrack({ ids: "123", folded: true })).toThrow(
+      await expect(updateTrack({ ids: "123", folded: true })).rejects.toThrow(
         "updateTrack failed: folded requires a group track (track 123 is not foldable)",
       );
     });
 
-    it("should not touch fold_state when folded is not provided", () => {
-      const result = updateTrack({
+    it("should not touch fold_state when folded is not provided", async () => {
+      const result = await updateTrack({
         ids: "123",
         name: "Only Name Update",
       });
@@ -381,7 +384,7 @@ describe("updateTrack", () => {
       expect(result).toStrictEqual({ id: "123" });
     });
 
-    it("should fold/unfold across multiple group tracks", () => {
+    it("should fold/unfold across multiple group tracks", async () => {
       track123.get.mockImplementation((prop: string) =>
         prop === "is_foldable" ? [1] : [0],
       );
@@ -389,7 +392,7 @@ describe("updateTrack", () => {
         prop === "is_foldable" ? [1] : [0],
       );
 
-      const result = updateTrack({
+      const result = await updateTrack({
         ids: "123,456",
         folded: true,
       });
@@ -414,7 +417,7 @@ describe("updateTrack", () => {
         return [0];
       });
 
-      updateTrack({
+      await updateTrack({
         ids: "123",
         color: "#FF0000",
       });
@@ -439,7 +442,7 @@ describe("updateTrack", () => {
         return [0];
       });
 
-      updateTrack({
+      await updateTrack({
         ids: "123",
         color: "#FF0000",
       });
@@ -464,7 +467,7 @@ describe("updateTrack", () => {
       track123.get.mockImplementation(colorMock);
       track456.get.mockImplementation(colorMock);
 
-      updateTrack({
+      await updateTrack({
         ids: "123,456",
         color: "#00FF00",
       });
@@ -486,7 +489,7 @@ describe("updateTrack", () => {
       const consoleModule = await import("#src/shared/v8-max-console.ts");
       const consoleSpy = vi.spyOn(consoleModule, "warn");
 
-      updateTrack({
+      await updateTrack({
         ids: "123",
         name: "No color update",
       });

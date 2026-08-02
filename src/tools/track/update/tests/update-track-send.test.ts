@@ -50,8 +50,8 @@ describe("updateTrack - send properties", () => {
     registerMockObject("send_4", {});
   });
 
-  it("should set send gain with exact return name", () => {
-    updateTrack({
+  it("should set send gain with exact return name", async () => {
+    await updateTrack({
       ids: "123",
       sendGainDb: -12,
       sendReturn: "A-Reverb",
@@ -60,8 +60,8 @@ describe("updateTrack - send properties", () => {
     expect(send1.set).toHaveBeenCalledWith("display_value", -12);
   });
 
-  it("should set send gain with letter prefix", () => {
-    updateTrack({
+  it("should set send gain with letter prefix", async () => {
+    await updateTrack({
       ids: "123",
       sendGainDb: -6,
       sendReturn: "A",
@@ -70,8 +70,8 @@ describe("updateTrack - send properties", () => {
     expect(send1.set).toHaveBeenCalledWith("display_value", -6);
   });
 
-  it("should set second send with letter prefix", () => {
-    updateTrack({
+  it("should set second send with letter prefix", async () => {
+    await updateTrack({
       ids: "123",
       sendGainDb: -3,
       sendReturn: "B",
@@ -80,8 +80,8 @@ describe("updateTrack - send properties", () => {
     expect(send2.set).toHaveBeenCalledWith("display_value", -3);
   });
 
-  it("should set send gain to minimum value", () => {
-    updateTrack({
+  it("should set send gain to minimum value", async () => {
+    await updateTrack({
       ids: "123",
       sendGainDb: -70,
       sendReturn: "A",
@@ -90,8 +90,8 @@ describe("updateTrack - send properties", () => {
     expect(send1.set).toHaveBeenCalledWith("display_value", -70);
   });
 
-  it("should set send gain to maximum value (0 dB)", () => {
-    updateTrack({
+  it("should set send gain to maximum value (0 dB)", async () => {
+    await updateTrack({
       ids: "123",
       sendGainDb: 0,
       sendReturn: "A",
@@ -100,9 +100,9 @@ describe("updateTrack - send properties", () => {
     expect(send1.set).toHaveBeenCalledWith("display_value", 0);
   });
 
-  it("should warn and skip when only sendGainDb is provided", () => {
+  it("should warn and skip when only sendGainDb is provided", async () => {
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendGainDb: -12,
     });
@@ -110,9 +110,9 @@ describe("updateTrack - send properties", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should warn and skip when only sendReturn is provided", () => {
+  it("should warn and skip when only sendReturn is provided", async () => {
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendReturn: "A",
     });
@@ -120,9 +120,9 @@ describe("updateTrack - send properties", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should warn and skip when return track not found", () => {
+  it("should warn and skip when return track not found", async () => {
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendGainDb: -12,
       sendReturn: "C",
@@ -131,7 +131,7 @@ describe("updateTrack - send properties", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should warn and skip when track has no sends", () => {
+  it("should warn and skip when track has no sends", async () => {
     // Override mixer_1 with empty sends for this test
     registerMockObject("mixer_1", {
       path: livePath.track(0).mixerDevice(),
@@ -139,7 +139,7 @@ describe("updateTrack - send properties", () => {
     });
 
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendGainDb: -12,
       sendReturn: "A",
@@ -148,8 +148,8 @@ describe("updateTrack - send properties", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should set sends on multiple tracks", () => {
-    updateTrack({
+  it("should set sends on multiple tracks", async () => {
+    await updateTrack({
       ids: "123,456",
       sendGainDb: -6,
       sendReturn: "A",
@@ -159,8 +159,8 @@ describe("updateTrack - send properties", () => {
     expect(send3.set).toHaveBeenCalledWith("display_value", -6);
   });
 
-  it("should combine send update with other properties", () => {
-    updateTrack({
+  it("should combine send update with other properties", async () => {
+    await updateTrack({
       ids: "123",
       name: "Test Track",
       sendGainDb: -12,
@@ -171,8 +171,8 @@ describe("updateTrack - send properties", () => {
     expect(send2.set).toHaveBeenCalledWith("display_value", -12);
   });
 
-  it("should not set send when neither param is provided", () => {
-    updateTrack({
+  it("should not set send when neither param is provided", async () => {
+    await updateTrack({
       ids: "123",
       name: "Test Track",
     });
@@ -182,14 +182,14 @@ describe("updateTrack - send properties", () => {
     expect(send2.set).not.toHaveBeenCalled();
   });
 
-  it("should warn and skip when mixer device does not exist", () => {
+  it("should warn and skip when mixer device does not exist", async () => {
     // Override mixer to be non-existent for this test
     registerMockObject("id 0", {
       path: livePath.track(0).mixerDevice(),
     });
 
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendGainDb: -12,
       sendReturn: "A",
@@ -198,7 +198,7 @@ describe("updateTrack - send properties", () => {
     expect(result).toStrictEqual({ id: "123" });
   });
 
-  it("should warn and skip when send index exceeds available sends", () => {
+  it("should warn and skip when send index exceeds available sends", async () => {
     // Setup: 3 return tracks but only 2 sends
     registerMockObject("liveSet", {
       path: livePath.liveSet,
@@ -212,7 +212,7 @@ describe("updateTrack - send properties", () => {
     });
 
     // Should not throw, just warn and skip the send update
-    const result = updateTrack({
+    const result = await updateTrack({
       ids: "123",
       sendGainDb: -12,
       sendReturn: "C", // Matches return track at index 2

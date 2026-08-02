@@ -101,6 +101,18 @@ export const toolDefUpdateTrack = defineTool("adj-update-track", {
       .describe(
         'return track: exact name (e.g., "A-Reverb") or letter (e.g., "A")',
       ),
+    freeze: z
+      .boolean()
+      .optional()
+      .describe(
+        "freeze (render device chain to audio, frees CPU) or unfreeze the track. Async in Live - response reports isFrozen once confirmed, or freezeStatus: 'in_progress' if still rendering",
+      ),
+    flatten: z
+      .boolean()
+      .optional()
+      .describe(
+        "commit frozen audio permanently and remove devices. Irreversible. Requires the track to already be frozen (combine with freeze: true to freeze then flatten in one call)",
+      ),
   },
 
   smallModelModeConfig: {
