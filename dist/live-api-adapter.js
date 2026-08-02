@@ -971,9 +971,9 @@ if (!Array.prototype.with) {
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "3b7f8706",
+  sha: "18b2a048",
   dirty: false,
-  buildTime: "2026-08-02T18:42:33.571Z",
+  buildTime: "2026-08-02T18:54:18.774Z",
   source: "local"
 };
 
@@ -17722,7 +17722,16 @@ function applyScale(liveSet, scale, result) {
   result.scale = `${scaleRoot} ${scaleName}`;
 }
 
-const sleep = ms => new Promise(resolve => new Task(resolve).schedule(ms));
+const pendingSleepTasks = new Set;
+
+const sleep = ms => new Promise(resolve => {
+  const task = new Task(() => {
+    pendingSleepTasks.delete(task);
+    resolve();
+  });
+  pendingSleepTasks.add(task);
+  task.schedule(ms);
+});
 
 async function waitUntil(predicate, {pollingInterval: pollingInterval = 10, maxRetries: maxRetries = 10} = {}) {
   for (let i = 0; i < maxRetries; i++) {
@@ -19258,48 +19267,6 @@ function createTrack({trackIndex: trackIndex, count: count = 1, name: name, colo
   return count === 1 ? assertDefined(createdTracks[0], "created track") : createdTracks;
 }
 
-const FREEZE_POLL_INTERVAL_MS = 200;
-
-const FREEZE_POLL_MAX_RETRIES = 50;
-
-function isTrackFrozen(track) {
-  return track.getProperty("is_frozen") > 0;
-}
-
-async function applyFreezeAndFlatten(track, freeze, flatten, deadline, result) {
-  if (freeze != null) {
-    await applyFreeze(track, freeze, deadline, result);
-  }
-  if (flatten) {
-    applyFlatten(track, result);
-  }
-}
-
-async function applyFreeze(track, freeze, deadline, result) {
-  track.set("freeze", freeze);
-  const confirmed = !isDeadlineExceeded(deadline) && await waitUntil(() => isTrackFrozen(track) === freeze, {
-    pollingInterval: FREEZE_POLL_INTERVAL_MS,
-    maxRetries: FREEZE_POLL_MAX_RETRIES
-  });
-  if (confirmed) {
-    result.isFrozen = freeze;
-    return;
-  }
-  warn(`updateTrack: track ${track.id} did not confirm ${freeze ? "freeze" : "unfreeze"} within the polling window`);
-  result.freezeStatus = "in_progress";
-}
-
-function applyFlatten(track, result) {
-  if (!isTrackFrozen(track)) {
-    warn(`updateTrack: track ${track.id} must be frozen before flatten, skipping`);
-    return;
-  }
-  track.call("flatten");
-  result.flattened = true;
-  result.$meta ??= [];
-  result.$meta.push("Flatten is irreversible: devices were removed and frozen audio was committed as clips.");
-}
-
 function applyRoutingProperties(track, params) {
   const {inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId} = params;
   if (inputRoutingTypeId != null) {
@@ -19447,11 +19414,10 @@ function applyMixerProperties(track, params) {
   }
 }
 
-async function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, pan: pan, panningMode: panningMode, leftPan: leftPan, rightPan: rightPan, mute: mute, solo: solo, arm: arm, folded: folded, inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId, monitoringState: monitoringState, arrangementFollower: arrangementFollower, sendGainDb: sendGainDb, sendReturn: sendReturn, freeze: freeze, flatten: flatten}, context = {}) {
+async function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, pan: pan, panningMode: panningMode, leftPan: leftPan, rightPan: rightPan, mute: mute, solo: solo, arm: arm, folded: folded, inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId, monitoringState: monitoringState, arrangementFollower: arrangementFollower, sendGainDb: sendGainDb, sendReturn: sendReturn}, _context = {}) {
   if (!ids) {
     throw new Error("updateTrack failed: ids is required");
   }
-  const deadline = computeLoopDeadline(context.timeoutMs);
   const trackIds = parseCommaSeparatedIds(ids);
   const tracks = validateIdTypes(trackIds, "track", "updateTrack", {
     skipInvalid: true
@@ -19496,9 +19462,6 @@ async function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, 
     const trackResult = {
       id: track.id
     };
-    if (freeze != null || flatten) {
-      await applyFreezeAndFlatten(track, freeze, flatten, deadline, trackResult);
-    }
     updatedTracks.push(trackResult);
   }
   return unwrapSingleResult(updatedTracks);

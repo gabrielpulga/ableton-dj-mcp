@@ -30256,9 +30256,7 @@ const toolDefUpdateTrack = defineTool("adj-update-track", {
     outputRoutingChannelId: string$1().optional().describe("from availableOutputRoutingChannels"),
     monitoringState: _enum$2(Object.values(MONITORING_STATE)).optional().describe("input monitoring"),
     sendGainDb: number().min(-70).max(0).optional().describe("send gain in dB, requires sendReturn"),
-    sendReturn: string$1().optional().describe('return track: exact name (e.g., "A-Reverb") or letter (e.g., "A")'),
-    freeze: boolean().optional().describe("freeze (render device chain to audio, frees CPU) or unfreeze the track. Async in Live - response reports isFrozen once confirmed, or freezeStatus: 'in_progress' if still rendering"),
-    flatten: boolean().optional().describe("commit frozen audio permanently and remove devices. Irreversible. Requires the track to already be frozen (combine with freeze: true to freeze then flatten in one call)")
+    sendReturn: string$1().optional().describe('return track: exact name (e.g., "A-Reverb") or letter (e.g., "A")')
   },
   smallModelModeConfig: {
     excludeParams: [ "panningMode", "leftPan", "rightPan", "inputRoutingTypeId", "inputRoutingChannelId", "outputRoutingTypeId", "outputRoutingChannelId", "monitoringState", "sendGainDb", "sendReturn" ],
