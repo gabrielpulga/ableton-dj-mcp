@@ -94,13 +94,20 @@ async function handleCreateDeviceBrowserUri(
     return formatErrorResponse(INSTALL_HINT);
   }
 
-  // Pre-select the target track/chain via the v8 layer so the bridge's
-  // load_item lands in the right place. selected_track is the only handle the
-  // browser API accepts for routing the load.
-  const selectArgs: Record<string, unknown> = {
-    path: args.path,
-    detailView: "device",
-  };
+  // Pre-select the target track via the v8 layer so the bridge's load_item
+  // lands in the right place. selected_track is the only handle the browser
+  // API accepts for routing the load - a device index isn't needed (and
+  // often doesn't exist yet, since browserUri loads are usually inserting a
+  // brand new device), so parse just the leading track index out of the path.
+  const trackIndex = parseTrackIndex(args.path);
+
+  if (trackIndex === null) {
+    return formatErrorResponse(
+      `createDevice failed: could not parse a track index from path "${args.path}"`,
+    );
+  }
+
+  const selectArgs: Record<string, unknown> = { trackIndex };
   const selectResult = (await next("adj-select", selectArgs)) as McpResponse;
 
   if (selectResult.isError) return selectResult;
@@ -129,6 +136,20 @@ async function handleCreateDeviceBrowserUri(
   } catch (err) {
     return formatErrorResponse(formatBridgeError("load_item", err));
   }
+}
+
+/**
+ * Extract the track index from a device-insertion path like "t1" or
+ * "t1/d0/c0". Returns null if the path doesn't start with "t<digits>".
+ * @param path - Device-insertion path (e.g. "t0", "t1/d0")
+ * @returns Parsed track index, or null if unparseable
+ */
+function parseTrackIndex(path: string): number | null {
+  const match = /^t(\d+)/.exec(path);
+
+  if (!match) return null;
+
+  return Number(match[1]);
 }
 
 function successPayload(value: unknown): McpResponse {

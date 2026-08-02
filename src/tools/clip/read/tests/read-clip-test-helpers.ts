@@ -158,6 +158,7 @@ export function setupMidiClipMock({
     path: clipPath,
     properties: {
       is_midi_clip: 1,
+      velocity_amount: 1,
       ...clipProps,
     },
     methods: {

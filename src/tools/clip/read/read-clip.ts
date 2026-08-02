@@ -62,6 +62,7 @@ export interface ReadClipResult {
   recording?: boolean;
   overdubbing?: boolean;
   muted?: boolean;
+  legato?: boolean;
 
   // Playback position (only present while playing)
   playingPosition?: string;
@@ -74,11 +75,14 @@ export interface ReadClipResult {
 
   // MIDI clip properties
   notes?: string;
+  velocityAmount?: number;
 
   // Audio clip properties
   gainDb?: number;
   sampleFile?: string;
   pitchShift?: number;
+  pitchFine?: number;
+  ramMode?: boolean;
   sampleLength?: number;
   sampleRate?: number;
   warping?: boolean;
@@ -209,6 +213,10 @@ function addBooleanStateProperties(
   if ((clip.getProperty("muted") as number) > 0) {
     result.muted = true;
   }
+
+  if ((clip.getProperty("legato") as number) > 0) {
+    result.legato = true;
+  }
 }
 
 /**
@@ -271,6 +279,12 @@ function processMidiClip(
 ): void {
   if (!includeClipNotes) return;
 
+  const velocityAmount = clip.getProperty("velocity_amount") as number;
+
+  if (velocityAmount !== 1) {
+    result.velocityAmount = velocityAmount;
+  }
+
   const timeSigNumerator = clip.getProperty("signature_numerator") as number;
   const timeSigDenominator = clip.getProperty(
     "signature_denominator",
@@ -330,6 +344,14 @@ function processAudioClip(
 
     if (pitchShift !== 0) {
       result.pitchShift = pitchShift;
+    }
+
+    if (pitchFine !== 0) {
+      result.pitchFine = pitchFine;
+    }
+
+    if ((clip.getProperty("ram_mode") as number) > 0) {
+      result.ramMode = true;
     }
   }
 

@@ -65,6 +65,7 @@ function setupSessionClip(
   registerMockObject(clipId, {
     path: livePath.track(trackIndex).clipSlot(sceneIndex).clip(),
     type: "Clip",
+    properties: { velocity_amount: 1 },
   });
 }
 

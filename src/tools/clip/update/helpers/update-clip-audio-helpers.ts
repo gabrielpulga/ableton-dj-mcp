@@ -67,7 +67,7 @@ export function setAudioParameters(
   }
 
   if (ramMode !== undefined) {
-    clip.set("clip_mode", ramMode ? 1 : 0);
+    clip.set("ram_mode", ramMode ? 1 : 0);
   }
 
   if (warpMode !== undefined) {

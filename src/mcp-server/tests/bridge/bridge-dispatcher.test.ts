@@ -118,8 +118,7 @@ describe("makeBridgeDispatcher", () => {
     })) as McpResponse;
 
     expect(next).toHaveBeenNthCalledWith(1, "adj-select", {
-      path: "t0",
-      detailView: "device",
+      trackIndex: 0,
     });
     expect(bridge.loadItem).toHaveBeenCalledWith({
       uri: "query:Synths#Operator",

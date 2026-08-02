@@ -9,6 +9,11 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ## dev
 
+- [live-api-property-names-need-external-check](dev/live-api-property-names-need-external-check.md)
+  [src/tools/live-set/**, src/tools/track/**, src/tools/clip/**] — mocked tests
+  can't catch a wrong LOM property name; verify against AbletonOSC/Adam Murray's
+  LOM reference before shipping a new `.set`/`getProperty` call
+
 ### notation
 
 - [barbeat-notation-order](dev/notation/barbeat-notation-order.md)
@@ -17,6 +22,10 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ### browser
 
+- [browser-load-needs-trackindex-select](dev/browser/browser-load-needs-trackindex-select.md)
+  [src/mcp-server/bridge-dispatcher.ts, src/tools/control/select.def.ts] —
+  browserUri loads must pre-select by trackIndex; devicePath/path silently no-op
+  or need a device that doesn't exist yet
 - [browser-search-shallow](dev/browser/browser-search-shallow.md)
   [src/tools/browse/**, live_browser_bridge/browser_ops.py,
   src/mcp-server/bridge-dispatcher.ts] — adj-browse search filters only direct
