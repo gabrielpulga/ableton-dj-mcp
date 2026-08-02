@@ -146,6 +146,7 @@ describe("readTrack", () => {
           can_be_armed: 0, // Group tracks can't be armed
           is_foldable: 1,
           is_grouped: 1,
+          fold_state: 1,
           group_track: ["id", 456],
         }),
       },
@@ -156,11 +157,56 @@ describe("readTrack", () => {
     expect(result).toStrictEqual({
       ...expectedSoloedMidiTrackResult(),
       isGroup: true,
+      isFoldable: true,
       isGroupMember: true,
+      isGrouped: true,
+      isFolded: true,
       groupId: "456",
       playingSlotIndex: 2,
       firedSlotIndex: 3,
     });
+  });
+
+  it("omits isFolded when a group track is unfolded", () => {
+    setupTrackPathMappedMocks({
+      trackId: "track1",
+      objects: {
+        Track: createSoloedMidiTrackProperties({
+          can_be_armed: 0,
+          is_foldable: 1,
+          is_grouped: 0,
+          fold_state: 0,
+          group_track: ["id", 0],
+        }),
+      },
+    });
+
+    const result = readTrack({ trackIndex: 0 });
+
+    expect(result.isFoldable).toBe(true);
+    expect(result.isFolded).toBeUndefined();
+    expect(result.isGrouped).toBeUndefined();
+  });
+
+  it("omits fold-related fields for a non-foldable, non-grouped track", () => {
+    setupTrackPathMappedMocks({
+      trackId: "track1",
+      objects: {
+        Track: createSoloedMidiTrackProperties({
+          is_foldable: 0,
+          is_grouped: 0,
+          fold_state: 1, // should be ignored: not a group track
+        }),
+      },
+    });
+
+    const result = readTrack({ trackIndex: 0 });
+
+    expect(result.isFoldable).toBeUndefined();
+    expect(result.isFolded).toBeUndefined();
+    expect(result.isGroup).toBeUndefined();
+    expect(result.isGrouped).toBeUndefined();
+    expect(result.isGroupMember).toBeUndefined();
   });
 
   it("should detect Ableton DJ MCP host track", () => {
