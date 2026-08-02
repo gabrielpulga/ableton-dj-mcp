@@ -28,6 +28,8 @@ interface UpdateLiveSetArgs {
   tempo?: number;
   timeSignature?: string;
   groove?: number;
+  link?: boolean;
+  forceLinkBeatTime?: number;
   scale?: string;
   locatorOperation?: string;
   locatorId?: string;
@@ -60,6 +62,8 @@ type UpdateLiveSetContext = Partial<ToolContext> & { silenceWavPath?: string };
  * @param args.tempo - Set tempo in BPM (20.0-999.0)
  * @param args.timeSignature - Time signature in format "4/4"
  * @param args.groove - Global groove pool amount (0.0-1.0)
+ * @param args.link - Enable/disable Ableton Link
+ * @param args.forceLinkBeatTime - Force all Link peers to this beat time
  * @param args.scale - Scale in format "Root ScaleName"
  * @param args.locatorOperation - Locator operation: "create", "delete", or "rename"
  * @param args.locatorId - Locator ID for delete/rename
@@ -74,6 +78,8 @@ export async function updateLiveSet(
     tempo,
     timeSignature,
     groove,
+    link,
+    forceLinkBeatTime,
     scale,
     locatorOperation,
     locatorId,
@@ -105,6 +111,16 @@ export async function updateLiveSet(
   if (groove != null) {
     liveSet.set("groove_amount", groove);
     result.groove = groove;
+  }
+
+  if (link != null) {
+    liveSet.set("link_enable", link);
+    result.link = link;
+  }
+
+  if (forceLinkBeatTime != null) {
+    liveSet.call("force_link_beat_time", forceLinkBeatTime);
+    result.forceLinkBeatTime = forceLinkBeatTime;
   }
 
   if (scale != null) {

@@ -44,6 +44,7 @@ interface PlaybackArgs {
   ids?: string;
   slots?: string;
   focus?: boolean;
+  nudge?: string;
 }
 
 interface PlaybackResult {
@@ -61,6 +62,7 @@ const STANDALONE_ACTIONS = new Set<StandalonePlaybackAction>([
   "capture-scene",
   "record",
   "re-enable-automation",
+  "nudge-tempo",
 ]);
 
 function isStandaloneAction(
@@ -95,6 +97,7 @@ interface BuildPlaybackResultParams {
  * @param args.ids - Comma-separated clip IDs for Session view operations
  * @param args.slots - Comma-separated trackIndex/sceneIndex slot positions
  * @param args.focus - Switch to arrangement or session view based on action
+ * @param args.nudge - Direction for nudge-tempo action ("up" or "down")
  * @param _context - Internal context object (unused, for consistent tool interface)
  * @returns Result with transport state
  */
@@ -112,6 +115,7 @@ export function playback(
     ids,
     slots,
     focus,
+    nudge,
   }: PlaybackArgs = {},
   _context: Partial<ToolContext> = {},
 ): PlaybackResult {
@@ -124,10 +128,10 @@ export function playback(
     return handleLiveSetHistory(action);
   }
 
-  // back-to-arranger, capture-midi, capture-scene, record, re-enable-automation
-  // are standalone workflow actions that bypass transport/loop param handling
+  // back-to-arranger, capture-midi, capture-scene, record, re-enable-automation,
+  // nudge-tempo are standalone workflow actions that bypass transport/loop param handling
   if (isStandaloneAction(action)) {
-    return handleStandalonePlaybackAction(action);
+    return handleStandalonePlaybackAction(action, nudge);
   }
 
   if (ids != null && slots != null) {

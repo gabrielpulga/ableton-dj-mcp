@@ -30,14 +30,14 @@ configured sample folder.
 ### `adj-read-live-set`
 
 Read the current Live Set overview: name, tempo, time signature, groove amount,
-tracks, scenes.
+Ableton Link status, tracks, scenes.
 
 - `include: ["tracks", "scenes", "locators"]` for details
 
 ### `adj-update-live-set`
 
-Update Live Set properties: tempo, time signature, groove amount, name,
-locators.
+Update Live Set properties: tempo, time signature, groove amount, Ableton Link
+(enable/disable, force beat time), name, locators.
 
 ---
 
@@ -207,6 +207,7 @@ Control transport, session clips, and Live set history.
   - `"capture-scene"` — snapshot playing session clips into a new scene
   - `"record"` — toggle arrangement record mode
   - `"re-enable-automation"` — re-engage automation overridden by manual edits
+  - `"nudge-tempo"` — brief tempo bump for beat matching (requires `nudge`)
 - Response includes `playing`, `currentTime`, optional `arrangementLoop`.
 - For `"undo"` / `"redo"` / `"save"`, response also includes `canUndo` and
   `canRedo` booleans — check these before calling undo/redo to avoid no-ops.

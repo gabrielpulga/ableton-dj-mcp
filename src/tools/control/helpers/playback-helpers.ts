@@ -299,7 +299,8 @@ export type StandalonePlaybackAction =
   | "capture-midi"
   | "capture-scene"
   | "record"
-  | "re-enable-automation";
+  | "re-enable-automation"
+  | "nudge-tempo";
 
 interface StandalonePlaybackResult {
   playing: boolean;
@@ -310,13 +311,15 @@ interface StandalonePlaybackResult {
 /**
  * Handle standalone Live set workflow actions that don't take transport or
  * loop params (back-to-arranger, capture-midi, capture-scene, record,
- * re-enable-automation).
+ * re-enable-automation, nudge-tempo).
  *
  * @param action - The standalone action to perform
+ * @param nudge - Direction for nudge-tempo ("up" or "down")
  * @returns Current transport state plus optional recording flag for record
  */
 export function handleStandalonePlaybackAction(
   action: StandalonePlaybackAction,
+  nudge?: string,
 ): StandalonePlaybackResult {
   const liveSet = LiveAPI.from(livePath.liveSet);
   let recording: boolean | undefined;
@@ -343,6 +346,16 @@ export function handleStandalonePlaybackAction(
 
     case "re-enable-automation":
       liveSet.call("re_enable_automation");
+      break;
+
+    case "nudge-tempo":
+      if (nudge !== "up" && nudge !== "down") {
+        throw new Error(
+          'playback failed: nudge-tempo requires nudge param ("up" or "down")',
+        );
+      }
+
+      liveSet.call(nudge === "up" ? "nudge_up" : "nudge_down");
       break;
     default:
       throw new Error(
