@@ -27,6 +27,7 @@ import {
 interface UpdateLiveSetArgs {
   tempo?: number;
   timeSignature?: string;
+  groove?: number;
   scale?: string;
   locatorOperation?: string;
   locatorId?: string;
@@ -58,6 +59,7 @@ type UpdateLiveSetContext = Partial<ToolContext> & { silenceWavPath?: string };
  * @param args - The parameters
  * @param args.tempo - Set tempo in BPM (20.0-999.0)
  * @param args.timeSignature - Time signature in format "4/4"
+ * @param args.groove - Global groove pool amount (0.0-1.0)
  * @param args.scale - Scale in format "Root ScaleName"
  * @param args.locatorOperation - Locator operation: "create", "delete", or "rename"
  * @param args.locatorId - Locator ID for delete/rename
@@ -71,6 +73,7 @@ export async function updateLiveSet(
   {
     tempo,
     timeSignature,
+    groove,
     scale,
     locatorOperation,
     locatorId,
@@ -97,6 +100,11 @@ export async function updateLiveSet(
     liveSet.set("signature_numerator", parsed.numerator);
     liveSet.set("signature_denominator", parsed.denominator);
     result.timeSignature = `${parsed.numerator}/${parsed.denominator}`;
+  }
+
+  if (groove != null) {
+    liveSet.set("groove_amount", groove);
+    result.groove = groove;
   }
 
   if (scale != null) {

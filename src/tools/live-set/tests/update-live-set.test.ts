@@ -62,6 +62,26 @@ describe("updateLiveSet", () => {
     expect(result2).toStrictEqual({ id: "live_set_id" });
   });
 
+  it("should update groove amount", async () => {
+    const result = await updateLiveSet({ groove: 0.75 });
+
+    expect(liveSet.set).toHaveBeenCalledWith("groove_amount", 0.75);
+    expect(result).toStrictEqual({
+      id: "live_set_id",
+      groove: 0.75,
+    });
+  });
+
+  it("should update groove amount at boundary values", async () => {
+    const resultMin = await updateLiveSet({ groove: 0 });
+    const resultMax = await updateLiveSet({ groove: 1 });
+
+    expect(liveSet.set).toHaveBeenCalledWith("groove_amount", 0);
+    expect(liveSet.set).toHaveBeenCalledWith("groove_amount", 1);
+    expect(resultMin).toStrictEqual({ id: "live_set_id", groove: 0 });
+    expect(resultMax).toStrictEqual({ id: "live_set_id", groove: 1 });
+  });
+
   it("should update time signature", async () => {
     const result = await updateLiveSet({ timeSignature: "3/4" });
 

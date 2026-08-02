@@ -144,6 +144,7 @@ describe("readLiveSet - basic reading", () => {
       isPlaying: true,
       tempo: 120,
       timeSignature: "4/4",
+      grooveAmount: 0,
       scale: "C Major",
       scalePitches: "C,D,E,F,G,A,B",
       returnTracks: [],
@@ -236,6 +237,7 @@ describe("readLiveSet - basic reading", () => {
           signature_numerator: 3,
           signature_denominator: 4,
           tempo: 100,
+          groove_amount: 0.6,
           tracks: [],
           return_tracks: children(),
           scenes: [],
@@ -252,6 +254,7 @@ describe("readLiveSet - basic reading", () => {
       name: "Empty Live Set",
       tempo: 100,
       timeSignature: "3/4",
+      grooveAmount: 0.6,
       tracks: [],
       returnTracks: [],
       masterTrack: expect.objectContaining({
