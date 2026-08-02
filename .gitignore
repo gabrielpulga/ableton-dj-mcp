@@ -17,7 +17,9 @@ npm/*.svg
 npm/*.tgz
 npm/LICENSE
 npm/licenses
-max-for-live-device/
+max-for-live-device/*.js
+max-for-live-device/*.mjs
+max-for-live-device/.amxd_devpath
 *.afdesign~lock~
 release
 scratchpad
