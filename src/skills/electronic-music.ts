@@ -25,7 +25,6 @@ export const electronicMusicSkills = `
 - Piano/organ chords on beats 2 and 4; soulful vocals; 8-bar phrases
 - Structure: intro (16) -> groove (32) -> breakdown (16) -> groove (32) -> outro (16)
 - Characteristic sounds: piano chords, organ stabs, gospel vocals, TR-909/808 drums
-- Reference artists: Larry Heard, Masters At Work, Dennis Ferrer
 - Velocity: kick v100-127, bass v85-100, piano chords v70-90, pads v55-70
 - Swing: 52-55% for warm, bouncy feel
 
@@ -35,7 +34,6 @@ export const electronicMusicSkills = `
 - Groovy basslines with disco influence; chopped vocal chops; live-instrument feel
 - Structure: intro (8) -> build (16) -> drop (32) -> breakdown (16) -> drop (32) -> outro (8)
 - Characteristic sounds: filtered disco basslines, chopped vocal chops, live-sounding hi-hats, warm pads
-- Reference artists: Mall Grab, Gerd Janson, Horse Meat Disco
 - Velocity: kick v100-127, bass v85-100, pads v55-70, leads v70-90
 - Swing: 52-54% for loose, live feel; humanize timing aggressively
 
@@ -45,7 +43,6 @@ export const electronicMusicSkills = `
 - Long intros; groove-focused; minimal arrangement changes; DJ-friendly 8-bar phrases
 - Structure: intro (32+) -> groove builds slowly; no dramatic breakdowns; outro (32+)
 - Characteristic sounds: punchy kick, driving 16th-note basslines, vocal samples/chops, hypnotic loops
-- Reference artists: Chris Lake, Fisher, Solardo
 - Velocity: kick v110-127, bass v90-110, percussion v60-80, pads v45-65
 - Swing: tight, 50-52%; groove comes from bassline syncopation not timing swing
 
@@ -55,7 +52,6 @@ export const electronicMusicSkills = `
 - Long atmospheric intro; tension builds over 32+ bars; powerful drop; emotional breakdown; second drop
 - Structure: intro (32) -> build (32) -> drop A (32) -> breakdown (32) -> build (16) -> drop B (32) -> outro (16)
 - Characteristic sounds: evolving pads, portamento leads, deep kick, sub bass, reverb-heavy atmospherics
-- Reference artists: ARTBAT, Massano, Kevin de Vries, Innellea
 - Velocity: kick v100-127, bass v85-100, pads v55-65, leads v70-90
 - Swing: tight, 50-52%; emotion comes from sound design and arrangement, not swing
 
@@ -66,7 +62,6 @@ export const electronicMusicSkills = `
 - Structure (full-on): intro (16) -> layer build (64+) -> peak (32) -> outro (16); no breakdown
 - Structure (progressive): intro (16) -> groove (32) -> build (16) -> peak (32) -> breakdown (16) -> build (16) -> peak (32) -> outro (16)
 - Characteristic sounds: acid bassline (TB-303 style, heavy filter modulation), psychedelic fx layers, punchy kick with long tail, gated leads
-- Reference artists: Infected Mushroom, Astrix, Vini Vici (full-on); Ace Ventura, Liquid Soul (progressive)
 - Velocity: kick v110-127, bass v100-115, leads v80-100, fx layers v50-75
 - Swing: 50% (straight 16ths); psychedelic feel comes from polyrhythmic layers, not timing deviation
 - Bass signature: 16th-note pattern with heavy filter envelope; note on 1, off-beat accents on 1.5/2.5/3.5; pitch movement within the bar (root → b2 → root)
@@ -111,9 +106,9 @@ Mix t/2 and t3/4 note lengths -- rhythmic interest through duration, not just ti
 
 **2-4 note motifs with portamento**: Mono mode, glide 100-150ms. Intervals of 4ths/5ths glide best.
 
-**Innellea-style**: Low anchor note on every beat (B0), melody dances on off-beats above (intervals of 4ths, 5ths). Short notes (t/2). The contrast between steady low and dancing upper creates tension.
+**Low-anchor pattern**: Low anchor note on every beat (e.g. B0), melody dances on off-beats above (intervals of 4ths, 5ths). Short notes (t/2). The contrast between steady low and dancing upper creates tension.
 
-**ARTBAT-style**: Mix long sustains (t3-t4) with short staccato (t/4). LFO on filter cutoff. Auto-pan for width. Don't write complex melodies -- sound design and glide create the emotion.
+**Sustain+staccato pattern**: Mix long sustains (t3-t4) with short staccato (t/4). LFO on filter cutoff. Auto-pan for width. Don't write complex melodies -- sound design and glide create the emotion.
 
 **Plucks/arps**: Use 2-note chords (dyads), not single notes. Root+fifth dyads for width. Repeat same anchor chord multiple times per bar for hypnotic feel, one contrast chord for movement.
 

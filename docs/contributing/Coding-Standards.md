@@ -155,7 +155,8 @@ ClipSlotPath.clip()                   → string
 
 ## Coverage
 
-Function coverage is enforced at **100%** via `vitest.config.ts` thresholds.
+Function coverage is enforced at **100%** via `config/vitest.config.ts`
+thresholds.
 
 When a function is genuinely untestable (e.g., IDB error callbacks, exhaustive
 `never` branches, no-op stubs, inline JSX callbacks in root components), exclude

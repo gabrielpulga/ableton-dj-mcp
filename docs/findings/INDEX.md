@@ -8,7 +8,7 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 ## dev
 
 - [barbeat-notation-order](dev/barbeat-notation-order.md)
-  [src/notation/barbeat/**, src/tools/generative/**, **/notes-formatter*] —
+  [src/notation/barbeat/**, src/tools/generative/**, *_/notes-formatter_] —
   pitch must precede time pos in barbeat or first note drops + warning
 - [browser-search-shallow](dev/browser-search-shallow.md) [src/tools/browse/**,
   live_browser_bridge/browser_ops.py, src/mcp-server/bridge-dispatcher.ts] —
@@ -19,9 +19,9 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
   live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
   populated Drum Rack; pre-inserting "Drum Rack" device yields an extra empty
   rack
-- [empty-drum-rack-silent](dev/empty-drum-rack-silent.md) [src/tools/device/**,
-  **/adj-create-device*] — adj-create-device "Drum Rack" returns success but
-  rack has no samples = no sound
+- [empty-drum-rack-silent](dev/empty-drum-rack-silent.md)
+  [src/tools/device/**, *_/adj-create-device_] — adj-create-device "Drum Rack"
+  returns success but rack has no samples = no sound
 - [install-device-file-list](dev/install-device-file-list.md)
   [scripts/install-device.ts, max-for-live-device/**] — User Library install
   needs all 7 files (.amxd + 2 JS + 4 .maxpat); missing .maxpat = blank UI
@@ -40,7 +40,7 @@ Line format: `- [<slug>](<domain>/<slug>.md) [<glob>,<glob>] — <summary>`
 ## music
 
 - [euclidean-density-sweep](music/euclidean-density-sweep.md)
-  [src/tools/generative/**, **/named-patterns*] — vary `pulses` per section
+  [src/tools/generative/**, *_/named-patterns_] — vary `pulses` per section
   (3→5→7→11) for arrangement arc with one algorithm
 
 ## workflow

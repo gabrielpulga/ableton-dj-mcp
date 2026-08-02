@@ -52,8 +52,7 @@ type ProcessAssignmentResult =
   | { skip?: false; value: number; pitchRange: PitchRange | null };
 
 export type TimeRangeResult =
-  | { skip: true }
-  | { skip?: false; timeRange: TimeRange };
+  { skip: true } | { skip?: false; timeRange: TimeRange };
 
 /**
  * Resolve effective pitch ranges for each assignment in the AST.
