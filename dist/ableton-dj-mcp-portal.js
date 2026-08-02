@@ -29583,7 +29583,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.13.0";
+const VERSION = "2.0.0";
 
 function filterSchemaForSmallModel(schema, excludeParams, descriptionOverrides, excludeEnumValues) {
   const hasExclusions = excludeParams && excludeParams.length > 0;

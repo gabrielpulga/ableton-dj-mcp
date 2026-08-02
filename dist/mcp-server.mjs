@@ -743,8 +743,8 @@ import os from "node:os";
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "18b2a048",
-  buildTime: "2026-08-02T18:54:18.774Z"
+  sha: "397b4112",
+  buildTime: "2026-08-02T18:56:33.916Z"
 };
 
 function buildIdentifier() {
@@ -809,7 +809,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.13.0";
+const VERSION = "2.0.0";
 
 var RequestError = class extends Error {
   constructor(message, options) {
