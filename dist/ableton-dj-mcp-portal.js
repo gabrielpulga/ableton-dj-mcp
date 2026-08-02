@@ -29583,7 +29583,7 @@ const EMPTY_COMPLETION_RESULT = {
   }
 };
 
-const VERSION = "1.11.0";
+const VERSION = "1.13.0";
 
 function filterSchemaForSmallModel(schema, excludeParams, descriptionOverrides, excludeEnumValues) {
   const hasExclusions = excludeParams && excludeParams.length > 0;
@@ -29731,6 +29731,19 @@ const toolDefCreateClip = defineTool("adj-create-clip", {
   }
 });
 
+const toolDefMicrosectionMute = defineTool("adj-microsection-mute", {
+  title: "Microsection Mute",
+  description: "Silence pitches in bar ranges via velocity=0 transforms. Encodes the 4-microsection arc (intro/lift/peak/resolution) without per-element transform calls. See finding indie-dance-microsection-arc.",
+  annotations: {
+    readOnlyHint: false,
+    destructiveHint: true
+  },
+  inputSchema: {
+    clipIds: string().describe("comma-separated clip ID(s) to apply the mute map to"),
+    microsections: string$1().describe([ "multi-line mute map. One line per microsection.", "Format: '<barStart>-<barEnd>: <pitch1>, <pitch2>, ...'", "  - pitches: MIDI note names (Eb1, F#3, C-1) or numbers (39, 54)", "  - 'all' mutes whole clip across the bar range", "  - empty list = no mute (peak microsection, declaratively present)", "Lines starting with # are comments. Empty lines ignored.", "Example:", "  1-2: Eb1, F#1   # intro: mute clap + open hat", "  3-4: F#1        # lift: mute open hat only", "  5-6:            # peak: everything plays", "  7-8: all        # resolution: silence the whole clip" ].join("\n"))
+  }
+});
+
 const toolDefReadClip = defineTool("adj-read-clip", {
   title: "Read Clip",
   description: "Read clip settings, MIDI notes, and audio properties. Returns overview by default. Use include to add detail.",
@@ -29768,6 +29781,10 @@ const toolDefUpdateClip = defineTool("adj-update-clip", {
     start: string$1().optional().describe("bar|beat position where loop/clip region begins"),
     length: string$1().optional().describe("duration in bar:beat (e.g., '4:0' = 4 bars)"),
     looping: boolean().optional().describe("enable looping for the clip"),
+    legato: boolean().optional().describe("clip keeps playing when re-launched during playback"),
+    muted: boolean().optional().describe("mute individual clip (distinct from track mute)"),
+    velocityAmount: number().min(0).max(1).optional().describe("scales all MIDI note velocities (MIDI clips only)"),
+    duplicateLoop: boolean().optional().describe("double the clip's loop length in-place (Live's Duplicate Loop)"),
     firstStart: string$1().optional().describe("bar|beat playback start (looping clips, when different from start)"),
     arrangementStart: string$1().optional().describe("bar|beat position to move arrangement clip (arrangement clips only)"),
     arrangementLength: string$1().optional().describe("duration in bar:beat (e.g., '4:0' = 4 bars), arrangement clips only"),
@@ -29775,6 +29792,8 @@ const toolDefUpdateClip = defineTool("adj-update-clip", {
     split: string$1().optional().describe(`comma-separated bar|beat positions to split clip (e.g., '2|1, 3|1') - max ${MAX_SPLIT_POINTS} points, arrangement clips only`),
     gainDb: number().min(-70).max(24).optional().describe("audio clip gain in decibels (ignored for MIDI)"),
     pitchShift: number().min(-48).max(48).optional().describe("audio clip pitch shift in semitones, supports decimals (ignored for MIDI)"),
+    pitchFine: number().min(-100).max(100).optional().describe("audio clip fine pitch in cents, independent of pitchShift's coarse semitones (ignored for MIDI)"),
+    ramMode: boolean().optional().describe("load full audio into RAM, prevents seek glitches on short loops (ignored for MIDI)"),
     warpMode: _enum$2([ "beats", "tones", "texture", "repitch", "complex", "pro" ]).optional().describe("audio clip warp mode (ignored for MIDI)"),
     warping: boolean().optional().describe("audio clip warping on/off (ignored for MIDI)"),
     notes: string$1().optional().describe("MIDI notes in bar|beat notation: [bar|beat] [v0-127] [t<dur>] [p0-1] note(s) - MIDI clips only"),
@@ -29804,7 +29823,7 @@ const toolDefPlayback = defineTool("adj-playback", {
     destructiveHint: true
   },
   inputSchema: {
-    action: _enum$2([ "play-arrangement", "update-arrangement", "play-scene", "play-session-clips", "stop-session-clips", "stop-all-session-clips", "stop", "undo", "redo", "save", "back-to-arranger", "capture-midi", "capture-scene", "record", "re-enable-automation" ]).describe(`play-arrangement: from startTime\nupdate-arrangement: modify loop\nplay-scene: all clips in scene\nplay-session-clips: by id(s) or slot(s)\nstop-session-clips: by id(s) or slot(s)\nstop-all-session-clips: all\nstop: session and arrangement\nundo: undo last Live set action (check canUndo before)\nredo: redo last undone action (check canRedo before)\nsave: save the Live set to disk\nback-to-arranger: clear session override so arrangement resumes\ncapture-midi: retroactively capture buffered MIDI into a clip\ncapture-scene: capture currently playing session clips into a new scene\nrecord: toggle arrangement record mode (returns recording state)\nre-enable-automation: re-engage automation overridden by manual changes`),
+    action: _enum$2([ "play-arrangement", "update-arrangement", "play-scene", "play-session-clips", "stop-session-clips", "stop-all-session-clips", "stop", "undo", "redo", "save", "back-to-arranger", "capture-midi", "capture-scene", "record", "re-enable-automation", "nudge-tempo" ]).describe(`play-arrangement: from startTime\nupdate-arrangement: modify loop\nplay-scene: all clips in scene\nplay-session-clips: by id(s) or slot(s)\nstop-session-clips: by id(s) or slot(s)\nstop-all-session-clips: all\nstop: session and arrangement\nundo: undo last Live set action (check canUndo before)\nredo: redo last undone action (check canRedo before)\nsave: save the Live set to disk\nback-to-arranger: clear session override so arrangement resumes\ncapture-midi: retroactively capture buffered MIDI into a clip\ncapture-scene: capture currently playing session clips into a new scene\nrecord: toggle arrangement record mode (returns recording state)\nre-enable-automation: re-engage automation overridden by manual changes\nnudge-tempo: brief tempo bump for beat matching (requires nudge param)`),
     startTime: string$1().optional().describe("bar|beat position in arrangement"),
     startLocator: string$1().optional().describe("locator ID or name for start position (e.g., locator-0 or Verse)"),
     loop: boolean().optional().describe("arrangement loop?"),
@@ -29814,7 +29833,8 @@ const toolDefPlayback = defineTool("adj-playback", {
     loopEndLocator: string$1().optional().describe("locator ID or name for loop end"),
     ids: string().optional().describe("comma-separated ID(s) for clip operations"),
     slots: string$1().optional().describe("session clip slot(s), trackIndex/sceneIndex format, comma-separated (e.g., '0/1' or '0/1,2/3')"),
-    sceneIndex: number().int().min(0).optional().describe("0-based scene index for play-scene")
+    sceneIndex: number().int().min(0).optional().describe("0-based scene index for play-scene"),
+    nudge: _enum$2([ "up", "down" ]).optional().describe("Direction for nudge-tempo action")
   },
   smallModelModeConfig: {
     excludeParams: [ "startLocator", "loopStartLocator", "loopEndLocator" ]
@@ -30026,7 +30046,13 @@ const toolDefUpdateLiveSet = defineTool("adj-update-live-set", {
   inputSchema: {
     tempo: number().min(20).max(999).optional().describe("BPM"),
     timeSignature: string$1().optional().describe("N/D (4/4)"),
+    groove: number().min(0).max(1).optional().describe("Global groove pool amount (0.0-1.0)"),
+    link: boolean().optional().describe("Enable/disable Ableton Link"),
+    forceLinkBeatTime: number().optional().describe("Force all Link peers to this beat time"),
     scale: string$1().optional().describe('"Root ScaleName" ("C Major", "F# Minor", "Bb Dorian"). Empty string disables scale'),
+    punchIn: boolean().optional().describe("Enable/disable punch-in recording"),
+    punchOut: boolean().optional().describe("Enable/disable punch-out recording"),
+    overdub: boolean().optional().describe("Enable/disable arrangement overdub mode"),
     locatorOperation: _enum$2([ "create", "delete", "rename" ]).optional().describe("Locator operation"),
     locatorId: string$1().optional().describe("Locator ID for delete/rename (e.g., locator-0)"),
     locatorTime: string$1().optional().describe("Bar|beat position (required for create, alt ID for delete/rename)"),
@@ -30223,13 +30249,16 @@ const toolDefUpdateTrack = defineTool("adj-update-track", {
     mute: boolean().optional().describe("muted?"),
     solo: boolean().optional().describe("soloed?"),
     arm: boolean().optional().describe("record armed?"),
+    folded: boolean().optional().describe("fold/unfold a group track; only applies to group tracks"),
     inputRoutingTypeId: string$1().optional().describe("from availableInputRoutingTypes, set before channel"),
     inputRoutingChannelId: string$1().optional().describe("from availableInputRoutingChannels"),
     outputRoutingTypeId: string$1().optional().describe("from availableOutputRoutingTypes, set before channel"),
     outputRoutingChannelId: string$1().optional().describe("from availableOutputRoutingChannels"),
     monitoringState: _enum$2(Object.values(MONITORING_STATE)).optional().describe("input monitoring"),
     sendGainDb: number().min(-70).max(0).optional().describe("send gain in dB, requires sendReturn"),
-    sendReturn: string$1().optional().describe('return track: exact name (e.g., "A-Reverb") or letter (e.g., "A")')
+    sendReturn: string$1().optional().describe('return track: exact name (e.g., "A-Reverb") or letter (e.g., "A")'),
+    freeze: boolean().optional().describe("freeze (render device chain to audio, frees CPU) or unfreeze the track. Async in Live - response reports isFrozen once confirmed, or freezeStatus: 'in_progress' if still rendering"),
+    flatten: boolean().optional().describe("commit frozen audio permanently and remove devices. Irreversible. Requires the track to already be frozen (combine with freeze: true to freeze then flatten in one call)")
   },
   smallModelModeConfig: {
     excludeParams: [ "panningMode", "leftPan", "rightPan", "inputRoutingTypeId", "inputRoutingChannelId", "outputRoutingTypeId", "outputRoutingChannelId", "monitoringState", "sendGainDb", "sendReturn" ],
@@ -30264,7 +30293,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefMicrosectionMute, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
 
 Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 

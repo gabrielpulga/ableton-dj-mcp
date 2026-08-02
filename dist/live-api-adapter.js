@@ -970,16 +970,16 @@ if (!Array.prototype.with) {
 }
 
 const BUILD_INFO = {
-  branch: "gabriel/scrub-personal-refs",
-  sha: "afb9de86",
-  dirty: true,
-  buildTime: "2026-08-01T21:52:40.185Z",
+  branch: "main",
+  sha: "fd486f4f",
+  dirty: false,
+  buildTime: "2026-08-02T16:38:19.533Z",
   source: "local"
 };
 
 function buildIdentifier() {
   const i = BUILD_INFO;
-  const dirtyMark = "*";
+  const dirtyMark = "";
   return `[${i.branch}@${i.sha}${dirtyMark}] built ${i.buildTime}`;
 }
 
@@ -1104,7 +1104,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "1.11.0";
+const VERSION = "1.13.0";
 
 const MIN_LIVE_VERSION = "12.3.0";
 
@@ -10081,388 +10081,484 @@ function validateArrangementTrack(arrangementStarts, trackIndex) {
   }
 }
 
-const DENOMINATORS = [ 2, 3, 4, 6, 8, 12, 16 ];
-
-const EPSILON$2 = 5e-4;
-
-function formatBeatPosition(value) {
-  if (value % 1 === 0) return value.toString();
-  return formatMixedNumber(value) ?? formatDecimal(value);
-}
-
-function formatUnsignedValue(value) {
-  if (value % 1 === 0) return value.toString();
-  if (value < 1) {
-    const fraction = findFraction(value);
-    if (fraction) {
-      const fractionStr = fraction.num === 1 ? `/${fraction.den}` : `${fraction.num}/${fraction.den}`;
-      return preferFractionOrDecimal(fractionStr, value);
-    }
-    return formatDecimal(value);
+function createAudioClipInSession(track, targetLength, audioFilePath) {
+  const liveSet = LiveAPI.from(livePath.liveSet);
+  let sceneIds = liveSet.getChildIds("scenes");
+  const lastSceneId = assertDefined(sceneIds.at(-1), "last scene ID");
+  const lastScene = LiveAPI.from(lastSceneId);
+  const isEmpty = lastScene.getProperty("is_empty") === 1;
+  let workingSceneId = lastSceneId;
+  if (!isEmpty) {
+    const newSceneResult = liveSet.call("create_scene", sceneIds.length);
+    workingSceneId = Array.isArray(newSceneResult) ? newSceneResult.join(" ") : newSceneResult;
+    sceneIds = liveSet.getChildIds("scenes");
   }
-  return formatMixedNumber(value) ?? formatDecimal(value);
-}
-
-function preferFractionOrDecimal(fractionStr, value) {
-  if (!decimalIsLossless(value)) {
-    return fractionStr;
-  }
-  const decimalStr = formatDecimal(value);
-  return decimalStr.length < fractionStr.length ? decimalStr : fractionStr;
-}
-
-function decimalIsLossless(value) {
-  const scaled = value * 1e3;
-  return Math.abs(scaled - Math.round(scaled)) < .01;
-}
-
-function findFraction(value) {
-  for (const den of DENOMINATORS) {
-    for (let num = 1; num < den; num++) {
-      if (Math.abs(value - num / den) < EPSILON$2) {
-        return {
-          num: num,
-          den: den
-        };
-      }
-    }
-  }
-  return null;
-}
-
-function formatMixedNumber(value) {
-  const intPart = Math.floor(value);
-  const fracPart = value - intPart;
-  const fraction = findFraction(fracPart);
-  if (!fraction) return null;
-  const mixedStr = `${intPart}+${fraction.num}/${fraction.den}`;
-  return preferFractionOrDecimal(mixedStr, value);
-}
-
-function formatDecimal(value) {
-  return value % 1 === 0 ? value.toString() : value.toFixed(3).replace(/\.?0+$/, "");
-}
-
-function resolveFormatConfig(options) {
+  const trackIndex = track.trackIndex;
+  const sceneIndex = sceneIds.indexOf(workingSceneId);
+  const slot = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex));
+  slot.call("create_audio_clip", audioFilePath);
+  const clip = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex).clip());
+  clip.set("warping", 1);
+  clip.set("looping", 1);
+  clip.set("loop_end", targetLength);
   return {
-    beatsPerBar: parseBeatsPerBar(options),
-    timeSigDenominator: options.timeSigDenominator
+    clip: clip,
+    slot: slot
   };
 }
 
-function sortNotes(notes) {
-  return [ ...notes ].sort((a, b) => {
-    if (a.start_time !== b.start_time) {
-      return a.start_time - b.start_time;
-    }
-    return a.pitch - b.pitch;
-  });
-}
-
-function calculateBarBeat(startTime, beatsPerBar, timeSigDenominator) {
-  let adjustedTime = Math.round(startTime * 1e3) / 1e3;
-  if (timeSigDenominator != null) {
-    adjustedTime = adjustedTime * (timeSigDenominator / 4);
-  }
-  const bar = Math.floor(adjustedTime / beatsPerBar) + 1;
-  const beat = adjustedTime % beatsPerBar + 1;
-  return {
-    bar: bar,
-    beat: beat
-  };
-}
-
-function groupNotesByTime(sortedNotes, config) {
-  const {beatsPerBar: beatsPerBar, timeSigDenominator: timeSigDenominator} = config;
-  const timeGroups = [];
-  let currentBar = -1;
-  let currentBeat = -1;
-  for (const note of sortedNotes) {
-    const {bar: bar, beat: beat} = calculateBarBeat(note.start_time, beatsPerBar, timeSigDenominator);
-    if (bar !== currentBar || Math.abs(beat - currentBeat) > .001) {
-      timeGroups.push({
-        bar: bar,
-        beat: beat,
-        notes: []
-      });
-      currentBar = bar;
-      currentBeat = beat;
-    }
-    const lastGroup = timeGroups.at(-1);
-    lastGroup.notes.push(note);
-  }
-  return timeGroups;
-}
-
-function createInitialState() {
-  return {
-    velocity: DEFAULT_VELOCITY$1,
-    velocityDeviation: DEFAULT_VELOCITY_DEVIATION,
-    duration: DEFAULT_DURATION,
-    probability: DEFAULT_PROBABILITY
-  };
-}
-
-function allNotesShareState(notes) {
-  if (notes.length <= 1) return true;
-  const first = notes[0];
-  const firstVelocity = Math.round(first.velocity);
-  const firstDeviation = Math.round(first.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
-  const firstDuration = first.duration;
-  const firstProbability = first.probability ?? DEFAULT_PROBABILITY;
-  for (let i = 1; i < notes.length; i++) {
-    const note = notes[i];
-    if (Math.round(note.velocity) !== firstVelocity || Math.round(note.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) !== firstDeviation || Math.abs(note.duration - firstDuration) > .001 || Math.abs((note.probability ?? DEFAULT_PROBABILITY) - firstProbability) > .001) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function formatGroupNotes(group, state, timeSigDenominator) {
-  const elements = [];
-  if (allNotesShareState(group.notes)) {
-    const firstNote = group.notes[0];
-    emitStateChanges(firstNote, state, elements, timeSigDenominator);
-    for (const note of group.notes) {
-      elements.push(pitchName(note.pitch));
-    }
+function createAndDeleteTempClip(track, position, length, isMidiClip, context) {
+  if (isMidiClip) {
+    const tempResult = track.call("create_midi_clip", position, length);
+    const tempClip = LiveAPI.from(tempResult);
+    track.call("delete_clip", toLiveApiId(tempClip.id));
   } else {
-    for (const note of group.notes) {
-      emitStateChanges(note, state, elements, timeSigDenominator);
-      elements.push(pitchName(note.pitch));
+    const {clip: sessionClip, slot: slot} = createAudioClipInSession(track, length, context.silenceWavPath);
+    const tempResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(sessionClip.id), position);
+    const tempClip = LiveAPI.from(tempResult);
+    slot.call("delete_clip");
+    track.call("delete_clip", toLiveApiId(tempClip.id));
+  }
+}
+
+function clearClipAtDuplicateTarget(track, sourceClipId, targetPosition, isMidiClip, context) {
+  const sourceClip = LiveAPI.from(toLiveApiId(sourceClipId));
+  if (sourceClip.getProperty("is_arrangement_clip") !== 1) return;
+  const sourceStart = sourceClip.getProperty("start_time");
+  const sourceEnd = sourceClip.getProperty("end_time");
+  const targetEnd = targetPosition + (sourceEnd - sourceStart);
+  const clipIds = track.getChildIds("arrangement_clips");
+  for (const clipId of clipIds) {
+    const clip = LiveAPI.from(clipId);
+    const clipStart = clip.getProperty("start_time");
+    const clipEnd = clip.getProperty("end_time");
+    if (clipStart < targetEnd && clipEnd > targetPosition) {
+      clearOverlappingClip(track, clip, targetPosition, targetEnd, clipIds, isMidiClip, context);
     }
   }
-  return elements;
 }
 
-function emitStateChanges(note, state, elements, timeSigDenominator) {
-  emitVelocityChange(note, state, elements);
-  emitDurationChange(note, state, elements, timeSigDenominator);
-  emitProbabilityChange(note, state, elements);
+function moveClipFromHolding(holdingClipId, track, targetPosition, isMidiClip, context) {
+  clearClipAtDuplicateTarget(track, holdingClipId, targetPosition, isMidiClip, context);
+  const finalResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(holdingClipId), targetPosition);
+  const movedClip = LiveAPI.from(finalResult);
+  track.call("delete_clip", toLiveApiId(holdingClipId));
+  return movedClip;
 }
 
-function emitVelocityChange(note, state, elements) {
-  const noteVelocity = Math.round(note.velocity);
-  const noteDeviation = Math.round(note.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
-  if (noteDeviation > 0) {
-    const velocityMin = Math.max(1, Math.min(127, noteVelocity));
-    const velocityMax = Math.min(127, velocityMin + noteDeviation);
-    const currentMin = Math.max(1, Math.min(127, state.velocity));
-    const currentMax = Math.min(127, currentMin + state.velocityDeviation);
-    if (velocityMin !== currentMin || velocityMax !== currentMax) {
-      if (velocityMax === velocityMin) {
-        elements.push(`v${velocityMin}`);
-        state.velocity = velocityMin;
-        state.velocityDeviation = 0;
-      } else {
-        elements.push(`v${velocityMin}-${velocityMax}`);
-        state.velocity = velocityMin;
-        state.velocityDeviation = velocityMax - velocityMin;
-      }
-    }
-  } else if (noteVelocity !== state.velocity || state.velocityDeviation > 0) {
-    elements.push(`v${noteVelocity}`);
-    state.velocity = noteVelocity;
-    state.velocityDeviation = 0;
-  }
-}
-
-function emitDurationChange(note, state, elements, timeSigDenominator) {
-  const notationDuration = timeSigDenominator != null ? note.duration * (timeSigDenominator / 4) : note.duration;
-  if (Math.abs(notationDuration - state.duration) > .001) {
-    elements.push(`t${formatUnsignedValue(notationDuration)}`);
-    state.duration = notationDuration;
-  }
-}
-
-function emitProbabilityChange(note, state, elements) {
-  const noteProbability = note.probability ?? DEFAULT_PROBABILITY;
-  if (Math.abs(noteProbability - state.probability) > .001) {
-    elements.push(`p${formatDecimal(noteProbability)}`);
-    state.probability = noteProbability;
-  }
-}
-
-function pitchName(pitch) {
-  const name = midiToNoteName(pitch);
-  if (name == null) {
-    throw new Error(`Invalid MIDI pitch: ${pitch}`);
-  }
-  return name;
-}
-
-function formatDrumNotation(sortedNotes, config) {
-  const pitchGroups = groupByPitch(sortedNotes);
-  const state = createInitialState();
-  const elements = [];
-  for (const {pitch: pitch, notes: notes} of pitchGroups) {
-    const positions = notes.map(n => calculateBarBeat(n.start_time, config.beatsPerBar, config.timeSigDenominator));
-    const runs = splitIntoStateRuns(notes, positions);
-    for (const run of runs) {
-      emitStateChanges(run.notes[0], state, elements, config.timeSigDenominator);
-      elements.push(pitchName(pitch));
-      elements.push(...formatPositions(run.positions, state.duration, config.beatsPerBar));
-    }
-  }
-  return elements.join(" ");
-}
-
-function groupByPitch(sortedNotes) {
-  const map = new Map;
-  for (const note of sortedNotes) {
-    const existing = map.get(note.pitch);
-    if (existing) {
-      existing.push(note);
+function clearOverlappingClip(track, overlappingClip, targetPosition, targetEnd, allClipIds, isMidiClip, context) {
+  const clipStart = overlappingClip.getProperty("start_time");
+  const clipEnd = overlappingClip.getProperty("end_time");
+  const clipId = overlappingClip.id;
+  const hasBefore = clipStart < targetPosition;
+  const hasAfter = clipEnd > targetEnd;
+  if (!hasAfter) {
+    if (hasBefore) {
+      createAndDeleteTempClip(track, targetPosition, clipEnd - targetPosition, isMidiClip, context);
     } else {
-      map.set(note.pitch, [ note ]);
+      track.call("delete_clip", toLiveApiId(clipId));
     }
+    return;
   }
-  return [ ...map.entries() ].map(([pitch, notes]) => ({
-    pitch: pitch,
-    notes: notes
-  }));
-}
-
-function splitIntoStateRuns(notes, positions) {
-  const runs = [];
-  let runStart = 0;
-  for (let i = 1; i <= notes.length; i++) {
-    if (i === notes.length || !sameState(notes[runStart], notes[i])) {
-      runs.push({
-        notes: notes.slice(runStart, i),
-        positions: positions.slice(runStart, i)
-      });
-      runStart = i;
-    }
+  let maxEnd = 0;
+  for (const id of allClipIds) {
+    const end = LiveAPI.from(id).getProperty("end_time");
+    if (end > maxEnd) maxEnd = end;
   }
-  return runs;
-}
-
-function sameState(a, b) {
-  return Math.round(a.velocity) === Math.round(b.velocity) && Math.round(a.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) === Math.round(b.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) && Math.abs(a.duration - b.duration) <= .001 && Math.abs((a.probability ?? DEFAULT_PROBABILITY) - (b.probability ?? DEFAULT_PROBABILITY)) <= .001;
-}
-
-function formatPositions(positions, currentDuration, beatsPerBar) {
-  const repeat = detectRepeatPattern(positions, beatsPerBar);
-  if (repeat) {
-    return [ formatRepeat(repeat, currentDuration, positions[0]) ];
+  const holdingStart = maxEnd + 100;
+  const holdingResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(clipId), holdingStart);
+  const holdingClipId = LiveAPI.from(holdingResult).id;
+  if (hasBefore) {
+    createAndDeleteTempClip(track, targetPosition, clipEnd - targetPosition, isMidiClip, context);
+  } else {
+    track.call("delete_clip", toLiveApiId(clipId));
   }
-  return formatBarBeatPositions(positions);
+  const leftTrimLen = targetEnd - clipStart;
+  createAndDeleteTempClip(track, holdingStart, leftTrimLen, isMidiClip, context);
+  moveClipFromHolding(holdingClipId, track, targetEnd, isMidiClip, context);
 }
 
-function detectRepeatPattern(positions, beatsPerBar) {
-  if (positions.length < 3) return null;
-  const absolutes = positions.map(p => (p.bar - 1) * beatsPerBar + (p.beat - 1));
-  const step = absolutes[1] - absolutes[0];
-  if (step <= 0) return null;
-  for (let i = 2; i < absolutes.length; i++) {
-    if (Math.abs(absolutes[i] - absolutes[i - 1] - step) > .002) {
+const EPSILON$2 = .001;
+
+function parseSplitPoints(splitStr, timeSigNumerator, timeSigDenominator) {
+  const points = [];
+  const parts = splitStr.split(",").map(s => s.trim());
+  for (const part of parts) {
+    if (!part) continue;
+    try {
+      const beats = barBeatToAbletonBeats(part, timeSigNumerator, timeSigDenominator);
+      points.push(beats);
+    } catch {
       return null;
     }
   }
-  const repeatStr = formatRepeatLength(positions[0], positions.length, step);
-  const listStr = formatBarBeatPositions(positions).join(" ");
-  if (repeatStr >= listStr.length) return null;
-  return {
-    count: positions.length,
-    step: step
-  };
+  return [ ...new Set(points) ].sort((a, b) => a - b);
 }
 
-function formatRepeatLength(start, count, step) {
-  const startStr = `${start.bar}|${formatBeatPosition(start.beat)}`;
-  const stepStr = formatUnsignedValue(step);
-  return startStr.length + 1 + count.toString().length + 1 + stepStr.length;
-}
-
-function formatRepeat(repeat, currentDuration, start) {
-  const startStr = `${start.bar}|${formatBeatPosition(start.beat)}`;
-  const stepSuffix = Math.abs(repeat.step - currentDuration) <= .001 ? "" : `@${formatUnsignedValue(repeat.step)}`;
-  return `${startStr}x${repeat.count}${stepSuffix}`;
-}
-
-function formatBarBeatPositions(positions) {
-  const result = [];
-  let currentBar = -1;
-  let currentBeats = [];
-  for (const pos of positions) {
-    if (pos.bar !== currentBar) {
-      if (currentBeats.length > 0) {
-        result.push(`${currentBar}|${currentBeats.join(",")}`);
-      }
-      currentBar = pos.bar;
-      currentBeats = [ formatBeatPosition(pos.beat) ];
-    } else {
-      currentBeats.push(formatBeatPosition(pos.beat));
+function prepareSplitParams(split, arrangementClips, warnings) {
+  if (split == null) {
+    return null;
+  }
+  if (arrangementClips.length === 0) {
+    if (!warnings.has("split-no-arrangement")) {
+      warn("split requires arrangement clips");
+      warnings.add("split-no-arrangement");
     }
+    return null;
   }
-  if (currentBeats.length > 0) {
-    result.push(`${currentBar}|${currentBeats.join(",")}`);
-  }
-  return result;
-}
-
-function findMergeBatches(groups) {
-  const batches = [];
-  const merged = new Set;
-  for (let i = 0; i < groups.length; i++) {
-    if (merged.has(i)) continue;
-    const current = groups[i];
-    const batch = {
-      groups: [ current ]
-    };
-    merged.add(i);
-    for (let j = i + 1; j < groups.length; j++) {
-      if (merged.has(j)) continue;
-      const candidate = groups[j];
-      if (candidate.bar !== current.bar) break;
-      if (groupsMatch(current, candidate)) {
-        batch.groups.push(candidate);
-        merged.add(j);
-      }
+  const liveSet = LiveAPI.from(livePath.liveSet);
+  const songTimeSigNumerator = liveSet.getProperty("signature_numerator");
+  const songTimeSigDenominator = liveSet.getProperty("signature_denominator");
+  const splitPoints = parseSplitPoints(split, songTimeSigNumerator, songTimeSigDenominator);
+  if (splitPoints == null || splitPoints.length === 0) {
+    if (!warnings.has("split-invalid-format")) {
+      warn(`Invalid split format: "${split}". Expected comma-separated bar|beat positions like "2|1, 3|1"`);
+      warnings.add("split-invalid-format");
     }
-    batches.push(batch);
+    return null;
   }
-  return batches;
+  if (splitPoints.length > MAX_SPLIT_POINTS) {
+    if (!warnings.has("split-max-exceeded")) {
+      warn(`Too many split points (${splitPoints.length}), max is ${MAX_SPLIT_POINTS}`);
+      warnings.add("split-max-exceeded");
+    }
+    return null;
+  }
+  const validPoints = splitPoints.filter(p => p > 0);
+  if (validPoints.length === 0) {
+    if (!warnings.has("split-no-valid-points")) {
+      warn("No valid split points (all at or before clip start)");
+      warnings.add("split-no-valid-points");
+    }
+    return null;
+  }
+  return validPoints;
 }
 
-function groupsMatch(a, b) {
-  if (a.notes.length !== b.notes.length) return false;
-  for (let i = 0; i < a.notes.length; i++) {
-    const noteA = a.notes[i];
-    const noteB = b.notes[i];
-    if (!notesMatch(noteA, noteB)) return false;
+function splitSingleClip(args) {
+  const {clip: clip, splitPoints: splitPoints, holdingAreaStart: holdingAreaStart, context: context} = args;
+  const {splitClipRanges: splitClipRanges} = args;
+  const isMidiClip = clip.getProperty("is_midi_clip") === 1;
+  const clipArrangementStart = clip.getProperty("start_time");
+  const clipArrangementEnd = clip.getProperty("end_time");
+  const clipLength = clipArrangementEnd - clipArrangementStart;
+  const trackIndex = clip.trackIndex;
+  if (trackIndex == null) {
+    warn(`Could not determine trackIndex for clip ${clip.id}, skipping`);
+    return false;
   }
+  const validPoints = splitPoints.filter(p => p > 0 && p < clipLength);
+  if (validPoints.length === 0) {
+    return false;
+  }
+  const track = LiveAPI.from(livePath.track(trackIndex));
+  const originalClipId = clip.id;
+  splitClipRanges.set(originalClipId, {
+    trackIndex: trackIndex,
+    startTime: clipArrangementStart,
+    endTime: clipArrangementEnd
+  });
+  const boundaries = [ 0, ...validPoints, clipLength ];
+  const segmentCount = boundaries.length - 1;
+  const tilingCtx = context;
+  const sourcePos = holdingAreaStart;
+  const result = track.call("duplicate_clip_to_arrangement", toLiveApiId(originalClipId), sourcePos);
+  const sourceClip = LiveAPI.from(result);
+  if (!sourceClip.exists()) {
+    warn(`Failed to duplicate clip ${originalClipId} to holding area, aborting split`);
+    return false;
+  }
+  const sourceClipId = sourceClip.id;
+  const seg0End = boundaries[1];
+  const rightTrimLen = clipLength - seg0End;
+  if (rightTrimLen > EPSILON$2) {
+    createAndDeleteTempClip(track, clipArrangementStart + seg0End, rightTrimLen, isMidiClip, tilingCtx);
+  }
+  extractMiddleSegments({
+    track: track,
+    sourceClipId: sourceClipId,
+    boundaries: boundaries,
+    segmentCount: segmentCount,
+    clipArrangementStart: clipArrangementStart,
+    clipLength: clipLength,
+    holdingAreaStart: holdingAreaStart,
+    isMidiClip: isMidiClip,
+    context: tilingCtx
+  });
+  const lastSegStart = boundaries[segmentCount - 1];
+  const lastSegFinalPos = clipArrangementStart + lastSegStart;
+  if (lastSegStart > EPSILON$2) {
+    createAndDeleteTempClip(track, sourcePos, lastSegStart, isMidiClip, tilingCtx);
+  }
+  moveClipFromHolding(sourceClipId, track, lastSegFinalPos, isMidiClip, tilingCtx);
   return true;
 }
 
-function notesMatch(a, b) {
-  return a.pitch === b.pitch && Math.round(a.velocity) === Math.round(b.velocity) && Math.abs(a.duration - b.duration) <= .001 && Math.abs((a.probability ?? DEFAULT_PROBABILITY) - (b.probability ?? DEFAULT_PROBABILITY)) <= .001 && Math.round(a.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) === Math.round(b.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
+function extractMiddleSegments(args) {
+  const {track: track, sourceClipId: sourceClipId, boundaries: boundaries, segmentCount: segmentCount, clipArrangementStart: clipArrangementStart, clipLength: clipLength, holdingAreaStart: holdingAreaStart, isMidiClip: isMidiClip, context: context} = args;
+  for (let i = 1; i < segmentCount - 1; i++) {
+    const segStart = boundaries[i];
+    const segEnd = boundaries[i + 1];
+    const workPos = holdingAreaStart + i * (clipLength + 4);
+    const workResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(sourceClipId), workPos);
+    const workClipId = LiveAPI.from(workResult).id;
+    if (workClipId === "0") {
+      warn(`Failed to duplicate source for middle segment ${i}, skipping`);
+      continue;
+    }
+    if (segStart > EPSILON$2) {
+      createAndDeleteTempClip(track, workPos, segStart, isMidiClip, context);
+    }
+    const rightTrim = clipLength - segEnd;
+    if (rightTrim > EPSILON$2) {
+      createAndDeleteTempClip(track, workPos + segEnd, rightTrim, isMidiClip, context);
+    }
+    moveClipFromHolding(workClipId, track, clipArrangementStart + segStart, isMidiClip, context);
+  }
 }
 
-function formatNotation(clipNotes, options = {}) {
-  if (!clipNotes || clipNotes.length === 0) {
-    return "";
+function rescanSplitClips(splitClipRanges, clips) {
+  for (const [oldClipId, range] of splitClipRanges) {
+    const track = LiveAPI.from(livePath.track(range.trackIndex));
+    const trackClipIds = track.getChildIds("arrangement_clips");
+    const freshClips = trackClipIds.map(id => LiveAPI.from(id)).filter(c => {
+      const clipStart = c.getProperty("start_time");
+      return clipStart >= range.startTime - EPSILON$2 && clipStart < range.endTime - EPSILON$2;
+    });
+    const staleIndex = clips.findIndex(c => c.id === oldClipId);
+    if (staleIndex !== -1) {
+      clips.splice(staleIndex, 1, ...freshClips);
+    }
   }
-  const config = resolveFormatConfig(options);
-  const sortedNotes = sortNotes(clipNotes);
-  if (options.drumMode) {
-    return formatDrumNotation(sortedNotes, config);
+}
+
+function performSplitting(arrangementClips, splitPoints, clips, _context) {
+  const holdingAreaStart = _context.holdingAreaStartBeats;
+  const splitClipRanges = new Map;
+  for (const clip of arrangementClips) {
+    splitSingleClip({
+      clip: clip,
+      splitPoints: splitPoints,
+      holdingAreaStart: holdingAreaStart,
+      context: _context,
+      splitClipRanges: splitClipRanges
+    });
   }
-  const timeGroups = groupNotesByTime(sortedNotes, config);
-  const batches = findMergeBatches(timeGroups);
-  const state = createInitialState();
-  const elements = [];
-  for (const batch of batches) {
-    const firstGroup = batch.groups[0];
-    const noteElements = formatGroupNotes(firstGroup, state, config.timeSigDenominator);
-    elements.push(...noteElements);
-    const bar = firstGroup.bar;
-    const beats = batch.groups.map(g => formatBeatPosition(g.beat)).join(",");
-    elements.push(`${bar}|${beats}`);
+  rescanSplitClips(splitClipRanges, clips);
+}
+
+function computeNonSurvivorClipIds(clips, arrangementStartBeats, arrangementLengthBeats) {
+  if (arrangementStartBeats == null || arrangementLengthBeats != null) {
+    return null;
   }
-  return elements.join(" ");
+  const trackClips = new Map;
+  for (const clip of clips) {
+    if (clip.getProperty("is_arrangement_clip") <= 0) continue;
+    const trackIndex = clip.trackIndex;
+    if (trackIndex == null) continue;
+    const startTime = clip.getProperty("start_time");
+    const endTime = clip.getProperty("end_time");
+    const group = trackClips.get(trackIndex) ?? [];
+    group.push({
+      clipId: clip.id,
+      clipLength: endTime - startTime
+    });
+    trackClips.set(trackIndex, group);
+  }
+  let hasMultiClipTrack = false;
+  for (const group of trackClips.values()) {
+    if (group.length > 1) {
+      hasMultiClipTrack = true;
+      break;
+    }
+  }
+  if (!hasMultiClipTrack) return null;
+  const nonSurvivorIds = new Set;
+  for (const group of trackClips.values()) {
+    if (group.length <= 1) continue;
+    let maxLengthAfter = 0;
+    for (let i = group.length - 1; i >= 0; i--) {
+      const info = group[i];
+      if (info.clipLength > maxLengthAfter) {
+        maxLengthAfter = info.clipLength;
+      } else {
+        nonSurvivorIds.add(info.clipId);
+      }
+    }
+  }
+  return nonSurvivorIds.size > 0 ? nonSurvivorIds : null;
+}
+
+function verifyColorQuantization(object, requestedColor) {
+  try {
+    const actualColor = object.getColor();
+    if (actualColor?.toUpperCase() !== requestedColor.toUpperCase()) {
+      const objectType = object.type;
+      warn(`Requested ${objectType.toLowerCase()} color ${requestedColor} was mapped to nearest palette color ${actualColor}. Live uses a fixed color palette.`);
+    }
+  } catch (error) {
+    warn(`Could not verify color quantization: ${errorMessage(error)}`);
+  }
+}
+
+const MIN_GAIN_DB = -70;
+
+const MAX_GAIN_DB = 24;
+
+const MIN_PITCH_SHIFT = -48;
+
+const MAX_PITCH_SHIFT = 48;
+
+const MIDI_PARAMETERS = new Set([ "velocity", "timing", "duration", "probability", "deviation", "pitch" ]);
+
+function applyAudioTransform(currentGainDb, currentPitchShift, transformString, clipContext) {
+  if (!transformString) {
+    return {
+      gain: null,
+      pitchShift: null
+    };
+  }
+  let ast;
+  try {
+    ast = peg$parse(transformString);
+  } catch (error) {
+    warn(`Failed to parse transform string: ${errorMessage(error)}`);
+    return {
+      gain: null,
+      pitchShift: null
+    };
+  }
+  const hasMidiParams = ast.some(a => MIDI_PARAMETERS.has(a.parameter));
+  if (hasMidiParams) {
+    warn("MIDI parameters (velocity, timing, duration, probability, deviation, pitch) ignored for audio clips");
+  }
+  const audioAssignments = ast.filter(a => a.parameter === "gain" || a.parameter === "pitchShift");
+  if (audioAssignments.length === 0) {
+    return {
+      gain: null,
+      pitchShift: null
+    };
+  }
+  const audioProperties = {
+    gain: currentGainDb,
+    pitchShift: currentPitchShift
+  };
+  let newGainDb = currentGainDb;
+  let newPitchShift = currentPitchShift;
+  let gainModified = false;
+  let pitchShiftModified = false;
+  for (const assignment of audioAssignments) {
+    try {
+      const value = evaluateAudioExpression(assignment.expression, audioProperties, clipContext);
+      if (assignment.parameter === "gain") {
+        if (assignment.operator === "set") {
+          newGainDb = value;
+        } else {
+          newGainDb += value;
+        }
+        audioProperties.gain = newGainDb;
+        gainModified = true;
+      } else if (assignment.parameter === "pitchShift") {
+        if (assignment.operator === "set") {
+          newPitchShift = value;
+        } else {
+          newPitchShift += value;
+        }
+        audioProperties.pitchShift = newPitchShift;
+        pitchShiftModified = true;
+      }
+    } catch (error) {
+      warn(`Failed to evaluate ${assignment.parameter} transform: ${errorMessage(error)}`);
+    }
+  }
+  return {
+    gain: gainModified ? Math.max(MIN_GAIN_DB, Math.min(MAX_GAIN_DB, newGainDb)) : null,
+    pitchShift: pitchShiftModified ? Math.max(MIN_PITCH_SHIFT, Math.min(MAX_PITCH_SHIFT, newPitchShift)) : null
+  };
+}
+
+function evaluateAudioExpression(node, audioProperties, clipContext) {
+  if (typeof node === "number") {
+    return node;
+  }
+  if (node.type === "variable") {
+    return resolveAudioVariable(node, audioProperties, clipContext);
+  }
+  if (node.type === "add" || node.type === "subtract" || node.type === "multiply" || node.type === "divide" || node.type === "modulo") {
+    return evaluateBinaryOp(node, audioProperties, clipContext);
+  }
+  const funcNode = node;
+  const clipProps = buildClipNoteProperties(clipContext);
+  return evaluateFunction(funcNode.name, funcNode.args, funcNode.sync, 0, 4, 4, {
+    start: 0,
+    end: 4
+  }, clipProps, (expr, pos, num, denom, range, _props) => evaluateAudioExpressionWithContext(expr, audioProperties, clipContext));
+}
+
+function resolveAudioVariable(node, audioProperties, clipContext) {
+  if (node.namespace === "note") {
+    throw new Error(`Cannot use note.${node.name} variable in audio clip context`);
+  }
+  if (node.namespace === "audio") {
+    return audioProperties[node.name];
+  }
+  if (node.namespace === "clip") {
+    if (clipContext == null) {
+      throw new Error(`Variable "clip.${node.name}" is not available in this context`);
+    }
+    const clipProps = {
+      barDuration: clipContext.barDuration,
+      duration: clipContext.clipDuration,
+      index: clipContext.clipIndex,
+      count: clipContext.clipCount,
+      position: clipContext.arrangementStart
+    };
+    if (node.name === "position" && clipContext.arrangementStart == null) {
+      throw new Error(`clip.position is not available for session clips`);
+    }
+    const value = clipProps[node.name];
+    if (value != null) return value;
+  }
+  throw new Error(`Variable "${node.namespace}.${node.name}" is not available in this context`);
+}
+
+function evaluateBinaryOp(node, audioProperties, clipContext) {
+  const left = evaluateAudioExpression(node.left, audioProperties, clipContext);
+  const right = evaluateAudioExpression(node.right, audioProperties, clipContext);
+  switch (node.type) {
+   case "add":
+    return left + right;
+
+   case "subtract":
+    return left - right;
+
+   case "multiply":
+    return left * right;
+
+   case "divide":
+    return right === 0 ? 0 : left / right;
+
+   case "modulo":
+    return right === 0 ? 0 : (left % right + right) % right;
+  }
+}
+
+function evaluateAudioExpressionWithContext(node, audioProperties, clipContext, _position, _timeSigNumerator, _timeSigDenominator, _timeRange) {
+  return evaluateAudioExpression(node, audioProperties, clipContext);
+}
+
+function buildClipNoteProperties(clipContext) {
+  if (!clipContext) return {};
+  const props = {
+    "clip:index": clipContext.clipIndex,
+    "clip:count": clipContext.clipCount,
+    "clip:duration": clipContext.clipDuration,
+    "clip:barDuration": clipContext.barDuration
+  };
+  if (clipContext.arrangementStart != null) {
+    props["clip:position"] = clipContext.arrangementStart;
+  }
+  return props;
 }
 
 const LOOKUP_TABLE = [ {
@@ -12121,884 +12217,22 @@ function dbToLiveGain(dB) {
   return Math.max(0, Math.min(1, gain));
 }
 
-const DRUM_MAP = "drum-map";
-
-const CLIP_NOTES = "notes";
-
-const MIDI_EFFECTS = "midi-effects";
-
-const INSTRUMENTS = "instruments";
-
-const AUDIO_EFFECTS = "audio-effects";
-
-const SESSION_CLIPS = "session-clips";
-
-const ARRANGEMENT_CLIPS = "arrangement-clips";
-
-const TRACKS = "tracks";
-
-const SAMPLE = "sample";
-
-const TIMING = "timing";
-
-const WARP = "warp";
-
-const DEVICES = "devices";
-
-const AVAILABLE_ROUTINGS = "available-routings";
-
-const COLOR = "color";
-
-const CLIPS = "clips";
-
-const MIXER = "mixer";
-
-const LOCATORS = "locators";
-
-const ALL_INCLUDE_OPTIONS = {
-  song: [ "scenes", "routings", TRACKS, COLOR, MIXER, LOCATORS ],
-  track: [ SESSION_CLIPS, ARRANGEMENT_CLIPS, CLIP_NOTES, TIMING, SAMPLE, DEVICES, DRUM_MAP, "routings", AVAILABLE_ROUTINGS, MIXER, COLOR ],
-  scene: [ CLIPS, CLIP_NOTES, SAMPLE, COLOR, TIMING ],
-  clip: [ CLIP_NOTES, SAMPLE, COLOR, TIMING, WARP ]
-};
-
-function parseIncludeArray(includeArray, defaults = {}) {
-  if (includeArray === void 0) {
-    return {
-      includeDrumMap: Boolean(defaults.includeDrumMap),
-      includeClipNotes: Boolean(defaults.includeClipNotes),
-      includeScenes: Boolean(defaults.includeScenes),
-      includeMidiEffects: Boolean(defaults.includeMidiEffects),
-      includeInstruments: Boolean(defaults.includeInstruments),
-      includeAudioEffects: Boolean(defaults.includeAudioEffects),
-      includeDevices: Boolean(defaults.includeDevices),
-      includeRoutings: Boolean(defaults.includeRoutings),
-      includeAvailableRoutings: Boolean(defaults.includeAvailableRoutings),
-      includeSessionClips: Boolean(defaults.includeSessionClips),
-      includeArrangementClips: Boolean(defaults.includeArrangementClips),
-      includeClips: Boolean(defaults.includeClips),
-      includeTracks: Boolean(defaults.includeTracks),
-      includeSample: Boolean(defaults.includeSample),
-      includeColor: Boolean(defaults.includeColor),
-      includeTiming: Boolean(defaults.includeTiming),
-      includeWarp: Boolean(defaults.includeWarp),
-      includeMixer: Boolean(defaults.includeMixer),
-      includeLocators: Boolean(defaults.includeLocators)
-    };
-  }
-  const expandedIncludes = expandWildcardIncludes(includeArray, defaults);
-  const includeSet = new Set(expandedIncludes);
-  const hasScenes = includeSet.has("scenes");
-  if (includeArray.length === 0) {
-    return {
-      includeDrumMap: false,
-      includeClipNotes: false,
-      includeScenes: false,
-      includeMidiEffects: false,
-      includeInstruments: false,
-      includeAudioEffects: false,
-      includeDevices: false,
-      includeRoutings: false,
-      includeAvailableRoutings: false,
-      includeSessionClips: false,
-      includeArrangementClips: false,
-      includeClips: false,
-      includeTracks: false,
-      includeSample: false,
-      includeColor: false,
-      includeTiming: false,
-      includeWarp: false,
-      includeMixer: false,
-      includeLocators: false
-    };
-  }
-  return {
-    includeDrumMap: includeSet.has(DRUM_MAP),
-    includeClipNotes: includeSet.has(CLIP_NOTES),
-    includeScenes: hasScenes,
-    includeMidiEffects: includeSet.has(MIDI_EFFECTS),
-    includeInstruments: includeSet.has(INSTRUMENTS),
-    includeAudioEffects: includeSet.has(AUDIO_EFFECTS),
-    includeDevices: includeSet.has(DEVICES),
-    includeRoutings: includeSet.has("routings"),
-    includeAvailableRoutings: includeSet.has(AVAILABLE_ROUTINGS),
-    includeSessionClips: includeSet.has(SESSION_CLIPS),
-    includeArrangementClips: includeSet.has(ARRANGEMENT_CLIPS),
-    includeClips: includeSet.has(CLIPS),
-    includeTracks: includeSet.has(TRACKS),
-    includeSample: includeSet.has(SAMPLE),
-    includeColor: includeSet.has(COLOR),
-    includeTiming: includeSet.has(TIMING),
-    includeWarp: includeSet.has(WARP),
-    includeMixer: includeSet.has(MIXER),
-    includeLocators: includeSet.has(LOCATORS)
-  };
-}
-
-const READ_SONG_DEFAULTS = {
-  includeScenes: false,
-  includeRoutings: false,
-  includeTracks: false,
-  includeColor: false,
-  includeMixer: false,
-  includeLocators: false
-};
-
-const READ_TRACK_DEFAULTS = {
-  includeDrumMap: false,
-  includeClipNotes: false,
-  includeDevices: false,
-  includeMidiEffects: false,
-  includeInstruments: false,
-  includeAudioEffects: false,
-  includeRoutings: false,
-  includeAvailableRoutings: false,
-  includeSessionClips: false,
-  includeArrangementClips: false,
-  includeSample: false,
-  includeColor: false,
-  includeTiming: false,
-  includeWarp: false,
-  includeMixer: false
-};
-
-const READ_SCENE_DEFAULTS = {
-  includeClips: false,
-  includeClipNotes: false,
-  includeSample: false,
-  includeColor: false,
-  includeTiming: false
-};
-
-const READ_CLIP_DEFAULTS = {
-  includeClipNotes: false,
-  includeSample: false,
-  includeColor: false,
-  includeTiming: false,
-  includeWarp: false
-};
-
-function expandWildcardIncludes(includeArray, defaults) {
-  if (!includeArray.includes("*")) {
-    return includeArray;
-  }
-  let toolType;
-  if (defaults.includeTracks !== void 0) {
-    toolType = "song";
-  } else if (defaults.includeSessionClips !== void 0) {
-    toolType = "track";
-  } else if (defaults.includeClips !== void 0) {
-    toolType = "scene";
-  } else if (defaults.includeClipNotes !== void 0) {
-    toolType = "clip";
-  } else {
-    toolType = "song";
-  }
-  const allOptions = ALL_INCLUDE_OPTIONS[toolType] ?? [];
-  const expandedSet = new Set(includeArray.filter(option => option !== "*"));
-  for (const option of allOptions) expandedSet.add(option);
-  return Array.from(expandedSet);
-}
-
-function resolveClip(clipId, trackIndex, sceneIndex) {
-  if (clipId != null) {
-    return {
-      found: true,
-      clip: validateIdType(clipId, "clip", "readClip")
-    };
-  }
-  const track = LiveAPI.from(livePath.track(trackIndex));
-  if (!track.exists()) {
-    throw new Error(`trackIndex ${trackIndex} does not exist`);
-  }
-  const scene = LiveAPI.from(livePath.scene(sceneIndex));
-  if (!scene.exists()) {
-    throw new Error(`sceneIndex ${sceneIndex} does not exist`);
-  }
-  const clip = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex).clip());
-  if (!clip.exists()) {
-    return {
-      found: false,
-      emptySlotResponse: {
-        id: null,
-        type: null,
-        name: null,
-        slot: formatSlot(trackIndex, sceneIndex)
-      }
-    };
-  }
-  return {
-    found: true,
-    clip: clip
-  };
-}
-
-const WARP_MODE_MAPPING = {
-  [LIVE_API_WARP_MODE_BEATS]: WARP_MODE.BEATS,
-  [LIVE_API_WARP_MODE_TONES]: WARP_MODE.TONES,
-  [LIVE_API_WARP_MODE_TEXTURE]: WARP_MODE.TEXTURE,
-  [LIVE_API_WARP_MODE_REPITCH]: WARP_MODE.REPITCH,
-  [LIVE_API_WARP_MODE_COMPLEX]: WARP_MODE.COMPLEX,
-  [LIVE_API_WARP_MODE_REX]: WARP_MODE.REX,
-  [LIVE_API_WARP_MODE_PRO]: WARP_MODE.PRO
-};
-
-function isDrumRackTrack(trackIndex) {
-  const track = LiveAPI.from(livePath.track(trackIndex));
-  const devices = track.getChildren("devices");
-  for (const device of devices) {
-    if (device.getProperty("type") === LIVE_API_DEVICE_TYPE_INSTRUMENT) {
-      return device.getProperty("can_have_drum_pads") > 0;
-    }
-  }
-  return false;
-}
-
-function readClip(args = {}, _context = {}) {
-  const {clipId: clipId, trackIndex: trackIndex, sceneIndex: sceneIndex} = resolveClipLocation(args);
-  const {includeSample: includeSample, includeClipNotes: includeClipNotes, includeColor: includeColor, includeTiming: includeTiming, includeWarp: includeWarp} = parseIncludeArray(args.include, READ_CLIP_DEFAULTS);
-  if (clipId === null && (trackIndex === null || sceneIndex === null)) {
-    throw new Error("Either clipId or slot must be provided");
-  }
-  const resolved = resolveClip(clipId, trackIndex, sceneIndex);
-  if (!resolved.found) {
-    if (!args.suppressEmptyWarning) {
-      warn(`no clip at trackIndex ${trackIndex}, sceneIndex ${sceneIndex}`);
-    }
-    return resolved.emptySlotResponse;
-  }
-  const clip = resolved.clip;
-  const isArrangementClip = clip.getProperty("is_arrangement_clip") > 0;
-  const isMidiClip = clip.getProperty("is_midi_clip") > 0;
-  const clipName = clip.getProperty("name");
-  const result = {
-    id: clip.id,
-    type: isMidiClip ? "midi" : "audio",
-    ...clipName && {
-      name: clipName
-    },
-    view: isArrangementClip ? "arrangement" : "session",
-    ...includeColor && {
-      color: clip.getColor()
-    }
-  };
-  addBooleanStateProperties(result, clip);
-  addClipLocationProperties(result, clip, isArrangementClip, includeTiming);
-  if (includeTiming) {
-    addTimingProperties(result, clip);
-  }
-  if (result.type === "midi") {
-    processMidiClip(result, clip, includeClipNotes);
-  }
-  if (result.type === "audio" && (includeSample || includeWarp)) {
-    processAudioClip(result, clip, includeSample, includeWarp);
-  }
-  return result;
-}
-
-function addBooleanStateProperties(result, clip) {
-  if (clip.getProperty("is_playing") > 0) {
-    result.playing = true;
-  }
-  if (clip.getProperty("is_triggered") > 0) {
-    result.triggered = true;
-  }
-  if (clip.getProperty("is_recording") > 0) {
-    result.recording = true;
-  }
-  if (clip.getProperty("is_overdubbing") > 0) {
-    result.overdubbing = true;
-  }
-  if (clip.getProperty("muted") > 0) {
-    result.muted = true;
-  }
-}
-
-function addTimingProperties(result, clip) {
-  const timeSigNumerator = clip.getProperty("signature_numerator");
-  const timeSigDenominator = clip.getProperty("signature_denominator");
-  const isLooping = clip.getProperty("looping") > 0;
-  const startMarkerBeats = clip.getProperty("start_marker");
-  const loopStartBeats = clip.getProperty("loop_start");
-  const loopEndBeats = clip.getProperty("loop_end");
-  const endMarkerBeats = clip.getProperty("end_marker");
-  const startBeats = isLooping ? loopStartBeats : startMarkerBeats;
-  const endBeats = isLooping ? loopEndBeats : endMarkerBeats;
-  result.timeSignature = clip.timeSignature;
-  result.looping = isLooping;
-  result.start = abletonBeatsToBarBeat(startBeats, timeSigNumerator, timeSigDenominator);
-  result.end = abletonBeatsToBarBeat(endBeats, timeSigNumerator, timeSigDenominator);
-  result.length = abletonBeatsToBarBeatDuration(endBeats - startBeats, timeSigNumerator, timeSigDenominator);
-  if (Math.abs(startMarkerBeats - startBeats) > .001) {
-    result.firstStart = abletonBeatsToBarBeat(startMarkerBeats, timeSigNumerator, timeSigDenominator);
-  }
-}
-
-function processMidiClip(result, clip, includeClipNotes) {
-  if (!includeClipNotes) return;
-  const timeSigNumerator = clip.getProperty("signature_numerator");
-  const timeSigDenominator = clip.getProperty("signature_denominator");
-  const lengthBeats = clip.getProperty("length");
-  const notesDictionary = clip.call("get_notes_extended", 0, 128, 0, lengthBeats);
-  const notes = JSON.parse(notesDictionary).notes;
-  const drumMode = clip.trackIndex != null && isDrumRackTrack(clip.trackIndex);
-  const formatted = formatNotation(notes, {
-    timeSigNumerator: timeSigNumerator,
-    timeSigDenominator: timeSigDenominator,
-    drumMode: drumMode
-  });
-  if (formatted) result.notes = formatted;
-}
-
-function processAudioClip(result, clip, includeSample, includeWarp) {
-  if (includeSample) {
-    const gainDb = liveGainToDb(clip.getProperty("gain"));
-    if (gainDb !== 0) {
-      result.gainDb = gainDb;
-    }
-    const filePath = clip.getProperty("file_path");
-    if (filePath) {
-      result.sampleFile = filePath;
-    }
-    const pitchCoarse = clip.getProperty("pitch_coarse");
-    const pitchFine = clip.getProperty("pitch_fine");
-    const pitchShift = pitchCoarse + pitchFine / 100;
-    if (pitchShift !== 0) {
-      result.pitchShift = pitchShift;
-    }
-  }
-  if (includeWarp) {
-    result.sampleLength = clip.getProperty("sample_length");
-    result.sampleRate = clip.getProperty("sample_rate");
-    result.warping = clip.getProperty("warping") > 0;
-    const warpModeValue = clip.getProperty("warp_mode");
-    result.warpMode = WARP_MODE_MAPPING[warpModeValue] ?? "unknown";
-  }
-}
-
-function addClipLocationProperties(result, clip, isArrangementClip, includeTiming) {
-  if (isArrangementClip) {
-    result.trackIndex = clip.trackIndex;
-    const startTimeBeats = clip.getProperty("start_time");
-    const liveSet = LiveAPI.from("live_set");
-    const songTimeSigNumerator = liveSet.getProperty("signature_numerator");
-    const songTimeSigDenominator = liveSet.getProperty("signature_denominator");
-    result.arrangementStart = abletonBeatsToBarBeat(startTimeBeats, songTimeSigNumerator, songTimeSigDenominator);
-    if (includeTiming) {
-      const endTimeBeats = clip.getProperty("end_time");
-      result.arrangementLength = abletonBeatsToBarBeatDuration(endTimeBeats - startTimeBeats, songTimeSigNumerator, songTimeSigDenominator);
-    }
-  } else {
-    result.slot = formatSlot(clip.trackIndex, clip.sceneIndex);
-  }
-}
-
-function resolveClipLocation(args) {
-  const clipId = args.clipId ?? null;
-  let trackIndex = args.trackIndex ?? null;
-  let sceneIndex = args.sceneIndex ?? null;
-  if (args.slot != null) {
-    const parsed = parseSlot(args.slot);
-    trackIndex = parsed.trackIndex;
-    sceneIndex = parsed.sceneIndex;
-  }
-  return {
-    clipId: clipId,
-    trackIndex: trackIndex,
-    sceneIndex: sceneIndex
-  };
-}
-
-function createAudioClipInSession(track, targetLength, audioFilePath) {
-  const liveSet = LiveAPI.from(livePath.liveSet);
-  let sceneIds = liveSet.getChildIds("scenes");
-  const lastSceneId = assertDefined(sceneIds.at(-1), "last scene ID");
-  const lastScene = LiveAPI.from(lastSceneId);
-  const isEmpty = lastScene.getProperty("is_empty") === 1;
-  let workingSceneId = lastSceneId;
-  if (!isEmpty) {
-    const newSceneResult = liveSet.call("create_scene", sceneIds.length);
-    workingSceneId = Array.isArray(newSceneResult) ? newSceneResult.join(" ") : newSceneResult;
-    sceneIds = liveSet.getChildIds("scenes");
-  }
-  const trackIndex = track.trackIndex;
-  const sceneIndex = sceneIds.indexOf(workingSceneId);
-  const slot = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex));
-  slot.call("create_audio_clip", audioFilePath);
-  const clip = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex).clip());
-  clip.set("warping", 1);
-  clip.set("looping", 1);
-  clip.set("loop_end", targetLength);
-  return {
-    clip: clip,
-    slot: slot
-  };
-}
-
-function createAndDeleteTempClip(track, position, length, isMidiClip, context) {
-  if (isMidiClip) {
-    const tempResult = track.call("create_midi_clip", position, length);
-    const tempClip = LiveAPI.from(tempResult);
-    track.call("delete_clip", toLiveApiId(tempClip.id));
-  } else {
-    const {clip: sessionClip, slot: slot} = createAudioClipInSession(track, length, context.silenceWavPath);
-    const tempResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(sessionClip.id), position);
-    const tempClip = LiveAPI.from(tempResult);
-    slot.call("delete_clip");
-    track.call("delete_clip", toLiveApiId(tempClip.id));
-  }
-}
-
-function clearClipAtDuplicateTarget(track, sourceClipId, targetPosition, isMidiClip, context) {
-  const sourceClip = LiveAPI.from(toLiveApiId(sourceClipId));
-  if (sourceClip.getProperty("is_arrangement_clip") !== 1) return;
-  const sourceStart = sourceClip.getProperty("start_time");
-  const sourceEnd = sourceClip.getProperty("end_time");
-  const targetEnd = targetPosition + (sourceEnd - sourceStart);
-  const clipIds = track.getChildIds("arrangement_clips");
-  for (const clipId of clipIds) {
-    const clip = LiveAPI.from(clipId);
-    const clipStart = clip.getProperty("start_time");
-    const clipEnd = clip.getProperty("end_time");
-    if (clipStart < targetEnd && clipEnd > targetPosition) {
-      clearOverlappingClip(track, clip, targetPosition, targetEnd, clipIds, isMidiClip, context);
-    }
-  }
-}
-
-function moveClipFromHolding(holdingClipId, track, targetPosition, isMidiClip, context) {
-  clearClipAtDuplicateTarget(track, holdingClipId, targetPosition, isMidiClip, context);
-  const finalResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(holdingClipId), targetPosition);
-  const movedClip = LiveAPI.from(finalResult);
-  track.call("delete_clip", toLiveApiId(holdingClipId));
-  return movedClip;
-}
-
-function clearOverlappingClip(track, overlappingClip, targetPosition, targetEnd, allClipIds, isMidiClip, context) {
-  const clipStart = overlappingClip.getProperty("start_time");
-  const clipEnd = overlappingClip.getProperty("end_time");
-  const clipId = overlappingClip.id;
-  const hasBefore = clipStart < targetPosition;
-  const hasAfter = clipEnd > targetEnd;
-  if (!hasAfter) {
-    if (hasBefore) {
-      createAndDeleteTempClip(track, targetPosition, clipEnd - targetPosition, isMidiClip, context);
-    } else {
-      track.call("delete_clip", toLiveApiId(clipId));
-    }
-    return;
-  }
-  let maxEnd = 0;
-  for (const id of allClipIds) {
-    const end = LiveAPI.from(id).getProperty("end_time");
-    if (end > maxEnd) maxEnd = end;
-  }
-  const holdingStart = maxEnd + 100;
-  const holdingResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(clipId), holdingStart);
-  const holdingClipId = LiveAPI.from(holdingResult).id;
-  if (hasBefore) {
-    createAndDeleteTempClip(track, targetPosition, clipEnd - targetPosition, isMidiClip, context);
-  } else {
-    track.call("delete_clip", toLiveApiId(clipId));
-  }
-  const leftTrimLen = targetEnd - clipStart;
-  createAndDeleteTempClip(track, holdingStart, leftTrimLen, isMidiClip, context);
-  moveClipFromHolding(holdingClipId, track, targetEnd, isMidiClip, context);
-}
-
-const EPSILON$1 = .001;
-
-function parseSplitPoints(splitStr, timeSigNumerator, timeSigDenominator) {
-  const points = [];
-  const parts = splitStr.split(",").map(s => s.trim());
-  for (const part of parts) {
-    if (!part) continue;
-    try {
-      const beats = barBeatToAbletonBeats(part, timeSigNumerator, timeSigDenominator);
-      points.push(beats);
-    } catch {
-      return null;
-    }
-  }
-  return [ ...new Set(points) ].sort((a, b) => a - b);
-}
-
-function prepareSplitParams(split, arrangementClips, warnings) {
-  if (split == null) {
-    return null;
-  }
-  if (arrangementClips.length === 0) {
-    if (!warnings.has("split-no-arrangement")) {
-      warn("split requires arrangement clips");
-      warnings.add("split-no-arrangement");
-    }
-    return null;
-  }
-  const liveSet = LiveAPI.from(livePath.liveSet);
-  const songTimeSigNumerator = liveSet.getProperty("signature_numerator");
-  const songTimeSigDenominator = liveSet.getProperty("signature_denominator");
-  const splitPoints = parseSplitPoints(split, songTimeSigNumerator, songTimeSigDenominator);
-  if (splitPoints == null || splitPoints.length === 0) {
-    if (!warnings.has("split-invalid-format")) {
-      warn(`Invalid split format: "${split}". Expected comma-separated bar|beat positions like "2|1, 3|1"`);
-      warnings.add("split-invalid-format");
-    }
-    return null;
-  }
-  if (splitPoints.length > MAX_SPLIT_POINTS) {
-    if (!warnings.has("split-max-exceeded")) {
-      warn(`Too many split points (${splitPoints.length}), max is ${MAX_SPLIT_POINTS}`);
-      warnings.add("split-max-exceeded");
-    }
-    return null;
-  }
-  const validPoints = splitPoints.filter(p => p > 0);
-  if (validPoints.length === 0) {
-    if (!warnings.has("split-no-valid-points")) {
-      warn("No valid split points (all at or before clip start)");
-      warnings.add("split-no-valid-points");
-    }
-    return null;
-  }
-  return validPoints;
-}
-
-function splitSingleClip(args) {
-  const {clip: clip, splitPoints: splitPoints, holdingAreaStart: holdingAreaStart, context: context} = args;
-  const {splitClipRanges: splitClipRanges} = args;
-  const isMidiClip = clip.getProperty("is_midi_clip") === 1;
-  const clipArrangementStart = clip.getProperty("start_time");
-  const clipArrangementEnd = clip.getProperty("end_time");
-  const clipLength = clipArrangementEnd - clipArrangementStart;
-  const trackIndex = clip.trackIndex;
-  if (trackIndex == null) {
-    warn(`Could not determine trackIndex for clip ${clip.id}, skipping`);
-    return false;
-  }
-  const validPoints = splitPoints.filter(p => p > 0 && p < clipLength);
-  if (validPoints.length === 0) {
-    return false;
-  }
-  const track = LiveAPI.from(livePath.track(trackIndex));
-  const originalClipId = clip.id;
-  splitClipRanges.set(originalClipId, {
-    trackIndex: trackIndex,
-    startTime: clipArrangementStart,
-    endTime: clipArrangementEnd
-  });
-  const boundaries = [ 0, ...validPoints, clipLength ];
-  const segmentCount = boundaries.length - 1;
-  const tilingCtx = context;
-  const sourcePos = holdingAreaStart;
-  const result = track.call("duplicate_clip_to_arrangement", toLiveApiId(originalClipId), sourcePos);
-  const sourceClip = LiveAPI.from(result);
-  if (!sourceClip.exists()) {
-    warn(`Failed to duplicate clip ${originalClipId} to holding area, aborting split`);
-    return false;
-  }
-  const sourceClipId = sourceClip.id;
-  const seg0End = boundaries[1];
-  const rightTrimLen = clipLength - seg0End;
-  if (rightTrimLen > EPSILON$1) {
-    createAndDeleteTempClip(track, clipArrangementStart + seg0End, rightTrimLen, isMidiClip, tilingCtx);
-  }
-  extractMiddleSegments({
-    track: track,
-    sourceClipId: sourceClipId,
-    boundaries: boundaries,
-    segmentCount: segmentCount,
-    clipArrangementStart: clipArrangementStart,
-    clipLength: clipLength,
-    holdingAreaStart: holdingAreaStart,
-    isMidiClip: isMidiClip,
-    context: tilingCtx
-  });
-  const lastSegStart = boundaries[segmentCount - 1];
-  const lastSegFinalPos = clipArrangementStart + lastSegStart;
-  if (lastSegStart > EPSILON$1) {
-    createAndDeleteTempClip(track, sourcePos, lastSegStart, isMidiClip, tilingCtx);
-  }
-  moveClipFromHolding(sourceClipId, track, lastSegFinalPos, isMidiClip, tilingCtx);
-  return true;
-}
-
-function extractMiddleSegments(args) {
-  const {track: track, sourceClipId: sourceClipId, boundaries: boundaries, segmentCount: segmentCount, clipArrangementStart: clipArrangementStart, clipLength: clipLength, holdingAreaStart: holdingAreaStart, isMidiClip: isMidiClip, context: context} = args;
-  for (let i = 1; i < segmentCount - 1; i++) {
-    const segStart = boundaries[i];
-    const segEnd = boundaries[i + 1];
-    const workPos = holdingAreaStart + i * (clipLength + 4);
-    const workResult = track.call("duplicate_clip_to_arrangement", toLiveApiId(sourceClipId), workPos);
-    const workClipId = LiveAPI.from(workResult).id;
-    if (workClipId === "0") {
-      warn(`Failed to duplicate source for middle segment ${i}, skipping`);
-      continue;
-    }
-    if (segStart > EPSILON$1) {
-      createAndDeleteTempClip(track, workPos, segStart, isMidiClip, context);
-    }
-    const rightTrim = clipLength - segEnd;
-    if (rightTrim > EPSILON$1) {
-      createAndDeleteTempClip(track, workPos + segEnd, rightTrim, isMidiClip, context);
-    }
-    moveClipFromHolding(workClipId, track, clipArrangementStart + segStart, isMidiClip, context);
-  }
-}
-
-function rescanSplitClips(splitClipRanges, clips) {
-  for (const [oldClipId, range] of splitClipRanges) {
-    const track = LiveAPI.from(livePath.track(range.trackIndex));
-    const trackClipIds = track.getChildIds("arrangement_clips");
-    const freshClips = trackClipIds.map(id => LiveAPI.from(id)).filter(c => {
-      const clipStart = c.getProperty("start_time");
-      return clipStart >= range.startTime - EPSILON$1 && clipStart < range.endTime - EPSILON$1;
-    });
-    const staleIndex = clips.findIndex(c => c.id === oldClipId);
-    if (staleIndex !== -1) {
-      clips.splice(staleIndex, 1, ...freshClips);
-    }
-  }
-}
-
-function performSplitting(arrangementClips, splitPoints, clips, _context) {
-  const holdingAreaStart = _context.holdingAreaStartBeats;
-  const splitClipRanges = new Map;
-  for (const clip of arrangementClips) {
-    splitSingleClip({
-      clip: clip,
-      splitPoints: splitPoints,
-      holdingAreaStart: holdingAreaStart,
-      context: _context,
-      splitClipRanges: splitClipRanges
-    });
-  }
-  rescanSplitClips(splitClipRanges, clips);
-}
-
-function computeNonSurvivorClipIds(clips, arrangementStartBeats, arrangementLengthBeats) {
-  if (arrangementStartBeats == null || arrangementLengthBeats != null) {
-    return null;
-  }
-  const trackClips = new Map;
-  for (const clip of clips) {
-    if (clip.getProperty("is_arrangement_clip") <= 0) continue;
-    const trackIndex = clip.trackIndex;
-    if (trackIndex == null) continue;
-    const startTime = clip.getProperty("start_time");
-    const endTime = clip.getProperty("end_time");
-    const group = trackClips.get(trackIndex) ?? [];
-    group.push({
-      clipId: clip.id,
-      clipLength: endTime - startTime
-    });
-    trackClips.set(trackIndex, group);
-  }
-  let hasMultiClipTrack = false;
-  for (const group of trackClips.values()) {
-    if (group.length > 1) {
-      hasMultiClipTrack = true;
-      break;
-    }
-  }
-  if (!hasMultiClipTrack) return null;
-  const nonSurvivorIds = new Set;
-  for (const group of trackClips.values()) {
-    if (group.length <= 1) continue;
-    let maxLengthAfter = 0;
-    for (let i = group.length - 1; i >= 0; i--) {
-      const info = group[i];
-      if (info.clipLength > maxLengthAfter) {
-        maxLengthAfter = info.clipLength;
-      } else {
-        nonSurvivorIds.add(info.clipId);
-      }
-    }
-  }
-  return nonSurvivorIds.size > 0 ? nonSurvivorIds : null;
-}
-
-function verifyColorQuantization(object, requestedColor) {
-  try {
-    const actualColor = object.getColor();
-    if (actualColor?.toUpperCase() !== requestedColor.toUpperCase()) {
-      const objectType = object.type;
-      warn(`Requested ${objectType.toLowerCase()} color ${requestedColor} was mapped to nearest palette color ${actualColor}. Live uses a fixed color palette.`);
-    }
-  } catch (error) {
-    warn(`Could not verify color quantization: ${errorMessage(error)}`);
-  }
-}
-
-const MIN_GAIN_DB = -70;
-
-const MAX_GAIN_DB = 24;
-
-const MIN_PITCH_SHIFT = -48;
-
-const MAX_PITCH_SHIFT = 48;
-
-const MIDI_PARAMETERS = new Set([ "velocity", "timing", "duration", "probability", "deviation", "pitch" ]);
-
-function applyAudioTransform(currentGainDb, currentPitchShift, transformString, clipContext) {
-  if (!transformString) {
-    return {
-      gain: null,
-      pitchShift: null
-    };
-  }
-  let ast;
-  try {
-    ast = peg$parse(transformString);
-  } catch (error) {
-    warn(`Failed to parse transform string: ${errorMessage(error)}`);
-    return {
-      gain: null,
-      pitchShift: null
-    };
-  }
-  const hasMidiParams = ast.some(a => MIDI_PARAMETERS.has(a.parameter));
-  if (hasMidiParams) {
-    warn("MIDI parameters (velocity, timing, duration, probability, deviation, pitch) ignored for audio clips");
-  }
-  const audioAssignments = ast.filter(a => a.parameter === "gain" || a.parameter === "pitchShift");
-  if (audioAssignments.length === 0) {
-    return {
-      gain: null,
-      pitchShift: null
-    };
-  }
-  const audioProperties = {
-    gain: currentGainDb,
-    pitchShift: currentPitchShift
-  };
-  let newGainDb = currentGainDb;
-  let newPitchShift = currentPitchShift;
-  let gainModified = false;
-  let pitchShiftModified = false;
-  for (const assignment of audioAssignments) {
-    try {
-      const value = evaluateAudioExpression(assignment.expression, audioProperties, clipContext);
-      if (assignment.parameter === "gain") {
-        if (assignment.operator === "set") {
-          newGainDb = value;
-        } else {
-          newGainDb += value;
-        }
-        audioProperties.gain = newGainDb;
-        gainModified = true;
-      } else if (assignment.parameter === "pitchShift") {
-        if (assignment.operator === "set") {
-          newPitchShift = value;
-        } else {
-          newPitchShift += value;
-        }
-        audioProperties.pitchShift = newPitchShift;
-        pitchShiftModified = true;
-      }
-    } catch (error) {
-      warn(`Failed to evaluate ${assignment.parameter} transform: ${errorMessage(error)}`);
-    }
-  }
-  return {
-    gain: gainModified ? Math.max(MIN_GAIN_DB, Math.min(MAX_GAIN_DB, newGainDb)) : null,
-    pitchShift: pitchShiftModified ? Math.max(MIN_PITCH_SHIFT, Math.min(MAX_PITCH_SHIFT, newPitchShift)) : null
-  };
-}
-
-function evaluateAudioExpression(node, audioProperties, clipContext) {
-  if (typeof node === "number") {
-    return node;
-  }
-  if (node.type === "variable") {
-    return resolveAudioVariable(node, audioProperties, clipContext);
-  }
-  if (node.type === "add" || node.type === "subtract" || node.type === "multiply" || node.type === "divide" || node.type === "modulo") {
-    return evaluateBinaryOp(node, audioProperties, clipContext);
-  }
-  const funcNode = node;
-  const clipProps = buildClipNoteProperties(clipContext);
-  return evaluateFunction(funcNode.name, funcNode.args, funcNode.sync, 0, 4, 4, {
-    start: 0,
-    end: 4
-  }, clipProps, (expr, pos, num, denom, range, _props) => evaluateAudioExpressionWithContext(expr, audioProperties, clipContext));
-}
-
-function resolveAudioVariable(node, audioProperties, clipContext) {
-  if (node.namespace === "note") {
-    throw new Error(`Cannot use note.${node.name} variable in audio clip context`);
-  }
-  if (node.namespace === "audio") {
-    return audioProperties[node.name];
-  }
-  if (node.namespace === "clip") {
-    if (clipContext == null) {
-      throw new Error(`Variable "clip.${node.name}" is not available in this context`);
-    }
-    const clipProps = {
-      barDuration: clipContext.barDuration,
-      duration: clipContext.clipDuration,
-      index: clipContext.clipIndex,
-      count: clipContext.clipCount,
-      position: clipContext.arrangementStart
-    };
-    if (node.name === "position" && clipContext.arrangementStart == null) {
-      throw new Error(`clip.position is not available for session clips`);
-    }
-    const value = clipProps[node.name];
-    if (value != null) return value;
-  }
-  throw new Error(`Variable "${node.namespace}.${node.name}" is not available in this context`);
-}
-
-function evaluateBinaryOp(node, audioProperties, clipContext) {
-  const left = evaluateAudioExpression(node.left, audioProperties, clipContext);
-  const right = evaluateAudioExpression(node.right, audioProperties, clipContext);
-  switch (node.type) {
-   case "add":
-    return left + right;
-
-   case "subtract":
-    return left - right;
-
-   case "multiply":
-    return left * right;
-
-   case "divide":
-    return right === 0 ? 0 : left / right;
-
-   case "modulo":
-    return right === 0 ? 0 : (left % right + right) % right;
-  }
-}
-
-function evaluateAudioExpressionWithContext(node, audioProperties, clipContext, _position, _timeSigNumerator, _timeSigDenominator, _timeRange) {
-  return evaluateAudioExpression(node, audioProperties, clipContext);
-}
-
-function buildClipNoteProperties(clipContext) {
-  if (!clipContext) return {};
-  const props = {
-    "clip:index": clipContext.clipIndex,
-    "clip:count": clipContext.clipCount,
-    "clip:duration": clipContext.clipDuration,
-    "clip:barDuration": clipContext.barDuration
-  };
-  if (clipContext.arrangementStart != null) {
-    props["clip:position"] = clipContext.arrangementStart;
-  }
-  return props;
-}
-
-function setAudioParameters(clip, {gainDb: gainDb, pitchShift: pitchShift, warpMode: warpMode, warping: warping}) {
+function setAudioParameters(clip, {gainDb: gainDb, pitchShift: pitchShift, pitchFine: pitchFine, warpMode: warpMode, warping: warping, ramMode: ramMode}) {
   if (gainDb !== void 0) {
     const liveGain = dbToLiveGain(gainDb);
     clip.set("gain", liveGain);
   }
   if (pitchShift !== void 0) {
     const pitchCoarse = Math.floor(pitchShift);
-    const pitchFine = Math.round((pitchShift - pitchCoarse) * 100);
+    const pitchFineFromShift = Math.round((pitchShift - pitchCoarse) * 100);
     clip.set("pitch_coarse", pitchCoarse);
+    clip.set("pitch_fine", pitchFineFromShift);
+  }
+  if (pitchFine !== void 0) {
     clip.set("pitch_fine", pitchFine);
+  }
+  if (ramMode !== void 0) {
+    clip.set("clip_mode", ramMode ? 1 : 0);
   }
   if (warpMode !== void 0) {
     const warpModeValue = {
@@ -13084,6 +12318,390 @@ function handleWarpMarkerOperation(clip, warpOp, warpBeatTime, warpSampleTime, w
       break;
     }
   }
+}
+
+const DENOMINATORS = [ 2, 3, 4, 6, 8, 12, 16 ];
+
+const EPSILON$1 = 5e-4;
+
+function formatBeatPosition(value) {
+  if (value % 1 === 0) return value.toString();
+  return formatMixedNumber(value) ?? formatDecimal(value);
+}
+
+function formatUnsignedValue(value) {
+  if (value % 1 === 0) return value.toString();
+  if (value < 1) {
+    const fraction = findFraction(value);
+    if (fraction) {
+      const fractionStr = fraction.num === 1 ? `/${fraction.den}` : `${fraction.num}/${fraction.den}`;
+      return preferFractionOrDecimal(fractionStr, value);
+    }
+    return formatDecimal(value);
+  }
+  return formatMixedNumber(value) ?? formatDecimal(value);
+}
+
+function preferFractionOrDecimal(fractionStr, value) {
+  if (!decimalIsLossless(value)) {
+    return fractionStr;
+  }
+  const decimalStr = formatDecimal(value);
+  return decimalStr.length < fractionStr.length ? decimalStr : fractionStr;
+}
+
+function decimalIsLossless(value) {
+  const scaled = value * 1e3;
+  return Math.abs(scaled - Math.round(scaled)) < .01;
+}
+
+function findFraction(value) {
+  for (const den of DENOMINATORS) {
+    for (let num = 1; num < den; num++) {
+      if (Math.abs(value - num / den) < EPSILON$1) {
+        return {
+          num: num,
+          den: den
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function formatMixedNumber(value) {
+  const intPart = Math.floor(value);
+  const fracPart = value - intPart;
+  const fraction = findFraction(fracPart);
+  if (!fraction) return null;
+  const mixedStr = `${intPart}+${fraction.num}/${fraction.den}`;
+  return preferFractionOrDecimal(mixedStr, value);
+}
+
+function formatDecimal(value) {
+  return value % 1 === 0 ? value.toString() : value.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function resolveFormatConfig(options) {
+  return {
+    beatsPerBar: parseBeatsPerBar(options),
+    timeSigDenominator: options.timeSigDenominator
+  };
+}
+
+function sortNotes(notes) {
+  return [ ...notes ].sort((a, b) => {
+    if (a.start_time !== b.start_time) {
+      return a.start_time - b.start_time;
+    }
+    return a.pitch - b.pitch;
+  });
+}
+
+function calculateBarBeat(startTime, beatsPerBar, timeSigDenominator) {
+  let adjustedTime = Math.round(startTime * 1e3) / 1e3;
+  if (timeSigDenominator != null) {
+    adjustedTime = adjustedTime * (timeSigDenominator / 4);
+  }
+  const bar = Math.floor(adjustedTime / beatsPerBar) + 1;
+  const beat = adjustedTime % beatsPerBar + 1;
+  return {
+    bar: bar,
+    beat: beat
+  };
+}
+
+function groupNotesByTime(sortedNotes, config) {
+  const {beatsPerBar: beatsPerBar, timeSigDenominator: timeSigDenominator} = config;
+  const timeGroups = [];
+  let currentBar = -1;
+  let currentBeat = -1;
+  for (const note of sortedNotes) {
+    const {bar: bar, beat: beat} = calculateBarBeat(note.start_time, beatsPerBar, timeSigDenominator);
+    if (bar !== currentBar || Math.abs(beat - currentBeat) > .001) {
+      timeGroups.push({
+        bar: bar,
+        beat: beat,
+        notes: []
+      });
+      currentBar = bar;
+      currentBeat = beat;
+    }
+    const lastGroup = timeGroups.at(-1);
+    lastGroup.notes.push(note);
+  }
+  return timeGroups;
+}
+
+function createInitialState() {
+  return {
+    velocity: DEFAULT_VELOCITY$1,
+    velocityDeviation: DEFAULT_VELOCITY_DEVIATION,
+    duration: DEFAULT_DURATION,
+    probability: DEFAULT_PROBABILITY
+  };
+}
+
+function allNotesShareState(notes) {
+  if (notes.length <= 1) return true;
+  const first = notes[0];
+  const firstVelocity = Math.round(first.velocity);
+  const firstDeviation = Math.round(first.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
+  const firstDuration = first.duration;
+  const firstProbability = first.probability ?? DEFAULT_PROBABILITY;
+  for (let i = 1; i < notes.length; i++) {
+    const note = notes[i];
+    if (Math.round(note.velocity) !== firstVelocity || Math.round(note.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) !== firstDeviation || Math.abs(note.duration - firstDuration) > .001 || Math.abs((note.probability ?? DEFAULT_PROBABILITY) - firstProbability) > .001) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function formatGroupNotes(group, state, timeSigDenominator) {
+  const elements = [];
+  if (allNotesShareState(group.notes)) {
+    const firstNote = group.notes[0];
+    emitStateChanges(firstNote, state, elements, timeSigDenominator);
+    for (const note of group.notes) {
+      elements.push(pitchName(note.pitch));
+    }
+  } else {
+    for (const note of group.notes) {
+      emitStateChanges(note, state, elements, timeSigDenominator);
+      elements.push(pitchName(note.pitch));
+    }
+  }
+  return elements;
+}
+
+function emitStateChanges(note, state, elements, timeSigDenominator) {
+  emitVelocityChange(note, state, elements);
+  emitDurationChange(note, state, elements, timeSigDenominator);
+  emitProbabilityChange(note, state, elements);
+}
+
+function emitVelocityChange(note, state, elements) {
+  const noteVelocity = Math.round(note.velocity);
+  const noteDeviation = Math.round(note.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
+  if (noteDeviation > 0) {
+    const velocityMin = Math.max(1, Math.min(127, noteVelocity));
+    const velocityMax = Math.min(127, velocityMin + noteDeviation);
+    const currentMin = Math.max(1, Math.min(127, state.velocity));
+    const currentMax = Math.min(127, currentMin + state.velocityDeviation);
+    if (velocityMin !== currentMin || velocityMax !== currentMax) {
+      if (velocityMax === velocityMin) {
+        elements.push(`v${velocityMin}`);
+        state.velocity = velocityMin;
+        state.velocityDeviation = 0;
+      } else {
+        elements.push(`v${velocityMin}-${velocityMax}`);
+        state.velocity = velocityMin;
+        state.velocityDeviation = velocityMax - velocityMin;
+      }
+    }
+  } else if (noteVelocity !== state.velocity || state.velocityDeviation > 0) {
+    elements.push(`v${noteVelocity}`);
+    state.velocity = noteVelocity;
+    state.velocityDeviation = 0;
+  }
+}
+
+function emitDurationChange(note, state, elements, timeSigDenominator) {
+  const notationDuration = timeSigDenominator != null ? note.duration * (timeSigDenominator / 4) : note.duration;
+  if (Math.abs(notationDuration - state.duration) > .001) {
+    elements.push(`t${formatUnsignedValue(notationDuration)}`);
+    state.duration = notationDuration;
+  }
+}
+
+function emitProbabilityChange(note, state, elements) {
+  const noteProbability = note.probability ?? DEFAULT_PROBABILITY;
+  if (Math.abs(noteProbability - state.probability) > .001) {
+    elements.push(`p${formatDecimal(noteProbability)}`);
+    state.probability = noteProbability;
+  }
+}
+
+function pitchName(pitch) {
+  const name = midiToNoteName(pitch);
+  if (name == null) {
+    throw new Error(`Invalid MIDI pitch: ${pitch}`);
+  }
+  return name;
+}
+
+function formatDrumNotation(sortedNotes, config) {
+  const pitchGroups = groupByPitch(sortedNotes);
+  const state = createInitialState();
+  const elements = [];
+  for (const {pitch: pitch, notes: notes} of pitchGroups) {
+    const positions = notes.map(n => calculateBarBeat(n.start_time, config.beatsPerBar, config.timeSigDenominator));
+    const runs = splitIntoStateRuns(notes, positions);
+    for (const run of runs) {
+      emitStateChanges(run.notes[0], state, elements, config.timeSigDenominator);
+      elements.push(pitchName(pitch));
+      elements.push(...formatPositions(run.positions, state.duration, config.beatsPerBar));
+    }
+  }
+  return elements.join(" ");
+}
+
+function groupByPitch(sortedNotes) {
+  const map = new Map;
+  for (const note of sortedNotes) {
+    const existing = map.get(note.pitch);
+    if (existing) {
+      existing.push(note);
+    } else {
+      map.set(note.pitch, [ note ]);
+    }
+  }
+  return [ ...map.entries() ].map(([pitch, notes]) => ({
+    pitch: pitch,
+    notes: notes
+  }));
+}
+
+function splitIntoStateRuns(notes, positions) {
+  const runs = [];
+  let runStart = 0;
+  for (let i = 1; i <= notes.length; i++) {
+    if (i === notes.length || !sameState(notes[runStart], notes[i])) {
+      runs.push({
+        notes: notes.slice(runStart, i),
+        positions: positions.slice(runStart, i)
+      });
+      runStart = i;
+    }
+  }
+  return runs;
+}
+
+function sameState(a, b) {
+  return Math.round(a.velocity) === Math.round(b.velocity) && Math.round(a.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) === Math.round(b.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) && Math.abs(a.duration - b.duration) <= .001 && Math.abs((a.probability ?? DEFAULT_PROBABILITY) - (b.probability ?? DEFAULT_PROBABILITY)) <= .001;
+}
+
+function formatPositions(positions, currentDuration, beatsPerBar) {
+  const repeat = detectRepeatPattern(positions, beatsPerBar);
+  if (repeat) {
+    return [ formatRepeat(repeat, currentDuration, positions[0]) ];
+  }
+  return formatBarBeatPositions(positions);
+}
+
+function detectRepeatPattern(positions, beatsPerBar) {
+  if (positions.length < 3) return null;
+  const absolutes = positions.map(p => (p.bar - 1) * beatsPerBar + (p.beat - 1));
+  const step = absolutes[1] - absolutes[0];
+  if (step <= 0) return null;
+  for (let i = 2; i < absolutes.length; i++) {
+    if (Math.abs(absolutes[i] - absolutes[i - 1] - step) > .002) {
+      return null;
+    }
+  }
+  const repeatStr = formatRepeatLength(positions[0], positions.length, step);
+  const listStr = formatBarBeatPositions(positions).join(" ");
+  if (repeatStr >= listStr.length) return null;
+  return {
+    count: positions.length,
+    step: step
+  };
+}
+
+function formatRepeatLength(start, count, step) {
+  const startStr = `${start.bar}|${formatBeatPosition(start.beat)}`;
+  const stepStr = formatUnsignedValue(step);
+  return startStr.length + 1 + count.toString().length + 1 + stepStr.length;
+}
+
+function formatRepeat(repeat, currentDuration, start) {
+  const startStr = `${start.bar}|${formatBeatPosition(start.beat)}`;
+  const stepSuffix = Math.abs(repeat.step - currentDuration) <= .001 ? "" : `@${formatUnsignedValue(repeat.step)}`;
+  return `${startStr}x${repeat.count}${stepSuffix}`;
+}
+
+function formatBarBeatPositions(positions) {
+  const result = [];
+  let currentBar = -1;
+  let currentBeats = [];
+  for (const pos of positions) {
+    if (pos.bar !== currentBar) {
+      if (currentBeats.length > 0) {
+        result.push(`${currentBar}|${currentBeats.join(",")}`);
+      }
+      currentBar = pos.bar;
+      currentBeats = [ formatBeatPosition(pos.beat) ];
+    } else {
+      currentBeats.push(formatBeatPosition(pos.beat));
+    }
+  }
+  if (currentBeats.length > 0) {
+    result.push(`${currentBar}|${currentBeats.join(",")}`);
+  }
+  return result;
+}
+
+function findMergeBatches(groups) {
+  const batches = [];
+  const merged = new Set;
+  for (let i = 0; i < groups.length; i++) {
+    if (merged.has(i)) continue;
+    const current = groups[i];
+    const batch = {
+      groups: [ current ]
+    };
+    merged.add(i);
+    for (let j = i + 1; j < groups.length; j++) {
+      if (merged.has(j)) continue;
+      const candidate = groups[j];
+      if (candidate.bar !== current.bar) break;
+      if (groupsMatch(current, candidate)) {
+        batch.groups.push(candidate);
+        merged.add(j);
+      }
+    }
+    batches.push(batch);
+  }
+  return batches;
+}
+
+function groupsMatch(a, b) {
+  if (a.notes.length !== b.notes.length) return false;
+  for (let i = 0; i < a.notes.length; i++) {
+    const noteA = a.notes[i];
+    const noteB = b.notes[i];
+    if (!notesMatch(noteA, noteB)) return false;
+  }
+  return true;
+}
+
+function notesMatch(a, b) {
+  return a.pitch === b.pitch && Math.round(a.velocity) === Math.round(b.velocity) && Math.abs(a.duration - b.duration) <= .001 && Math.abs((a.probability ?? DEFAULT_PROBABILITY) - (b.probability ?? DEFAULT_PROBABILITY)) <= .001 && Math.round(a.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION) === Math.round(b.velocity_deviation ?? DEFAULT_VELOCITY_DEVIATION);
+}
+
+function formatNotation(clipNotes, options = {}) {
+  if (!clipNotes || clipNotes.length === 0) {
+    return "";
+  }
+  const config = resolveFormatConfig(options);
+  const sortedNotes = sortNotes(clipNotes);
+  if (options.drumMode) {
+    return formatDrumNotation(sortedNotes, config);
+  }
+  const timeGroups = groupNotesByTime(sortedNotes, config);
+  const batches = findMergeBatches(timeGroups);
+  const state = createInitialState();
+  const elements = [];
+  for (const batch of batches) {
+    const firstGroup = batch.groups[0];
+    const noteElements = formatGroupNotes(firstGroup, state, config.timeSigDenominator);
+    elements.push(...noteElements);
+    const bar = firstGroup.bar;
+    const beats = batch.groups.map(g => formatBeatPosition(g.beat)).join(",");
+    elements.push(`${bar}|${beats}`);
+  }
+  return elements.join(" ");
 }
 
 function toNoteEvent(rawNote) {
@@ -13194,14 +12812,16 @@ function addLoopProperties(propsToSet, setEndFirst, startBeats, endBeats, startM
   }
 }
 
-function buildClipPropertiesToSet({name: name, color: color, timeSignature: timeSignature, timeSigNumerator: timeSigNumerator, timeSigDenominator: timeSigDenominator, startMarkerBeats: startMarkerBeats, looping: looping, isLooping: isLooping, startBeats: startBeats, endBeats: endBeats, currentLoopEnd: currentLoopEnd}) {
+function buildClipPropertiesToSet({name: name, color: color, timeSignature: timeSignature, timeSigNumerator: timeSigNumerator, timeSigDenominator: timeSigDenominator, startMarkerBeats: startMarkerBeats, looping: looping, isLooping: isLooping, startBeats: startBeats, endBeats: endBeats, currentLoopEnd: currentLoopEnd, legato: legato, muted: muted}) {
   const setEndFirst = isLooping && startBeats != null && endBeats != null && currentLoopEnd != null ? startBeats >= currentLoopEnd : false;
   const propsToSet = {
     name: name,
     color: color,
     signature_numerator: timeSignature != null ? timeSigNumerator : null,
     signature_denominator: timeSignature != null ? timeSigDenominator : null,
-    looping: looping
+    looping: looping,
+    legato: legato,
+    muted: muted
   };
   if (isLooping || looping == null) {
     addLoopProperties(propsToSet, setEndFirst, startBeats, endBeats, startMarkerBeats, looping);
@@ -13791,51 +13411,43 @@ function getTimeSignature(timeSignature, clip) {
 }
 
 function processSingleClipUpdate(params) {
-  const {clip: clip, clipIndex: clipIndex, clipCount: clipCount, notationString: notationString, transformString: transformString, noteUpdateMode: noteUpdateMode, name: name, color: color, timeSignature: timeSignature, start: start, length: length, firstStart: firstStart, looping: looping, gainDb: gainDb, pitchShift: pitchShift, warpMode: warpMode, warping: warping, warpOp: warpOp, warpBeatTime: warpBeatTime, warpSampleTime: warpSampleTime, warpDistance: warpDistance, quantize: quantize, quantizeGrid: quantizeGrid, quantizePitch: quantizePitch, context: context, updatedClips: updatedClips, tracksWithMovedClips: tracksWithMovedClips} = params;
+  const {clip: clip, clipIndex: clipIndex, clipCount: clipCount, notationString: notationString, transformString: transformString, noteUpdateMode: noteUpdateMode, name: name, color: color, timeSignature: timeSignature, start: start, length: length, firstStart: firstStart, looping: looping, legato: legato, muted: muted, velocityAmount: velocityAmount, duplicateLoop: duplicateLoop, gainDb: gainDb, pitchShift: pitchShift, pitchFine: pitchFine, ramMode: ramMode, warpMode: warpMode, warping: warping, warpOp: warpOp, warpBeatTime: warpBeatTime, warpSampleTime: warpSampleTime, warpDistance: warpDistance, quantize: quantize, quantizeGrid: quantizeGrid, quantizePitch: quantizePitch, context: context, updatedClips: updatedClips, tracksWithMovedClips: tracksWithMovedClips} = params;
   const {timeSigNumerator: timeSigNumerator, timeSigDenominator: timeSigDenominator} = getTimeSignature(timeSignature, clip);
   let noteResult = null;
   const isLooping = looping ?? clip.getProperty("looping") > 0;
   if (firstStart != null && !isLooping) {
     warn("firstStart parameter ignored for non-looping clips");
   }
-  const {startBeats: startBeats, endBeats: endBeats, startMarkerBeats: startMarkerBeats} = calculateBeatPositions({
+  applyTimingAndBasicProperties(clip, {
     start: start,
     length: length,
     firstStart: firstStart,
     timeSigNumerator: timeSigNumerator,
     timeSigDenominator: timeSigDenominator,
-    clip: clip,
-    isLooping: isLooping
-  });
-  const currentLoopEnd = isLooping ? clip.getProperty("loop_end") : null;
-  const propsToSet = buildClipPropertiesToSet({
+    isLooping: isLooping,
     name: name,
     color: color,
     timeSignature: timeSignature,
-    timeSigNumerator: timeSigNumerator,
-    timeSigDenominator: timeSigDenominator,
-    startMarkerBeats: startMarkerBeats,
     looping: looping,
-    isLooping: isLooping,
-    startBeats: startBeats,
-    endBeats: endBeats,
-    currentLoopEnd: currentLoopEnd
+    legato: legato,
+    muted: muted,
+    duplicateLoop: duplicateLoop
   });
-  clip.setAll(propsToSet);
   if (color != null) {
     verifyColorQuantization(clip, color);
   }
   const isAudioClip = clip.getProperty("is_audio_clip") > 0;
   const clipContext = buildClipContext(clip, clipIndex, clipCount, timeSigNumerator, timeSigDenominator);
-  if (isAudioClip) {
-    setAudioParameters(clip, {
-      gainDb: gainDb,
-      pitchShift: pitchShift,
-      warpMode: warpMode,
-      warping: warping
-    });
-    applyAudioTransforms(clip, transformString, clipContext);
-  }
+  applyAudioOrMidiParameters(clip, isAudioClip, clipContext, {
+    transformString: transformString,
+    gainDb: gainDb,
+    pitchShift: pitchShift,
+    pitchFine: pitchFine,
+    warpMode: warpMode,
+    warping: warping,
+    ramMode: ramMode,
+    velocityAmount: velocityAmount
+  });
   noteResult = handleNoteUpdates(clip, notationString, isAudioClip ? void 0 : transformString, noteUpdateMode, timeSigNumerator, timeSigDenominator, clipContext);
   handleQuantization(clip, {
     quantize: quantize,
@@ -13859,7 +13471,66 @@ function processSingleClipUpdate(params) {
   });
 }
 
-async function updateClip({ids: ids, notes: notationString, transforms: transformString, noteUpdateMode: noteUpdateMode = "merge", name: name, color: color, timeSignature: timeSignature, start: start, length: length, firstStart: firstStart, looping: looping, arrangementStart: arrangementStart, arrangementLength: arrangementLength, toSlot: toSlot, split: split, gainDb: gainDb, pitchShift: pitchShift, warpMode: warpMode, warping: warping, warpOp: warpOp, warpBeatTime: warpBeatTime, warpSampleTime: warpSampleTime, warpDistance: warpDistance, quantize: quantize, quantizeGrid: quantizeGrid, quantizePitch: quantizePitch, code: code, focus: focus} = {}, context = {}) {
+function applyBasicClipProperties(clip, args) {
+  const propsToSet = buildClipPropertiesToSet(args);
+  clip.setAll(propsToSet);
+}
+
+function applyTimingAndBasicProperties(clip, {start: start, length: length, firstStart: firstStart, timeSigNumerator: timeSigNumerator, timeSigDenominator: timeSigDenominator, isLooping: isLooping, name: name, color: color, timeSignature: timeSignature, looping: looping, legato: legato, muted: muted, duplicateLoop: duplicateLoop}) {
+  const {startBeats: startBeats, endBeats: endBeats, startMarkerBeats: startMarkerBeats} = calculateBeatPositions({
+    start: start,
+    length: length,
+    firstStart: firstStart,
+    timeSigNumerator: timeSigNumerator,
+    timeSigDenominator: timeSigDenominator,
+    clip: clip,
+    isLooping: isLooping
+  });
+  const currentLoopEnd = isLooping ? clip.getProperty("loop_end") : null;
+  applyBasicClipProperties(clip, {
+    name: name,
+    color: color,
+    timeSignature: timeSignature,
+    timeSigNumerator: timeSigNumerator,
+    timeSigDenominator: timeSigDenominator,
+    startMarkerBeats: startMarkerBeats,
+    looping: looping,
+    isLooping: isLooping,
+    startBeats: startBeats,
+    endBeats: endBeats,
+    currentLoopEnd: currentLoopEnd,
+    legato: legato,
+    muted: muted
+  });
+  if (duplicateLoop) {
+    applyDuplicateLoop(clip);
+  }
+}
+
+function applyDuplicateLoop(clip) {
+  const loopStart = clip.getProperty("loop_start");
+  const loopEnd = clip.getProperty("loop_end");
+  const loopLength = loopEnd - loopStart;
+  clip.set("loop_end", loopStart + loopLength * 2);
+}
+
+function applyAudioOrMidiParameters(clip, isAudioClip, clipContext, {transformString: transformString, gainDb: gainDb, pitchShift: pitchShift, pitchFine: pitchFine, warpMode: warpMode, warping: warping, ramMode: ramMode, velocityAmount: velocityAmount}) {
+  if (isAudioClip) {
+    setAudioParameters(clip, {
+      gainDb: gainDb,
+      pitchShift: pitchShift,
+      pitchFine: pitchFine,
+      warpMode: warpMode,
+      warping: warping,
+      ramMode: ramMode
+    });
+    applyAudioTransforms(clip, transformString, clipContext);
+  } else if (velocityAmount != null) {
+    clip.set("velocity_amount", velocityAmount);
+  }
+}
+
+async function updateClip({ids: ids, notes: notationString, transforms: transformString, noteUpdateMode: noteUpdateMode = "merge", name: name, color: color, timeSignature: timeSignature, start: start, length: length, firstStart: firstStart, looping: looping, legato: legato, muted: muted, velocityAmount: velocityAmount, duplicateLoop: duplicateLoop, arrangementStart: arrangementStart, arrangementLength: arrangementLength, toSlot: toSlot, split: split, gainDb: gainDb, pitchShift: pitchShift, pitchFine: pitchFine, ramMode: ramMode, warpMode: warpMode, warping: warping, warpOp: warpOp, warpBeatTime: warpBeatTime, warpSampleTime: warpSampleTime, warpDistance: warpDistance, quantize: quantize, quantizeGrid: quantizeGrid, quantizePitch: quantizePitch, code: code, focus: focus} = {}, context = {}) {
   const deadline = computeLoopDeadline(context.timeoutMs);
   if (!ids) {
     throw new Error("updateClip failed: ids is required");
@@ -13895,8 +13566,14 @@ async function updateClip({ids: ids, notes: notationString, transforms: transfor
       length: length,
       firstStart: firstStart,
       looping: looping,
+      legato: legato,
+      muted: muted,
+      velocityAmount: velocityAmount,
+      duplicateLoop: duplicateLoop,
       gainDb: gainDb,
       pitchShift: pitchShift,
+      pitchFine: pitchFine,
+      ramMode: ramMode,
       warpMode: warpMode,
       warping: warping,
       warpOp: warpOp,
@@ -13956,6 +13633,513 @@ function applySplittingIfNeeded(clips, split, context) {
     return clips.filter(clip => clip.exists());
   }
   return clips;
+}
+
+async function microsectionMute({clipIds: clipIds, microsections: microsections} = {}, context = {}) {
+  if (!clipIds) {
+    throw new Error("microsectionMute failed: clipIds is required");
+  }
+  if (!microsections) {
+    throw new Error("microsectionMute failed: microsections is required");
+  }
+  const parsed = parseMicrosections(microsections);
+  const transforms = buildTransforms(parsed);
+  if (transforms.length === 0) {
+    return {
+      clipsUpdated: 0,
+      transformsApplied: 0,
+      transforms: ""
+    };
+  }
+  const transformString = transforms.join("\n");
+  const updateResult = await updateClip({
+    ids: clipIds,
+    transforms: transformString,
+    noteUpdateMode: "merge"
+  }, context);
+  const clipsUpdated = Array.isArray(updateResult) ? updateResult.length : 1;
+  return {
+    clipsUpdated: clipsUpdated,
+    transformsApplied: transforms.length,
+    transforms: transformString
+  };
+}
+
+const COMMENT_PREFIX = "#";
+
+const ALL_TOKEN = "all";
+
+function parseMicrosections(input) {
+  const result = [];
+  const lines = input.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const lineNumber = i + 1;
+    const stripped = stripInlineComment(lines[i]).trim();
+    if (stripped.length === 0) continue;
+    const colonIdx = stripped.indexOf(":");
+    if (colonIdx === -1) {
+      throw new Error(`microsectionMute failed: line ${lineNumber} missing ':' — expected '<barStart>-<barEnd>: <pitch list>'. Got: '${stripped}'`);
+    }
+    const rangePart = stripped.slice(0, colonIdx).trim();
+    const mutePart = stripped.slice(colonIdx + 1).trim();
+    const {barStart: barStart, barEnd: barEnd} = parseBarRange(rangePart, lineNumber);
+    const pitches = parsePitchList(mutePart);
+    result.push({
+      barStart: barStart,
+      barEnd: barEnd,
+      pitches: pitches,
+      raw: stripped,
+      lineNumber: lineNumber
+    });
+  }
+  return result;
+}
+
+function stripInlineComment(line) {
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] !== COMMENT_PREFIX) continue;
+    if (i === 0) return "";
+    const prev = line[i - 1];
+    if (prev === " " || prev === "\t") return line.slice(0, i);
+  }
+  return line;
+}
+
+function parseBarRange(rangePart, lineNumber) {
+  const dashIdx = rangePart.indexOf("-");
+  if (dashIdx === -1) {
+    throw new Error(`microsectionMute failed: line ${lineNumber} bar range missing '-' separator. Got: '${rangePart}'`);
+  }
+  const startStr = rangePart.slice(0, dashIdx).trim();
+  const endStr = rangePart.slice(dashIdx + 1).trim();
+  const barStart = Number.parseInt(startStr, 10);
+  const barEnd = Number.parseInt(endStr, 10);
+  if (!Number.isFinite(barStart) || barStart < 1) {
+    throw new Error(`microsectionMute failed: line ${lineNumber} barStart must be a positive integer. Got: '${startStr}'`);
+  }
+  if (!Number.isFinite(barEnd) || barEnd < barStart) {
+    throw new Error(`microsectionMute failed: line ${lineNumber} barEnd must be >= barStart. Got: '${endStr}'`);
+  }
+  return {
+    barStart: barStart,
+    barEnd: barEnd
+  };
+}
+
+function parsePitchList(mutePart) {
+  if (mutePart.length === 0) return [];
+  if (mutePart.toLowerCase() === ALL_TOKEN) return null;
+  return mutePart.split(",").map(p => p.trim()).filter(p => p.length > 0);
+}
+
+function buildTransforms(microsections) {
+  const transforms = [];
+  for (const ms of microsections) {
+    if (ms.pitches !== null && ms.pitches.length === 0) continue;
+    const range = `${ms.barStart}|1-${ms.barEnd}|4.999`;
+    if (ms.pitches === null) {
+      transforms.push(`${range}: velocity = 0`);
+      continue;
+    }
+    for (const pitch of ms.pitches) {
+      transforms.push(`${pitch} ${range}: velocity = 0`);
+    }
+  }
+  return transforms;
+}
+
+const DRUM_MAP = "drum-map";
+
+const CLIP_NOTES = "notes";
+
+const MIDI_EFFECTS = "midi-effects";
+
+const INSTRUMENTS = "instruments";
+
+const AUDIO_EFFECTS = "audio-effects";
+
+const SESSION_CLIPS = "session-clips";
+
+const ARRANGEMENT_CLIPS = "arrangement-clips";
+
+const TRACKS = "tracks";
+
+const SAMPLE = "sample";
+
+const TIMING = "timing";
+
+const WARP = "warp";
+
+const DEVICES = "devices";
+
+const AVAILABLE_ROUTINGS = "available-routings";
+
+const COLOR = "color";
+
+const CLIPS = "clips";
+
+const MIXER = "mixer";
+
+const LOCATORS = "locators";
+
+const ALL_INCLUDE_OPTIONS = {
+  song: [ "scenes", "routings", TRACKS, COLOR, MIXER, LOCATORS ],
+  track: [ SESSION_CLIPS, ARRANGEMENT_CLIPS, CLIP_NOTES, TIMING, SAMPLE, DEVICES, DRUM_MAP, "routings", AVAILABLE_ROUTINGS, MIXER, COLOR ],
+  scene: [ CLIPS, CLIP_NOTES, SAMPLE, COLOR, TIMING ],
+  clip: [ CLIP_NOTES, SAMPLE, COLOR, TIMING, WARP ]
+};
+
+function parseIncludeArray(includeArray, defaults = {}) {
+  if (includeArray === void 0) {
+    return {
+      includeDrumMap: Boolean(defaults.includeDrumMap),
+      includeClipNotes: Boolean(defaults.includeClipNotes),
+      includeScenes: Boolean(defaults.includeScenes),
+      includeMidiEffects: Boolean(defaults.includeMidiEffects),
+      includeInstruments: Boolean(defaults.includeInstruments),
+      includeAudioEffects: Boolean(defaults.includeAudioEffects),
+      includeDevices: Boolean(defaults.includeDevices),
+      includeRoutings: Boolean(defaults.includeRoutings),
+      includeAvailableRoutings: Boolean(defaults.includeAvailableRoutings),
+      includeSessionClips: Boolean(defaults.includeSessionClips),
+      includeArrangementClips: Boolean(defaults.includeArrangementClips),
+      includeClips: Boolean(defaults.includeClips),
+      includeTracks: Boolean(defaults.includeTracks),
+      includeSample: Boolean(defaults.includeSample),
+      includeColor: Boolean(defaults.includeColor),
+      includeTiming: Boolean(defaults.includeTiming),
+      includeWarp: Boolean(defaults.includeWarp),
+      includeMixer: Boolean(defaults.includeMixer),
+      includeLocators: Boolean(defaults.includeLocators)
+    };
+  }
+  const expandedIncludes = expandWildcardIncludes(includeArray, defaults);
+  const includeSet = new Set(expandedIncludes);
+  const hasScenes = includeSet.has("scenes");
+  if (includeArray.length === 0) {
+    return {
+      includeDrumMap: false,
+      includeClipNotes: false,
+      includeScenes: false,
+      includeMidiEffects: false,
+      includeInstruments: false,
+      includeAudioEffects: false,
+      includeDevices: false,
+      includeRoutings: false,
+      includeAvailableRoutings: false,
+      includeSessionClips: false,
+      includeArrangementClips: false,
+      includeClips: false,
+      includeTracks: false,
+      includeSample: false,
+      includeColor: false,
+      includeTiming: false,
+      includeWarp: false,
+      includeMixer: false,
+      includeLocators: false
+    };
+  }
+  return {
+    includeDrumMap: includeSet.has(DRUM_MAP),
+    includeClipNotes: includeSet.has(CLIP_NOTES),
+    includeScenes: hasScenes,
+    includeMidiEffects: includeSet.has(MIDI_EFFECTS),
+    includeInstruments: includeSet.has(INSTRUMENTS),
+    includeAudioEffects: includeSet.has(AUDIO_EFFECTS),
+    includeDevices: includeSet.has(DEVICES),
+    includeRoutings: includeSet.has("routings"),
+    includeAvailableRoutings: includeSet.has(AVAILABLE_ROUTINGS),
+    includeSessionClips: includeSet.has(SESSION_CLIPS),
+    includeArrangementClips: includeSet.has(ARRANGEMENT_CLIPS),
+    includeClips: includeSet.has(CLIPS),
+    includeTracks: includeSet.has(TRACKS),
+    includeSample: includeSet.has(SAMPLE),
+    includeColor: includeSet.has(COLOR),
+    includeTiming: includeSet.has(TIMING),
+    includeWarp: includeSet.has(WARP),
+    includeMixer: includeSet.has(MIXER),
+    includeLocators: includeSet.has(LOCATORS)
+  };
+}
+
+const READ_SONG_DEFAULTS = {
+  includeScenes: false,
+  includeRoutings: false,
+  includeTracks: false,
+  includeColor: false,
+  includeMixer: false,
+  includeLocators: false
+};
+
+const READ_TRACK_DEFAULTS = {
+  includeDrumMap: false,
+  includeClipNotes: false,
+  includeDevices: false,
+  includeMidiEffects: false,
+  includeInstruments: false,
+  includeAudioEffects: false,
+  includeRoutings: false,
+  includeAvailableRoutings: false,
+  includeSessionClips: false,
+  includeArrangementClips: false,
+  includeSample: false,
+  includeColor: false,
+  includeTiming: false,
+  includeWarp: false,
+  includeMixer: false
+};
+
+const READ_SCENE_DEFAULTS = {
+  includeClips: false,
+  includeClipNotes: false,
+  includeSample: false,
+  includeColor: false,
+  includeTiming: false
+};
+
+const READ_CLIP_DEFAULTS = {
+  includeClipNotes: false,
+  includeSample: false,
+  includeColor: false,
+  includeTiming: false,
+  includeWarp: false
+};
+
+function expandWildcardIncludes(includeArray, defaults) {
+  if (!includeArray.includes("*")) {
+    return includeArray;
+  }
+  let toolType;
+  if (defaults.includeTracks !== void 0) {
+    toolType = "song";
+  } else if (defaults.includeSessionClips !== void 0) {
+    toolType = "track";
+  } else if (defaults.includeClips !== void 0) {
+    toolType = "scene";
+  } else if (defaults.includeClipNotes !== void 0) {
+    toolType = "clip";
+  } else {
+    toolType = "song";
+  }
+  const allOptions = ALL_INCLUDE_OPTIONS[toolType] ?? [];
+  const expandedSet = new Set(includeArray.filter(option => option !== "*"));
+  for (const option of allOptions) expandedSet.add(option);
+  return Array.from(expandedSet);
+}
+
+function resolveClip(clipId, trackIndex, sceneIndex) {
+  if (clipId != null) {
+    return {
+      found: true,
+      clip: validateIdType(clipId, "clip", "readClip")
+    };
+  }
+  const track = LiveAPI.from(livePath.track(trackIndex));
+  if (!track.exists()) {
+    throw new Error(`trackIndex ${trackIndex} does not exist`);
+  }
+  const scene = LiveAPI.from(livePath.scene(sceneIndex));
+  if (!scene.exists()) {
+    throw new Error(`sceneIndex ${sceneIndex} does not exist`);
+  }
+  const clip = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex).clip());
+  if (!clip.exists()) {
+    return {
+      found: false,
+      emptySlotResponse: {
+        id: null,
+        type: null,
+        name: null,
+        slot: formatSlot(trackIndex, sceneIndex)
+      }
+    };
+  }
+  return {
+    found: true,
+    clip: clip
+  };
+}
+
+const WARP_MODE_MAPPING = {
+  [LIVE_API_WARP_MODE_BEATS]: WARP_MODE.BEATS,
+  [LIVE_API_WARP_MODE_TONES]: WARP_MODE.TONES,
+  [LIVE_API_WARP_MODE_TEXTURE]: WARP_MODE.TEXTURE,
+  [LIVE_API_WARP_MODE_REPITCH]: WARP_MODE.REPITCH,
+  [LIVE_API_WARP_MODE_COMPLEX]: WARP_MODE.COMPLEX,
+  [LIVE_API_WARP_MODE_REX]: WARP_MODE.REX,
+  [LIVE_API_WARP_MODE_PRO]: WARP_MODE.PRO
+};
+
+function isDrumRackTrack(trackIndex) {
+  const track = LiveAPI.from(livePath.track(trackIndex));
+  const devices = track.getChildren("devices");
+  for (const device of devices) {
+    if (device.getProperty("type") === LIVE_API_DEVICE_TYPE_INSTRUMENT) {
+      return device.getProperty("can_have_drum_pads") > 0;
+    }
+  }
+  return false;
+}
+
+function readClip(args = {}, _context = {}) {
+  const {clipId: clipId, trackIndex: trackIndex, sceneIndex: sceneIndex} = resolveClipLocation(args);
+  const {includeSample: includeSample, includeClipNotes: includeClipNotes, includeColor: includeColor, includeTiming: includeTiming, includeWarp: includeWarp} = parseIncludeArray(args.include, READ_CLIP_DEFAULTS);
+  if (clipId === null && (trackIndex === null || sceneIndex === null)) {
+    throw new Error("Either clipId or slot must be provided");
+  }
+  const resolved = resolveClip(clipId, trackIndex, sceneIndex);
+  if (!resolved.found) {
+    if (!args.suppressEmptyWarning) {
+      warn(`no clip at trackIndex ${trackIndex}, sceneIndex ${sceneIndex}`);
+    }
+    return resolved.emptySlotResponse;
+  }
+  const clip = resolved.clip;
+  const isArrangementClip = clip.getProperty("is_arrangement_clip") > 0;
+  const isMidiClip = clip.getProperty("is_midi_clip") > 0;
+  const clipName = clip.getProperty("name");
+  const result = {
+    id: clip.id,
+    type: isMidiClip ? "midi" : "audio",
+    ...clipName && {
+      name: clipName
+    },
+    view: isArrangementClip ? "arrangement" : "session",
+    ...includeColor && {
+      color: clip.getColor()
+    }
+  };
+  addBooleanStateProperties(result, clip);
+  if (result.playing) {
+    const timeSigNumerator = clip.getProperty("signature_numerator");
+    const timeSigDenominator = clip.getProperty("signature_denominator");
+    const playingPositionBeats = clip.getProperty("playing_position");
+    result.playingPosition = abletonBeatsToBarBeat(playingPositionBeats, timeSigNumerator, timeSigDenominator);
+  }
+  addClipLocationProperties(result, clip, isArrangementClip, includeTiming);
+  if (includeTiming) {
+    addTimingProperties(result, clip);
+  }
+  if (result.type === "midi") {
+    processMidiClip(result, clip, includeClipNotes);
+  }
+  if (result.type === "audio" && (includeSample || includeWarp)) {
+    processAudioClip(result, clip, includeSample, includeWarp);
+  }
+  return result;
+}
+
+function addBooleanStateProperties(result, clip) {
+  if (clip.getProperty("is_playing") > 0) {
+    result.playing = true;
+  }
+  if (clip.getProperty("is_triggered") > 0) {
+    result.triggered = true;
+  }
+  if (clip.getProperty("is_recording") > 0) {
+    result.recording = true;
+  }
+  if (clip.getProperty("is_overdubbing") > 0) {
+    result.overdubbing = true;
+  }
+  if (clip.getProperty("muted") > 0) {
+    result.muted = true;
+  }
+}
+
+function addTimingProperties(result, clip) {
+  const timeSigNumerator = clip.getProperty("signature_numerator");
+  const timeSigDenominator = clip.getProperty("signature_denominator");
+  const isLooping = clip.getProperty("looping") > 0;
+  const startMarkerBeats = clip.getProperty("start_marker");
+  const loopStartBeats = clip.getProperty("loop_start");
+  const loopEndBeats = clip.getProperty("loop_end");
+  const endMarkerBeats = clip.getProperty("end_marker");
+  const startBeats = isLooping ? loopStartBeats : startMarkerBeats;
+  const endBeats = isLooping ? loopEndBeats : endMarkerBeats;
+  result.timeSignature = clip.timeSignature;
+  result.looping = isLooping;
+  result.start = abletonBeatsToBarBeat(startBeats, timeSigNumerator, timeSigDenominator);
+  result.end = abletonBeatsToBarBeat(endBeats, timeSigNumerator, timeSigDenominator);
+  result.length = abletonBeatsToBarBeatDuration(endBeats - startBeats, timeSigNumerator, timeSigDenominator);
+  if (Math.abs(startMarkerBeats - startBeats) > .001) {
+    result.firstStart = abletonBeatsToBarBeat(startMarkerBeats, timeSigNumerator, timeSigDenominator);
+  }
+}
+
+function processMidiClip(result, clip, includeClipNotes) {
+  if (!includeClipNotes) return;
+  const timeSigNumerator = clip.getProperty("signature_numerator");
+  const timeSigDenominator = clip.getProperty("signature_denominator");
+  const lengthBeats = clip.getProperty("length");
+  const notesDictionary = clip.call("get_notes_extended", 0, 128, 0, lengthBeats);
+  const notes = JSON.parse(notesDictionary).notes;
+  const drumMode = clip.trackIndex != null && isDrumRackTrack(clip.trackIndex);
+  const formatted = formatNotation(notes, {
+    timeSigNumerator: timeSigNumerator,
+    timeSigDenominator: timeSigDenominator,
+    drumMode: drumMode
+  });
+  if (formatted) result.notes = formatted;
+}
+
+function processAudioClip(result, clip, includeSample, includeWarp) {
+  if (includeSample) {
+    const gainDb = liveGainToDb(clip.getProperty("gain"));
+    if (gainDb !== 0) {
+      result.gainDb = gainDb;
+    }
+    const filePath = clip.getProperty("file_path");
+    if (filePath) {
+      result.sampleFile = filePath;
+    }
+    const pitchCoarse = clip.getProperty("pitch_coarse");
+    const pitchFine = clip.getProperty("pitch_fine");
+    const pitchShift = pitchCoarse + pitchFine / 100;
+    if (pitchShift !== 0) {
+      result.pitchShift = pitchShift;
+    }
+  }
+  if (includeWarp) {
+    result.sampleLength = clip.getProperty("sample_length");
+    result.sampleRate = clip.getProperty("sample_rate");
+    result.warping = clip.getProperty("warping") > 0;
+    const warpModeValue = clip.getProperty("warp_mode");
+    result.warpMode = WARP_MODE_MAPPING[warpModeValue] ?? "unknown";
+  }
+}
+
+function addClipLocationProperties(result, clip, isArrangementClip, includeTiming) {
+  if (isArrangementClip) {
+    result.trackIndex = clip.trackIndex;
+    const startTimeBeats = clip.getProperty("start_time");
+    const liveSet = LiveAPI.from("live_set");
+    const songTimeSigNumerator = liveSet.getProperty("signature_numerator");
+    const songTimeSigDenominator = liveSet.getProperty("signature_denominator");
+    result.arrangementStart = abletonBeatsToBarBeat(startTimeBeats, songTimeSigNumerator, songTimeSigDenominator);
+    if (includeTiming) {
+      const endTimeBeats = clip.getProperty("end_time");
+      result.arrangementLength = abletonBeatsToBarBeatDuration(endTimeBeats - startTimeBeats, songTimeSigNumerator, songTimeSigDenominator);
+    }
+  } else {
+    result.slot = formatSlot(clip.trackIndex, clip.sceneIndex);
+  }
+}
+
+function resolveClipLocation(args) {
+  const clipId = args.clipId ?? null;
+  let trackIndex = args.trackIndex ?? null;
+  let sceneIndex = args.sceneIndex ?? null;
+  if (args.slot != null) {
+    const parsed = parseSlot(args.slot);
+    trackIndex = parsed.trackIndex;
+    sceneIndex = parsed.sceneIndex;
+  }
+  return {
+    clipId: clipId,
+    trackIndex: trackIndex,
+    sceneIndex: sceneIndex
+  };
 }
 
 function getLocatorId(locatorIndex) {
@@ -14161,7 +14345,7 @@ function handlePlayScene(sceneIndex, state) {
   };
 }
 
-function handleStandalonePlaybackAction(action) {
+function handleStandalonePlaybackAction(action, nudge) {
   const liveSet = LiveAPI.from(livePath.liveSet);
   let recording;
   switch (action) {
@@ -14188,6 +14372,13 @@ function handleStandalonePlaybackAction(action) {
 
    case "re-enable-automation":
     liveSet.call("re_enable_automation");
+    break;
+
+   case "nudge-tempo":
+    if (nudge !== "up" && nudge !== "down") {
+      throw new Error('playback failed: nudge-tempo requires nudge param ("up" or "down")');
+    }
+    liveSet.call(nudge === "up" ? "nudge_up" : "nudge_down");
     break;
 
    default:
@@ -14235,13 +14426,13 @@ function handleLiveSetHistory(action) {
   };
 }
 
-const STANDALONE_ACTIONS = new Set([ "back-to-arranger", "capture-midi", "capture-scene", "record", "re-enable-automation" ]);
+const STANDALONE_ACTIONS = new Set([ "back-to-arranger", "capture-midi", "capture-scene", "record", "re-enable-automation", "nudge-tempo" ]);
 
 function isStandaloneAction(action) {
   return STANDALONE_ACTIONS.has(action);
 }
 
-function playback({action: action, startTime: startTime, startLocator: startLocator, loop: loop, loopStart: loopStart, loopStartLocator: loopStartLocator, loopEnd: loopEnd, loopEndLocator: loopEndLocator, sceneIndex: sceneIndex, ids: ids, slots: slots, focus: focus} = {}, _context = {}) {
+function playback({action: action, startTime: startTime, startLocator: startLocator, loop: loop, loopStart: loopStart, loopStartLocator: loopStartLocator, loopEnd: loopEnd, loopEndLocator: loopEndLocator, sceneIndex: sceneIndex, ids: ids, slots: slots, focus: focus, nudge: nudge} = {}, _context = {}) {
   if (!action) {
     throw new Error("playback failed: action is required");
   }
@@ -14249,7 +14440,7 @@ function playback({action: action, startTime: startTime, startLocator: startLoca
     return handleLiveSetHistory(action);
   }
   if (isStandaloneAction(action)) {
-    return handleStandalonePlaybackAction(action);
+    return handleStandalonePlaybackAction(action, nudge);
   }
   if (ids != null && slots != null) {
     throw new Error("playback failed: ids and slots are mutually exclusive");
@@ -17074,13 +17265,23 @@ function addOptionalBooleanProperties(result, track, canBeArmed) {
   if (isArmed) {
     result.isArmed = isArmed;
   }
-  const isGroup = track.getProperty("is_foldable") > 0;
-  if (isGroup) {
-    result.isGroup = isGroup;
+  const isFoldable = track.getProperty("is_foldable") > 0;
+  if (isFoldable) {
+    result.isGroup = isFoldable;
+    result.isFoldable = isFoldable;
   }
-  const isGroupMember = track.getProperty("is_grouped") > 0;
-  if (isGroupMember) {
-    result.isGroupMember = isGroupMember;
+  const isGrouped = track.getProperty("is_grouped") > 0;
+  if (isGrouped) {
+    result.isGroupMember = isGrouped;
+    result.isGrouped = isGrouped;
+  }
+  const isFolded = isFoldable && track.getProperty("fold_state") > 0;
+  if (isFolded) {
+    result.isFolded = isFolded;
+  }
+  const isFrozen = track.getProperty("is_frozen") > 0;
+  if (isFrozen) {
+    result.isFrozen = isFrozen;
   }
 }
 
@@ -17326,7 +17527,13 @@ function readLiveSet(args = {}, _context = {}) {
       name: liveSetName
     } : {},
     tempo: liveSet.getProperty("tempo"),
-    timeSignature: liveSet.timeSignature
+    timeSignature: liveSet.timeSignature,
+    grooveAmount: liveSet.getProperty("groove_amount"),
+    linkEnabled: liveSet.getProperty("link_enable") > 0,
+    linkPeers: liveSet.getProperty("link_num_peers"),
+    punchIn: liveSet.getProperty("punch_in") > 0,
+    punchOut: liveSet.getProperty("punch_out") > 0,
+    overdub: liveSet.getProperty("arrangement_overdub") > 0
   };
   if (includeFlags.includeScenes) {
     result.scenes = sceneIds.map((_sceneId, sceneIndex) => readScene({
@@ -17659,7 +17866,7 @@ function renameLocator(liveSet, {locatorId: locatorId, locatorTime: locatorTime,
   };
 }
 
-async function updateLiveSet({tempo: tempo, timeSignature: timeSignature, scale: scale, locatorOperation: locatorOperation, locatorId: locatorId, locatorTime: locatorTime, locatorName: locatorName, arrangementFollower: arrangementFollower} = {}, context = {}) {
+async function updateLiveSet({tempo: tempo, timeSignature: timeSignature, groove: groove, link: link, forceLinkBeatTime: forceLinkBeatTime, scale: scale, punchIn: punchIn, punchOut: punchOut, overdub: overdub, locatorOperation: locatorOperation, locatorId: locatorId, locatorTime: locatorTime, locatorName: locatorName, arrangementFollower: arrangementFollower} = {}, context = {}) {
   const liveSet = LiveAPI.from(livePath.liveSet);
   const result = {
     id: liveSet.id
@@ -17673,10 +17880,34 @@ async function updateLiveSet({tempo: tempo, timeSignature: timeSignature, scale:
     liveSet.set("signature_denominator", parsed.denominator);
     result.timeSignature = `${parsed.numerator}/${parsed.denominator}`;
   }
+  if (groove != null) {
+    liveSet.set("groove_amount", groove);
+    result.groove = groove;
+  }
+  if (link != null) {
+    liveSet.set("link_enable", link);
+    result.link = link;
+  }
+  if (forceLinkBeatTime != null) {
+    liveSet.call("force_link_beat_time", forceLinkBeatTime);
+    result.forceLinkBeatTime = forceLinkBeatTime;
+  }
   if (scale != null) {
     applyScale(liveSet, scale, result);
     result.$meta ??= [];
     result.$meta.push("Scale applied to selected clips and defaults for new clips.");
+  }
+  if (punchIn != null) {
+    liveSet.set("punch_in", punchIn);
+    result.punchIn = punchIn;
+  }
+  if (punchOut != null) {
+    liveSet.set("punch_out", punchOut);
+    result.punchOut = punchOut;
+  }
+  if (overdub != null) {
+    liveSet.set("arrangement_overdub", overdub);
+    result.overdub = overdub;
   }
   if (arrangementFollower != null) {
     liveSet.set("back_to_arranger", arrangementFollower ? 0 : 1);
@@ -19015,6 +19246,48 @@ function createTrack({trackIndex: trackIndex, count: count = 1, name: name, colo
   return count === 1 ? assertDefined(createdTracks[0], "created track") : createdTracks;
 }
 
+const FREEZE_POLL_INTERVAL_MS = 200;
+
+const FREEZE_POLL_MAX_RETRIES = 50;
+
+function isTrackFrozen(track) {
+  return track.getProperty("is_frozen") > 0;
+}
+
+async function applyFreezeAndFlatten(track, freeze, flatten, deadline, result) {
+  if (freeze != null) {
+    await applyFreeze(track, freeze, deadline, result);
+  }
+  if (flatten) {
+    applyFlatten(track, result);
+  }
+}
+
+async function applyFreeze(track, freeze, deadline, result) {
+  track.set("freeze", freeze);
+  const confirmed = !isDeadlineExceeded(deadline) && await waitUntil(() => isTrackFrozen(track) === freeze, {
+    pollingInterval: FREEZE_POLL_INTERVAL_MS,
+    maxRetries: FREEZE_POLL_MAX_RETRIES
+  });
+  if (confirmed) {
+    result.isFrozen = freeze;
+    return;
+  }
+  warn(`updateTrack: track ${track.id} did not confirm ${freeze ? "freeze" : "unfreeze"} within the polling window`);
+  result.freezeStatus = "in_progress";
+}
+
+function applyFlatten(track, result) {
+  if (!isTrackFrozen(track)) {
+    warn(`updateTrack: track ${track.id} must be frozen before flatten, skipping`);
+    return;
+  }
+  track.call("flatten");
+  result.flattened = true;
+  result.$meta ??= [];
+  result.$meta.push("Flatten is irreversible: devices were removed and frozen audio was committed as clips.");
+}
+
 function applyRoutingProperties(track, params) {
   const {inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId} = params;
   if (inputRoutingTypeId != null) {
@@ -19053,6 +19326,17 @@ function applyMonitoringState(track, monitoringState) {
     return;
   }
   track.set("current_monitoring_state", monitoringValue);
+}
+
+function applyFoldState(track, folded) {
+  if (folded == null) {
+    return;
+  }
+  const isFoldable = track.getProperty("is_foldable") > 0;
+  if (!isFoldable) {
+    throw new Error(`updateTrack failed: folded requires a group track (track ${track.id} is not foldable)`);
+  }
+  track.set("fold_state", folded ? 1 : 0);
 }
 
 function applySendProperties(track, sendGainDb, sendReturn) {
@@ -19151,10 +19435,11 @@ function applyMixerProperties(track, params) {
   }
 }
 
-function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, pan: pan, panningMode: panningMode, leftPan: leftPan, rightPan: rightPan, mute: mute, solo: solo, arm: arm, inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId, monitoringState: monitoringState, arrangementFollower: arrangementFollower, sendGainDb: sendGainDb, sendReturn: sendReturn}, _context = {}) {
+async function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, pan: pan, panningMode: panningMode, leftPan: leftPan, rightPan: rightPan, mute: mute, solo: solo, arm: arm, folded: folded, inputRoutingTypeId: inputRoutingTypeId, inputRoutingChannelId: inputRoutingChannelId, outputRoutingTypeId: outputRoutingTypeId, outputRoutingChannelId: outputRoutingChannelId, monitoringState: monitoringState, arrangementFollower: arrangementFollower, sendGainDb: sendGainDb, sendReturn: sendReturn, freeze: freeze, flatten: flatten}, context = {}) {
   if (!ids) {
     throw new Error("updateTrack failed: ids is required");
   }
+  const deadline = computeLoopDeadline(context.timeoutMs);
   const trackIds = parseCommaSeparatedIds(ids);
   const tracks = validateIdTypes(trackIds, "track", "updateTrack", {
     skipInvalid: true
@@ -19193,11 +19478,16 @@ function updateTrack({ids: ids, name: name, color: color, gainDb: gainDb, pan: p
     if (arrangementFollower != null) {
       track.set("back_to_arranger", arrangementFollower ? 0 : 1);
     }
+    applyFoldState(track, folded);
     applyMonitoringState(track, monitoringState);
     applySendProperties(track, sendGainDb, sendReturn);
-    updatedTracks.push({
+    const trackResult = {
       id: track.id
-    });
+    };
+    if (freeze != null || flatten) {
+      await applyFreezeAndFlatten(track, freeze, flatten, deadline, trackResult);
+    }
+    updatedTracks.push(trackResult);
   }
   return unwrapSingleResult(updatedTracks);
 }
@@ -19405,6 +19695,10 @@ const tools = {
   "adj-update-clip": args => {
     initHoldingArea();
     return updateClip(args, context);
+  },
+  "adj-microsection-mute": args => {
+    initHoldingArea();
+    return microsectionMute(args, context);
   },
   "adj-create-device": args => createDevice(args, context),
   "adj-read-device": args => readDevice(args, context),
