@@ -7,10 +7,17 @@ evidence: live deploy 1.6.0 → 1.8.0 → 1.8.1 in conversation 2026-04-25
 
 ## Fact
 
-The `.amxd` device references sibling JS files via relative path. Build
-artefacts must be copied from `dist/` into `max-for-live-device/` for new code
-to take effect. Live caches V8 bytecode per session — restart Live (or eject +
-reinsert device) to load updated JS.
+The `.amxd` device references sibling JS files via relative path. Live caches V8
+bytecode per session — restart Live (or eject + reinsert device) to load updated
+JS.
+
+`npm run install:device` (the primary deploy path) reads the built JS straight
+from `dist/`, kept fresh automatically by the `rebuild-dist.yml` CI workflow on
+every push to `main` — no manual copy needed. The manual `dist/` →
+`max-for-live-device/` copy only matters if you drag
+`max-for-live-device/Ableton_DJ_MCP.amxd` directly onto a track instead of using
+`install:device` — `npm run dev:hot`'s watcher handles that copy automatically
+during active development.
 
 ## Evidence
 
@@ -28,9 +35,7 @@ Deploy commands:
 
 ```bash
 git checkout main && git pull
-npm run build
-cp dist/live-api-adapter.js max-for-live-device/live-api-adapter.js
-cp dist/mcp-server.mjs max-for-live-device/mcp-server.mjs
+npm run install:device
 # Then restart Live OR eject + reinsert .amxd
 ```
 

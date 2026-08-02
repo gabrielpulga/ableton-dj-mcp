@@ -38,15 +38,22 @@ To add a new file with a hardcoded version:
 
 ## Deploying a new version locally
 
+`dist/` is kept up to date automatically: a CI workflow
+([`rebuild-dist.yml`](../.github/workflows/rebuild-dist.yml)) rebuilds and
+commits it on every push to `main` that touches `src/`, `package.json`,
+`package-lock.json`, or the rollup config. `npm run install:device` reads the
+built JS bundles directly from `dist/` (and the static `.amxd`/`.maxpat` assets
+from `max-for-live-device/`) — there's no manual copy step between them anymore.
+
 After a release lands on `main`:
 
 ```bash
 git checkout main && git pull
-npm run build
-cp dist/live-api-adapter.js max-for-live-device/live-api-adapter.js
-cp dist/mcp-server.mjs max-for-live-device/mcp-server.mjs
 npm run install:device   # refresh the copy in your Live User Library
 ```
+
+If you're testing local changes that haven't been pushed to `main` yet (and
+therefore haven't gone through the auto-rebuild), run `npm run build` first.
 
 Then in Ableton Live:
 
@@ -80,23 +87,27 @@ Edits to V8-only paths (`live-api-adapter.ts`) don't trigger Max to respawn the
 v8 engine — click the device's reload button or eject + reinsert if you don't
 see the new version line in the console.
 
-This script is dev-only. Releases still go through the manual flow above so the
-committed `dist/` artefacts match the tag.
+This script is dev-only and writes to your local `max-for-live-device/`
+(gitignored) for fast iteration. `dist/` itself is kept current on `main` by the
+CI rebuild, independent of this loop.
 
-## Why the manual copy step
+## Why max-for-live-device/ still exists
 
 The `.amxd` references sibling JS files via relative path
-(`v8 ./live-api-adapter.js`, `node.script ./mcp-server.mjs`). Rollup writes to
-`dist/`. Live loads from `max-for-live-device/`. Bridging them is currently
-manual. Tracked in
-[#78](https://github.com/gabrielpulga/ableton-dj-mcp/issues/78) (smoother
-install UX).
+(`v8 ./live-api-adapter.js`, `node.script ./mcp-server.mjs`). If you drag
+`max-for-live-device/Ableton_DJ_MCP.amxd` directly onto a track (the manual
+install fallback in [Setup.md](Setup.md), instead of running
+`npm run install:device`), those JS siblings need to physically exist next to it
+— that's what `npm run dev:hot`'s watcher keeps populated during active
+development. `npm run install:device` doesn't need this bridging: it reads the
+built JS straight from `dist/` and only pulls the static `.amxd`/`.maxpat` files
+from `max-for-live-device/`.
 
 ## Verifying a release end-to-end
 
 ```bash
-# Confirm bundle has the expected version baked in
-grep -o '1\.[0-9]\.[0-9]' max-for-live-device/live-api-adapter.js | sort -u
+# Confirm the bundle has the expected version baked in
+grep -o '1\.[0-9]\.[0-9]' dist/live-api-adapter.js | sort -u
 ```
 
 Should match the version in `package.json`.

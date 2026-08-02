@@ -5,13 +5,13 @@
 // Installs the Max for Live device into Ableton's User Library so it shows up
 // in the browser permanently. Eliminates the per-session Finder drag.
 //
-// Source:  max-for-live-device/Ableton_DJ_MCP.amxd (+ sibling JS bundles)
+// Source:  max-for-live-device/Ableton_DJ_MCP.amxd + *.maxpat (static assets)
+//          dist/live-api-adapter.js + dist/mcp-server.mjs (built bundles)
 // Dest:    <Live User Library>/Presets/MIDI Effects/Max MIDI Effect/
 //
 // Idempotent: overwrites existing files of the same name.
 
-import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,63 +22,41 @@ const repoRoot = resolve(here, "..");
 const sourceDir = join(repoRoot, "max-for-live-device");
 const distDir = join(repoRoot, "dist");
 
-const DEVICE_FILES = [
+const STATIC_FILES = [
   "Ableton_DJ_MCP.amxd",
-  "live-api-adapter.js",
-  "mcp-server.mjs",
   "server-status.maxpat",
   "tab-main.maxpat",
   "tab-context.maxpat",
   "tab-setup.maxpat",
 ] as const;
 
+const BUILT_FILES = ["live-api-adapter.js", "mcp-server.mjs"] as const;
+
+const DEVICE_FILES = [
+  ...STATIC_FILES.map((file) => ({ file, dir: sourceDir })),
+  ...BUILT_FILES.map((file) => ({ file, dir: distDir })),
+];
+
 /**
- * Verify the source files exist and warn if dist/ has drifted from
- * max-for-live-device/ (which would mean we're about to install stale code).
+ * Verify all source files exist before copying.
  */
-function assertSourceFresh(): void {
-  for (const file of DEVICE_FILES) {
-    const sourcePath = join(sourceDir, file);
+function assertSourcesExist(): void {
+  for (const { file, dir } of DEVICE_FILES) {
+    const sourcePath = join(dir, file);
 
     if (!existsSync(sourcePath)) {
       console.error(`install-device failed: missing ${sourcePath}`);
-      console.error("Run `npm run build` first.");
+      console.error(
+        dir === distDir
+          ? "Run `npm run build` first."
+          : "max-for-live-device/ is missing a tracked asset — check your clone.",
+      );
       process.exit(1);
     }
   }
-
-  for (const file of ["live-api-adapter.js", "mcp-server.mjs"]) {
-    const distPath = join(distDir, file);
-    const sourcePath = join(sourceDir, file);
-
-    if (!existsSync(distPath)) {
-      continue;
-    }
-
-    if (hashFile(distPath) !== hashFile(sourcePath)) {
-      console.warn(
-        `install-device: WARNING — dist/${file} differs from ` +
-          `max-for-live-device/${file}. The device will install with stale code.`,
-      );
-      console.warn(
-        "  Run: cp dist/live-api-adapter.js dist/mcp-server.mjs " +
-          "max-for-live-device/",
-      );
-      console.warn("  Then re-run this script.");
-    }
-  }
 }
 
-/**
- * Hash a file's contents (sha256) for cheap drift detection.
- * @param path - Absolute path to the file
- * @returns Hex-encoded sha256 digest
- */
-function hashFile(path: string): string {
-  return createHash("sha256").update(readFileSync(path)).digest("hex");
-}
-
-assertSourceFresh();
+assertSourcesExist();
 
 const targetDir = resolveUserLibraryDir();
 
@@ -95,8 +73,8 @@ if (!existsSync(targetDir)) {
   console.log(`install-device: created ${targetDir}`);
 }
 
-for (const file of DEVICE_FILES) {
-  const sourcePath = join(sourceDir, file);
+for (const { file, dir } of DEVICE_FILES) {
+  const sourcePath = join(dir, file);
   const targetPath = join(targetDir, file);
 
   copyFileSync(sourcePath, targetPath);

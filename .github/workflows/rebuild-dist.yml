@@ -1,0 +1,40 @@
+name: Rebuild dist
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - "config/rollup.config.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild-dist:
+    name: Rebuild dist
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Commit dist if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/
+          if git diff --cached --quiet; then
+            echo "dist/ unchanged, nothing to commit"
+          else
+            git commit -m "chore: rebuild dist [skip ci]"
+            git push
+          fi
