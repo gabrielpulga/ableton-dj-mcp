@@ -63,6 +63,9 @@ export interface ReadClipResult {
   overdubbing?: boolean;
   muted?: boolean;
 
+  // Playback position (only present while playing)
+  playingPosition?: string;
+
   // Location properties
   slot?: string;
   trackIndex?: number | null;
@@ -140,6 +143,21 @@ export function readClip(
 
   // Add boolean state properties
   addBooleanStateProperties(result, clip);
+
+  // Playing position only makes sense while the clip is actually playing
+  if (result.playing) {
+    const timeSigNumerator = clip.getProperty("signature_numerator") as number;
+    const timeSigDenominator = clip.getProperty(
+      "signature_denominator",
+    ) as number;
+    const playingPositionBeats = clip.getProperty("playing_position") as number;
+
+    result.playingPosition = abletonBeatsToBarBeat(
+      playingPositionBeats,
+      timeSigNumerator,
+      timeSigDenominator,
+    );
+  }
 
   // Add location properties (arrangementLength gated behind timing)
   addClipLocationProperties(result, clip, isArrangementClip, includeTiming);

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gabriel Pulga
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { type ClipContext } from "#src/notation/transform/helpers/transform-evaluator-helpers.ts";
 import * as console from "#src/shared/v8-max-console.ts";
 import { type NoteUpdateResult } from "#src/tools/clip/helpers/clip-result-helpers.ts";
 import { verifyColorQuantization } from "#src/tools/shared/color-verification-helpers.ts";
@@ -11,7 +12,10 @@ import {
   handleWarpMarkerOperation,
 } from "./update-clip-audio-helpers.ts";
 import { handleNoteUpdates } from "./update-clip-notes-helpers.ts";
-import { buildClipPropertiesToSet } from "./update-clip-properties-helpers.ts";
+import {
+  type BuildClipPropertiesArgs,
+  buildClipPropertiesToSet,
+} from "./update-clip-properties-helpers.ts";
 import { handleQuantization } from "./update-clip-quantization-helpers.ts";
 import { handlePositionOperations } from "./update-clip-session-helpers.ts";
 import {
@@ -29,6 +33,8 @@ interface ClipResult {
 export interface ClipAudioWarpQuantizeParams {
   gainDb?: number;
   pitchShift?: number;
+  pitchFine?: number;
+  ramMode?: boolean;
   warpMode?: string;
   warping?: boolean;
   warpOp?: string;
@@ -54,6 +60,10 @@ export interface ProcessSingleClipUpdateParams extends ClipAudioWarpQuantizePara
   length?: string;
   firstStart?: string;
   looping?: boolean;
+  legato?: boolean;
+  muted?: boolean;
+  velocityAmount?: number;
+  duplicateLoop?: boolean;
   arrangementLengthBeats?: number | null;
   arrangementStartBeats?: number | null;
   toSlot?: { trackIndex: number; sceneIndex: number } | null;
@@ -79,6 +89,12 @@ export interface ProcessSingleClipUpdateParams extends ClipAudioWarpQuantizePara
  * @param params.looping - Looping enabled
  * @param params.gainDb - Gain in decibels
  * @param params.pitchShift - Pitch shift amount
+ * @param params.pitchFine - Fine pitch in cents (-100 to 100)
+ * @param params.ramMode - Load full audio into RAM
+ * @param params.legato - Clip keeps playing when re-launched during playback
+ * @param params.muted - Mute individual clip
+ * @param params.velocityAmount - Scales all MIDI note velocities (MIDI clips only)
+ * @param params.duplicateLoop - Double the clip's loop length in-place
  * @param params.warpMode - Warp mode
  * @param params.warping - Warping enabled
  * @param params.warpOp - Warp operation type
@@ -111,8 +127,14 @@ export function processSingleClipUpdate(
     length,
     firstStart,
     looping,
+    legato,
+    muted,
+    velocityAmount,
+    duplicateLoop,
     gainDb,
     pitchShift,
+    pitchFine,
+    ramMode,
     warpMode,
     warping,
     warpOp,
@@ -142,36 +164,21 @@ export function processSingleClipUpdate(
     console.warn("firstStart parameter ignored for non-looping clips");
   }
 
-  // Calculate beat positions (includes end_marker bounds check for start_marker)
-  const { startBeats, endBeats, startMarkerBeats } = calculateBeatPositions({
+  applyTimingAndBasicProperties(clip, {
     start,
     length,
     firstStart,
     timeSigNumerator,
     timeSigDenominator,
-    clip,
     isLooping,
-  });
-
-  // Build and set clip properties
-  const currentLoopEnd = isLooping
-    ? (clip.getProperty("loop_end") as number)
-    : null;
-  const propsToSet = buildClipPropertiesToSet({
     name,
     color,
     timeSignature,
-    timeSigNumerator,
-    timeSigDenominator,
-    startMarkerBeats,
     looping,
-    isLooping,
-    startBeats,
-    endBeats,
-    currentLoopEnd,
+    legato,
+    muted,
+    duplicateLoop,
   });
-
-  clip.setAll(propsToSet);
 
   // Verify color quantization if color was set
   if (color != null) {
@@ -183,10 +190,16 @@ export function processSingleClipUpdate(
   // prettier-ignore
   const clipContext = buildClipContext(clip, clipIndex, clipCount, timeSigNumerator, timeSigDenominator);
 
-  if (isAudioClip) {
-    setAudioParameters(clip, { gainDb, pitchShift, warpMode, warping });
-    applyAudioTransforms(clip, transformString, clipContext);
-  }
+  applyAudioOrMidiParameters(clip, isAudioClip, clipContext, {
+    transformString,
+    gainDb,
+    pitchShift,
+    pitchFine,
+    warpMode,
+    warping,
+    ramMode,
+    velocityAmount,
+  });
 
   // Handle note updates (transforms already applied for audio clips above)
   noteResult = handleNoteUpdates(
@@ -230,4 +243,176 @@ export function processSingleClipUpdate(
     noteResult,
     isNonSurvivor: params.nonSurvivorClipIds?.has(clip.id) ?? false,
   });
+}
+
+/**
+ * Build and apply basic clip properties (name, color, timing, legato, muted)
+ * @param clip - The clip to update
+ * @param args - Property building arguments, forwarded to buildClipPropertiesToSet
+ */
+function applyBasicClipProperties(
+  clip: LiveAPI,
+  args: BuildClipPropertiesArgs,
+): void {
+  const propsToSet = buildClipPropertiesToSet(args);
+
+  clip.setAll(propsToSet);
+}
+
+interface TimingAndBasicPropertiesParams {
+  start?: string;
+  length?: string;
+  firstStart?: string;
+  timeSigNumerator: number;
+  timeSigDenominator: number;
+  isLooping: boolean;
+  name?: string;
+  color?: string;
+  timeSignature?: string;
+  looping?: boolean;
+  legato?: boolean;
+  muted?: boolean;
+  duplicateLoop?: boolean;
+}
+
+/**
+ * Calculate beat positions and apply name/color/timing/legato/muted, then
+ * optionally duplicate the loop
+ * @param clip - The clip to update
+ * @param params - Timing and basic property parameters
+ * @param params.start - Start position
+ * @param params.length - Clip length
+ * @param params.firstStart - First start position
+ * @param params.timeSigNumerator - Time signature numerator
+ * @param params.timeSigDenominator - Time signature denominator
+ * @param params.isLooping - Current looping state
+ * @param params.name - Clip name
+ * @param params.color - Clip color
+ * @param params.timeSignature - Time signature
+ * @param params.looping - Looping enabled
+ * @param params.legato - Clip keeps playing when re-launched during playback
+ * @param params.muted - Mute individual clip
+ * @param params.duplicateLoop - Double the clip's loop length in-place
+ */
+function applyTimingAndBasicProperties(
+  clip: LiveAPI,
+  {
+    start,
+    length,
+    firstStart,
+    timeSigNumerator,
+    timeSigDenominator,
+    isLooping,
+    name,
+    color,
+    timeSignature,
+    looping,
+    legato,
+    muted,
+    duplicateLoop,
+  }: TimingAndBasicPropertiesParams,
+): void {
+  // Calculate beat positions (includes end_marker bounds check for start_marker)
+  const { startBeats, endBeats, startMarkerBeats } = calculateBeatPositions({
+    start,
+    length,
+    firstStart,
+    timeSigNumerator,
+    timeSigDenominator,
+    clip,
+    isLooping,
+  });
+
+  const currentLoopEnd = isLooping
+    ? (clip.getProperty("loop_end") as number)
+    : null;
+
+  applyBasicClipProperties(clip, {
+    name,
+    color,
+    timeSignature,
+    timeSigNumerator,
+    timeSigDenominator,
+    startMarkerBeats,
+    looping,
+    isLooping,
+    startBeats,
+    endBeats,
+    currentLoopEnd,
+    legato,
+    muted,
+  });
+
+  if (duplicateLoop) {
+    applyDuplicateLoop(clip);
+  }
+}
+
+/**
+ * Double the clip's loop length in-place (Live's "Duplicate Loop" button)
+ * @param clip - The clip to update
+ */
+function applyDuplicateLoop(clip: LiveAPI): void {
+  const loopStart = clip.getProperty("loop_start") as number;
+  const loopEnd = clip.getProperty("loop_end") as number;
+  const loopLength = loopEnd - loopStart;
+
+  clip.set("loop_end", loopStart + loopLength * 2);
+}
+
+interface AudioOrMidiParams {
+  transformString?: string;
+  gainDb?: number;
+  pitchShift?: number;
+  pitchFine?: number;
+  warpMode?: string;
+  warping?: boolean;
+  ramMode?: boolean;
+  velocityAmount?: number;
+}
+
+/**
+ * Apply audio-specific parameters and transforms (audio clips) or
+ * velocityAmount (MIDI clips)
+ * @param clip - The clip to update
+ * @param isAudioClip - Whether the clip is an audio clip
+ * @param clipContext - Clip-level context for transform variables
+ * @param params - Audio/MIDI parameters
+ * @param params.transformString - Transform expressions
+ * @param params.gainDb - Gain in decibels
+ * @param params.pitchShift - Pitch shift in semitones
+ * @param params.pitchFine - Fine pitch in cents (-100 to 100)
+ * @param params.warpMode - Warp mode
+ * @param params.warping - Warping enabled
+ * @param params.ramMode - Load full audio into RAM
+ * @param params.velocityAmount - Scales all MIDI note velocities (MIDI clips only)
+ */
+function applyAudioOrMidiParameters(
+  clip: LiveAPI,
+  isAudioClip: boolean,
+  clipContext: ClipContext,
+  {
+    transformString,
+    gainDb,
+    pitchShift,
+    pitchFine,
+    warpMode,
+    warping,
+    ramMode,
+    velocityAmount,
+  }: AudioOrMidiParams,
+): void {
+  if (isAudioClip) {
+    setAudioParameters(clip, {
+      gainDb,
+      pitchShift,
+      pitchFine,
+      warpMode,
+      warping,
+      ramMode,
+    });
+    applyAudioTransforms(clip, transformString, clipContext);
+  } else if (velocityAmount != null) {
+    clip.set("velocity_amount", velocityAmount);
+  }
 }

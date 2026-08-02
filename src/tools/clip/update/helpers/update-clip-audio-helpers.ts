@@ -22,10 +22,14 @@ interface AudioParams {
   gainDb?: number;
   /** Audio clip pitch shift in semitones (-48 to 48) */
   pitchShift?: number;
+  /** Audio clip fine pitch in cents (-100 to 100), independent of pitchShift's coarse component */
+  pitchFine?: number;
   /** Audio clip warp mode */
   warpMode?: string;
   /** Audio clip warping on/off */
   warping?: boolean;
+  /** Load full audio into RAM (prevents seek glitches on short loops) */
+  ramMode?: boolean;
 }
 
 /**
@@ -34,12 +38,14 @@ interface AudioParams {
  * @param params - Audio parameters
  * @param params.gainDb - Audio clip gain in decibels (-70 to 24)
  * @param params.pitchShift - Audio clip pitch shift in semitones (-48 to 48)
+ * @param params.pitchFine - Audio clip fine pitch in cents (-100 to 100)
  * @param params.warpMode - Audio clip warp mode
  * @param params.warping - Audio clip warping on/off
+ * @param params.ramMode - Load full audio into RAM
  */
 export function setAudioParameters(
   clip: LiveAPI,
-  { gainDb, pitchShift, warpMode, warping }: AudioParams,
+  { gainDb, pitchShift, pitchFine, warpMode, warping, ramMode }: AudioParams,
 ): void {
   if (gainDb !== undefined) {
     const liveGain = dbToLiveGain(gainDb);
@@ -49,10 +55,19 @@ export function setAudioParameters(
 
   if (pitchShift !== undefined) {
     const pitchCoarse = Math.floor(pitchShift);
-    const pitchFine = Math.round((pitchShift - pitchCoarse) * 100);
+    const pitchFineFromShift = Math.round((pitchShift - pitchCoarse) * 100);
 
     clip.set("pitch_coarse", pitchCoarse);
+    clip.set("pitch_fine", pitchFineFromShift);
+  }
+
+  // Applied after pitchShift so an explicit pitchFine always wins when both are given
+  if (pitchFine !== undefined) {
     clip.set("pitch_fine", pitchFine);
+  }
+
+  if (ramMode !== undefined) {
+    clip.set("clip_mode", ramMode ? 1 : 0);
   }
 
   if (warpMode !== undefined) {
