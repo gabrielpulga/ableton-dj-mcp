@@ -55,6 +55,8 @@ export function readLiveSet(
     tempo: liveSet.getProperty("tempo"),
     timeSignature: liveSet.timeSignature,
     grooveAmount: liveSet.getProperty("groove_amount"),
+    linkEnabled: (liveSet.getProperty("link_enable") as number) > 0,
+    linkPeers: liveSet.getProperty("link_num_peers"),
   };
 
   // Include full scene details or just the count

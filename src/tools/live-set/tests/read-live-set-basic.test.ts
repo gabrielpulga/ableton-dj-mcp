@@ -145,6 +145,8 @@ describe("readLiveSet - basic reading", () => {
       tempo: 120,
       timeSignature: "4/4",
       grooveAmount: 0,
+      linkEnabled: false,
+      linkPeers: 0,
       scale: "C Major",
       scalePitches: "C,D,E,F,G,A,B",
       returnTracks: [],
@@ -255,6 +257,8 @@ describe("readLiveSet - basic reading", () => {
       tempo: 100,
       timeSignature: "3/4",
       grooveAmount: 0.6,
+      linkEnabled: false,
+      linkPeers: 0,
       tracks: [],
       returnTracks: [],
       masterTrack: expect.objectContaining({
