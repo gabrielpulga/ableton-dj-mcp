@@ -41,13 +41,28 @@ docs/findings/
 ├── INDEX.md                   ← always loaded, one line per finding
 ├── HOW-TO-WRITE.md            ← this file (loaded by /update-docs skill)
 ├── dev/                       ← code, tooling, build, infra
+│   ├── notation/               ← subdir: findings share a topic cluster
+│   ├── browser/
+│   ├── device/
+│   ├── build/
+│   └── testing/
 ├── music/                     ← production techniques, sound design
 └── workflow/                  ← process, deploys, dev loop
 ```
 
+Subdirs are an optional second level within a domain, used purely to group an
+existing cluster of related findings for human browsing. `INDEX.md` + glob-based
+routing already solves lookup for an AI consumer — subdirs are not required for
+that. Only introduce one when a domain's flat file list gets large enough that a
+topic cluster is obvious (rule of thumb: domain has ~15+ files, or several
+already share a clear topic). Don't invent subdirs for a domain with only a
+handful of files, and don't create a subdir for a single new finding — add it to
+an existing cluster or leave it flat until a real cluster forms.
+
 ## Filename rules
 
-- Path: `<domain>/<slug>.md`
+- Path: `<domain>/<slug>.md`, or `<domain>/<subdir>/<slug>.md` if the domain has
+  subdirs
 - Slug: kebab-case, ≤ 5 words, ≤ 35 chars
 - Slug names the fact, not the symptom: `barbeat-notation-order` not
   `barbeat-bug-fix`
@@ -119,7 +134,9 @@ finding. If none match → skip without loading.
 
 ### Other rules
 
-- Sort alphabetically within domain section
+- Sort alphabetically within domain section (or within each subdir cluster, for
+  domains that have subdirs — use a `### <subdir>` sub-header per cluster,
+  matching the domain's `## <domain>` header style)
 - Empty domain sections kept (so consumers know the domain exists)
 - No file at root counts as a finding except INDEX and HOW-TO-WRITE
 

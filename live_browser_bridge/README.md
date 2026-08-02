@@ -10,7 +10,7 @@ License: GPL-3.0-or-later (matches the parent project).
 
 `Application.Browser` is exposed to Python remote scripts but deliberately
 filtered out of Live's Max-for-Live JavaScript bindings. See
-`docs/findings/dev/m4l-no-browser-api.md` and
+`docs/findings/dev/browser/m4l-no-browser-api.md` and
 `docs/specs/Browser-Bridge-Spec.md` in the parent repo for the full rationale.
 
 ## Install

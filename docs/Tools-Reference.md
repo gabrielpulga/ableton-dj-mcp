@@ -165,7 +165,7 @@ Requires the Live Browser Bridge Python sidecar — install with
 → Link/Tempo/MIDI → Control Surface. The bridge is the only path to
 `Application.Browser`; Max-for-Live JavaScript cannot reach it. See
 `docs/specs/Browser-Bridge-Spec.md` and
-`docs/findings/dev/m4l-no-browser-api.md`.
+`docs/findings/dev/browser/m4l-no-browser-api.md`.
 
 ### `adj-update-device`
 
