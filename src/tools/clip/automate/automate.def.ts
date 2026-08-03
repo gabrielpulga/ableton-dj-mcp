@@ -8,7 +8,8 @@ import { defineTool } from "#src/tools/shared/tool-framework/define-tool.ts";
 export const toolDefAutomate = defineTool("adj-automate", {
   title: "Automate",
   description:
-    "Write, read, or clear parameter automation envelopes inside a clip (session or arrangement). " +
+    "Write, read, or clear parameter automation envelopes inside a session clip " +
+    "(Live's API rejects arrangement clips). " +
     "Values are normalized 0..1 across the parameter's range. " +
     "Requires the Live Browser Bridge — install with `npm run install:bridge`.",
 

@@ -38,7 +38,7 @@ import {
   type AutomationShape,
   densify,
 } from "./shapes.ts";
-import { extractText, parseToolPayload } from "./tool-payload.ts";
+import { parseToolPayload } from "./tool-payload.ts";
 
 export interface AutomateToolArgs {
   action?: "write" | "read" | "clear" | "clear-all";
@@ -64,8 +64,6 @@ interface ReadClipPayload {
   id?: string | null;
   view?: "session" | "arrangement";
   slot?: string;
-  trackIndex?: number;
-  arrangementStart?: string;
   timeSignature?: string;
   start?: string;
   end?: string;
@@ -198,7 +196,7 @@ async function resolveClipInfo(
     payload.timeSignature,
   );
 
-  const ref = await resolveClipRef(next, payload);
+  const ref = resolveClipRef(payload);
 
   return {
     ref,
@@ -219,44 +217,16 @@ async function resolveClipInfo(
 
 /**
  * Build the bridge clip ref from the read-clip payload.
- * Arrangement clips need the song time signature to invert arrangementStart.
- * @param next - Underlying v8 dispatcher
  * @param payload - Parsed read-clip response
  * @returns Bridge-addressable clip reference
  */
-async function resolveClipRef(
-  next: CallLiveApiFunction,
-  payload: ReadClipPayload,
-): Promise<AutomationClipRef> {
+function resolveClipRef(payload: ReadClipPayload): AutomationClipRef {
   if (payload.view === "arrangement") {
-    if (payload.trackIndex == null || payload.arrangementStart == null) {
-      throw new Error("arrangement clip is missing location properties");
-    }
-
-    const liveSetResponse = (await next(
-      "adj-read-live-set",
-      {},
-    )) as McpResponse;
-
-    if (liveSetResponse.isError) {
-      throw new Error(extractText(liveSetResponse));
-    }
-
-    const liveSet = parseToolPayload(liveSetResponse) as {
-      timeSignature?: string;
-    };
-    const [songNumerator, songDenominator] = parseTimeSignature(
-      liveSet.timeSignature,
+    // Verified in Live 12.4.3: automation_envelope raises "Not a session
+    // clip" for arrangement clips even from the Python API.
+    throw new Error(
+      "automation envelopes are only supported on session clips — Live's API rejects arrangement clips",
     );
-
-    return {
-      trackIndex: payload.trackIndex,
-      arrangementStartBeats: barBeatToAbletonBeats(
-        payload.arrangementStart,
-        songNumerator,
-        songDenominator,
-      ),
-    };
   }
 
   if (payload.slot == null) {

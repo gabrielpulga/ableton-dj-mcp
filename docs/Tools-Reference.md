@@ -131,10 +131,12 @@ calls.
 
 ### `adj-automate`
 
-Write, read, or clear parameter automation envelopes inside a clip (session or
-arrangement). Values are normalized 0..1 across the parameter's range. Requires
-the Live Browser Bridge (`npm run install:bridge`) — the clip envelope API is
-Python-only (see `docs/findings/dev/device/clip-envelope-api-python-only.md`).
+Write, read, or clear parameter automation envelopes inside a session clip.
+Arrangement clips are rejected — Live's envelope API raises "Not a session clip"
+even from Python. Values are normalized 0..1 across the parameter's range.
+Requires the Live Browser Bridge (`npm run install:bridge`) — the clip envelope
+API is Python-only (see
+`docs/findings/dev/device/clip-envelope-api-python-only.md`).
 
 - `action`: `"write"` (default) | `"read"` | `"clear"` | `"clear-all"`
 - `clipId` or `slot` — target clip

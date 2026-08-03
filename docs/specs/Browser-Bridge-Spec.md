@@ -200,7 +200,12 @@ Shared arg shapes (all beat values are Ableton beats relative to clip time 0):
   `{pointCount, paramName, paramMin, paramMax, envelopeCreated, clipLengthBeats}`.
   One datagram carries all points (the main thread drains 8 requests per ~100 ms
   tick); the Node side caps writes at 512 points. Values are normalized 0..1 and
-  denormalized onto `param.min..param.max` Python-side before `insert_step`.
+  denormalized onto `param.min..param.max` Python-side before `insert_step`
+  (native range verified live: normalized 0.25 on pan reads back as −0.5). Steps
+  are written contiguous — duration = gap to the next point — because a
+  zero-length `insert_step` is a silent no-op. Session clips only: Live raises
+  `RuntimeError: Not a session clip` for arrangement clips, so the Node side
+  rejects them before reaching the bridge.
 - `automation_read` args `{clip, target, stepBeats?, maxPoints?}` →
   `{hasEnvelope, sampled, stepBeats, points, paramMin, paramMax, clipLengthBeats}`.
   Live has no breakpoint-enumeration API, so reads sample `value_at_time` on a

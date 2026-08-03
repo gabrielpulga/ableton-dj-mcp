@@ -180,65 +180,27 @@ describe("handleAutomate", () => {
     expect(call.clip).toStrictEqual({ trackIndex: 1, sceneIndex: 2 });
   });
 
-  it("resolves arrangement clips via the song time signature", async () => {
+  it("rejects arrangement clips with a clear error", async () => {
     const bridge = makeBridge();
-    const next = vi
-      .fn()
-      .mockResolvedValueOnce(
-        textResponse({
-          id: "id 9",
-          view: "arrangement",
-          trackIndex: 2,
-          arrangementStart: "17|1",
-          timeSignature: "4/4",
-          start: "1|1",
-          end: "5|1",
-        }),
-      )
-      .mockResolvedValueOnce(textResponse({ timeSignature: "4/4" }));
+    const next = makeNext({
+      id: "id 9",
+      view: "arrangement",
+      trackIndex: 2,
+      arrangementStart: "17|1",
+      timeSignature: "4/4",
+      start: "1|1",
+      end: "5|1",
+    });
 
-    await handleAutomate(asBridge(bridge), next, {
+    const response = await handleAutomate(asBridge(bridge), next, {
       clipId: "id 9",
       devicePath: "t2/d0",
       paramName: "Frequency",
       points: "1|1:0, 5|1:1",
     });
 
-    expect(next).toHaveBeenNthCalledWith(2, "adj-read-live-set", {});
-    const call = bridge.automationWrite.mock.calls[0]?.[0] as { clip: object };
-
-    expect(call.clip).toStrictEqual({
-      trackIndex: 2,
-      arrangementStartBeats: 64,
-    });
-  });
-
-  it("surfaces read-live-set errors for arrangement clips", async () => {
-    const next = vi
-      .fn()
-      .mockResolvedValueOnce(
-        textResponse({
-          id: "id 9",
-          view: "arrangement",
-          trackIndex: 2,
-          arrangementStart: "17|1",
-          timeSignature: "4/4",
-          start: "1|1",
-          end: "5|1",
-        }),
-      )
-      .mockResolvedValueOnce({
-        content: [{ type: "text", text: "live set unavailable" }],
-        isError: true,
-      });
-
-    const response = await handleAutomate(asBridge(makeBridge()), next, {
-      clipId: "id 9",
-      paramName: "Volume",
-      points: "1|1:0",
-    });
-
-    expect(errorText(response)).toMatch(/live set unavailable/);
+    expect(errorText(response)).toMatch(/only supported on session clips/);
+    expect(bridge.automationWrite).not.toHaveBeenCalled();
   });
 
   it("returns read-clip errors verbatim", async () => {
