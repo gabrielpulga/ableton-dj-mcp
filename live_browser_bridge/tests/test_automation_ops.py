@@ -255,7 +255,15 @@ class WritePointsTest(unittest.TestCase):
         self.assertTrue(result["envelopeCreated"])
         self.assertEqual(result["pointCount"], 2)
         env = clip.automation_envelope(param)
-        self.assertEqual(env.steps, [(0.0, 0.0, 0.0), (8.0, 0.0, 100.0)])
+        # Steps are contiguous: duration = gap to next point; final step gets
+        # the fallback width (zero-length steps are silent no-ops in Live).
+        self.assertEqual(
+            env.steps,
+            [
+                (0.0, 8.0, 0.0),
+                (8.0, automation_ops.FINAL_STEP_DURATION_BEATS, 100.0),
+            ],
+        )
 
     def test_reuses_existing_envelope(self):
         param = FakeParam()

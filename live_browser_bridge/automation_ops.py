@@ -21,6 +21,11 @@ ARRANGEMENT_MATCH_EPSILON = 0.01
 DEFAULT_READ_STEP_BEATS = 0.25
 MAX_READ_POINTS = 257
 
+# insert_step with a zero-length step is a silent no-op, so every step needs
+# real width. Points are written as contiguous steps (duration = gap to the
+# next point); the last point gets this fallback width.
+FINAL_STEP_DURATION_BEATS = 0.25
+
 
 class AutomationOpError(Exception):
     """Raised by ops when args don't resolve or the Live API misbehaves."""
@@ -198,8 +203,14 @@ def write_points(clip, param, points, clear_first=False):
         raise AutomationOpError(
             "could not create automation envelope (unsupported clip?)"
         )
-    for time_beats, value01 in points:
-        envelope.insert_step(float(time_beats), 0.0, denormalize(param, value01))
+    for i, (time_beats, value01) in enumerate(points):
+        if i + 1 < len(points):
+            duration = float(points[i + 1][0]) - float(time_beats)
+        else:
+            duration = FINAL_STEP_DURATION_BEATS
+        envelope.insert_step(
+            float(time_beats), duration, denormalize(param, value01)
+        )
     return {
         "pointCount": len(points),
         "paramName": getattr(param, "name", ""),
