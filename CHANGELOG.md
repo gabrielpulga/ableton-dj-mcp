@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v2.0.0...ableton-dj-mcp-v2.1.0) (2026-08-03)
+
+
+### Features
+
+* add adj-automate clip automation envelope tool ([#255](https://github.com/gabrielpulga/ableton-dj-mcp/issues/255)) ([6a17173](https://github.com/gabrielpulga/ableton-dj-mcp/commit/6a1717351b50e699b8a76c806f54f889ecf51b4b))
+
 ## [2.0.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v1.13.0...ableton-dj-mcp-v2.0.0) (2026-08-02)
 
 
