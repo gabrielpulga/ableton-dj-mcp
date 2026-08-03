@@ -29688,6 +29688,26 @@ const toolDefBrowse = defineTool("adj-browse", {
   }
 });
 
+const toolDefAutomate = defineTool("adj-automate", {
+  title: "Automate",
+  description: "Write, read, or clear parameter automation envelopes inside a session clip (Live's API rejects arrangement clips). Values are normalized 0..1 across the parameter's range. Requires the Live Browser Bridge — install with `npm run install:bridge`.",
+  annotations: {
+    readOnlyHint: false,
+    destructiveHint: true
+  },
+  inputSchema: {
+    action: _enum$2([ "write", "read", "clear", "clear-all" ]).optional().describe("write = insert envelope points (default). read = sample existing envelope. clear = wipe one parameter's envelope. clear-all = wipe every envelope on the clip"),
+    clipId: string().optional().describe("provide this or slot"),
+    slot: string().optional().describe("session clip slot: trackIndex/sceneIndex (e.g., '0/3'). provide this or clipId"),
+    devicePath: string$1().optional().describe("device to automate, e.g. 't0/d1' or 't0/d0/c1/d0' for rack chains. Must be on the clip's track. Omit for track mixer params"),
+    paramName: string$1().optional().describe("parameter name as shown in Live (case-insensitive). Mixer params (no devicePath): 'Volume', 'Pan', or 'Send A'/'Send B'/..."),
+    points: string$1().optional().describe([ "comma- or newline-separated '<bar|beat>:<value>' pairs, value 0..1.", "'1|1' = clip start. Times must be ascending.", "Example: '1|1:0, 9|1:1, 17|1:0.25'" ].join("\n")),
+    shape: _enum$2([ "linear", "exponential", "logarithmic", "sine", "s-curve", "step" ]).optional().describe("interpolation between points (default linear). step = hold each value until the next point"),
+    recipe: _enum$2([ "filter-sweep-up", "filter-sweep-down", "volume-fade-in", "volume-fade-out", "dub-throw", "sidechain-pump", "tape-stop", "washout" ]).optional().describe("named move generating points over the clip's play region (overrides points). filter-sweep-up/down + tape-stop require devicePath + paramName. volume-fade-in/out + sidechain-pump default to mixer Volume. dub-throw + washout default to Send A"),
+    clear: boolean().optional().describe("on write: wipe this parameter's existing envelope first (default false)")
+  }
+});
+
 const MAX_SPLIT_POINTS = 32;
 
 const MONITORING_STATE = {
@@ -30291,7 +30311,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefMicrosectionMute, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefMicrosectionMute, toolDefAutomate, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
 
 Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 
