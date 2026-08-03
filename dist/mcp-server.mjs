@@ -742,9 +742,9 @@ import { createSocket } from "node:dgram";
 import os from "node:os";
 
 const BUILD_INFO = {
-  branch: "gabriel/adj-automate-envelopes",
-  sha: "a94ae19d",
-  buildTime: "2026-08-03T00:20:14.164Z"
+  branch: "main",
+  sha: "397b4112",
+  buildTime: "2026-08-02T18:56:33.916Z"
 };
 
 function buildIdentifier() {
@@ -23469,15 +23469,15 @@ function requirePow() {
   return pow;
 }
 
-var round$1;
+var round;
 
 var hasRequiredRound;
 
 function requireRound() {
-  if (hasRequiredRound) return round$1;
+  if (hasRequiredRound) return round;
   hasRequiredRound = 1;
-  round$1 = Math.round;
-  return round$1;
+  round = Math.round;
+  return round;
 }
 
 var _isNaN;
@@ -30906,15 +30906,6 @@ function errorMessage(err) {
 
 const MAX_ERROR_DELIMITER = "$$___MAX_ERRORS___$$";
 
-function formatSuccessResponse(result) {
-  return {
-    content: [ {
-      type: "text",
-      text: typeof result === "string" ? result : JSON.stringify(result)
-    } ]
-  };
-}
-
 function formatErrorResponse(errorMessage) {
   return {
     content: [ {
@@ -30933,17 +30924,11 @@ const DEFAULT_BROWSE_TIMEOUT_MS = 1e4;
 
 const DEFAULT_LOAD_TIMEOUT_MS = 3e4;
 
-const DEFAULT_AUTOMATION_WRITE_TIMEOUT_MS = 15e3;
-
-const DEFAULT_AUTOMATION_TIMEOUT_MS = 1e4;
-
 const DEFAULT_PING_TIMEOUT_MS = 1500;
 
 const PING_FRESHNESS_MS = 3e4;
 
 const CLIENT_CLOSED_MESSAGE = "client closed";
-
-const INSTALL_HINT = "Bridge unavailable. Run `npm run install:bridge`, then restart Live and enable AbletonDjMcp under Preferences → Link/Tempo/MIDI → Control Surface.";
 
 class BrowserBridgeClient {
   host;
@@ -30981,21 +30966,6 @@ class BrowserBridgeClient {
   }
   async loadItem(args, timeoutMs = DEFAULT_LOAD_TIMEOUT_MS) {
     return await this.send("load_item", {
-      ...args
-    }, timeoutMs);
-  }
-  async automationWrite(args, timeoutMs = DEFAULT_AUTOMATION_WRITE_TIMEOUT_MS) {
-    return await this.send("automation_write", {
-      ...args
-    }, timeoutMs);
-  }
-  async automationRead(args, timeoutMs = DEFAULT_AUTOMATION_TIMEOUT_MS) {
-    return await this.send("automation_read", {
-      ...args
-    }, timeoutMs);
-  }
-  async automationClear(args, timeoutMs = DEFAULT_AUTOMATION_TIMEOUT_MS) {
-    return await this.send("automation_clear", {
       ...args
     }, timeoutMs);
   }
@@ -31137,605 +31107,12 @@ class BridgeCallError extends Error {
   }
 }
 
-function beatsToBarBeat(beats, beatsPerBar) {
-  const bar = Math.floor(beats / beatsPerBar) + 1;
-  const beat = beats % beatsPerBar + 1;
-  const beatFormatted = beat % 1 === 0 ? beat.toString() : beat.toFixed(3).replace(/\.?0+$/, "");
-  return `${bar}|${beatFormatted}`;
-}
-
-function barBeatToBeats(barBeat, beatsPerBar) {
-  const match = barBeat.match(/^(-?\d+)\|((-?\d+)(?:\+\d+\/\d+|\.\d+|\/\d+)?)$/);
-  if (!match) {
-    throw new Error(`Invalid bar|beat format: "${barBeat}". Expected "{int}|{float}" like "1|2" or "2|3.5" or "{int}|{int}/{int}" like "1|4/3" or "{int}|{int}+{int}/{int}" like "1|2+1/3"`);
-  }
-  const bar = Number.parseInt(match[1]);
-  const beatStr = match[2];
-  const beat = parseBeatValue(beatStr, barBeat, "bar|beat");
-  if (bar < 1) {
-    throw new Error(`Bar number must be 1 or greater, got: ${bar}`);
-  }
-  if (beat < 1) {
-    throw new Error(`Beat must be 1 or greater, got: ${beat}`);
-  }
-  return (bar - 1) * beatsPerBar + (beat - 1);
-}
-
-function timeSigToAbletonBeatsPerBar(timeSigNumerator, timeSigDenominator) {
-  return timeSigNumerator * 4 / timeSigDenominator;
-}
-
-function abletonBeatsToBarBeat(abletonBeats, timeSigNumerator, timeSigDenominator) {
-  const musicalBeatsPerBar = timeSigNumerator;
-  const musicalBeats = abletonBeats * (timeSigDenominator / 4);
-  return beatsToBarBeat(musicalBeats, musicalBeatsPerBar);
-}
-
-function barBeatToAbletonBeats(barBeat, timeSigNumerator, timeSigDenominator) {
-  const musicalBeatsPerBar = timeSigNumerator;
-  const musicalBeats = barBeatToBeats(barBeat, musicalBeatsPerBar);
-  return musicalBeats * (4 / timeSigDenominator);
-}
-
-function parseBeatValue(beatsStr, context, formatType = "duration") {
-  if (beatsStr.includes("+")) {
-    const plusParts = beatsStr.split("+");
-    const intPart = plusParts[0];
-    const fracPart = plusParts[1];
-    const num = Number.parseInt(intPart);
-    if (Number.isNaN(num)) {
-      throw new Error(`Invalid ${formatType} format: "${context}"`);
-    }
-    const slashParts = fracPart.split("/");
-    const numerator = slashParts[0];
-    const denominator = slashParts[1];
-    const fracNum = Number.parseInt(numerator);
-    const fracDen = Number.parseInt(denominator);
-    if (fracDen === 0) {
-      throw new Error(`Invalid ${formatType} format: division by zero in "${context}"`);
-    }
-    if (Number.isNaN(fracNum) || Number.isNaN(fracDen)) {
-      throw new Error(`Invalid ${formatType} format: "${context}"`);
-    }
-    return num + fracNum / fracDen;
-  }
-  if (beatsStr.includes("/")) {
-    const parts = beatsStr.split("/");
-    const numerator = parts[0];
-    const denominator = parts[1];
-    const num = Number.parseInt(numerator);
-    const den = Number.parseInt(denominator);
-    if (den === 0) {
-      throw new Error(`Invalid ${formatType} format: division by zero in "${context}"`);
-    }
-    if (Number.isNaN(num) || Number.isNaN(den)) {
-      throw new Error(`Invalid ${formatType} format: "${context}"`);
-    }
-    return num / den;
-  }
-  const beats = Number.parseFloat(beatsStr);
-  if (Number.isNaN(beats)) {
-    throw new Error(`Invalid ${formatType} format: "${context}"`);
-  }
-  return beats;
-}
-
-function parseDevicePathSegments(path) {
-  const segments = path.split("/").filter(segment => segment.length > 0);
-  const [head, ...rest] = segments;
-  if (head == null) {
-    throw new Error("devicePath must be a non-empty string");
-  }
-  const trackIndex = parseTrackHead(head, path);
-  if (rest.length === 0) {
-    throw new Error(`devicePath must include a device index: "${path}"`);
-  }
-  const chain = rest.map(segment => parseChainSegment(segment, path));
-  const tail = chain.at(-1);
-  if (tail?.type !== "d") {
-    throw new Error(`devicePath must end on a device segment (d<N>): "${path}"`);
-  }
-  return {
-    trackIndex: trackIndex,
-    chain: chain
-  };
-}
-
-function parseTrackHead(head, path) {
-  if (head === "mt" || head.startsWith("rt")) {
-    throw new Error(`devicePath must target a regular track (t<N>) — clips don't exist on return/master tracks: "${path}"`);
-  }
-  const match = /^t(\d+)$/.exec(head);
-  if (!match) {
-    throw new Error(`invalid track segment in devicePath: "${path}"`);
-  }
-  return Number.parseInt(match[1]);
-}
-
-function parseChainSegment(segment, path) {
-  const match = /^(rc|c|d)(\d+)$/.exec(segment);
-  if (!match) {
-    if (segment.startsWith("p")) {
-      throw new Error(`drum-pad segments are not supported in adj-automate devicePath: "${path}"`);
-    }
-    throw new Error(`invalid segment "${segment}" in devicePath: "${path}"`);
-  }
-  return {
-    type: match[1],
-    index: Number.parseInt(match[2])
-  };
-}
-
-const MAX_AUTOMATION_POINTS = 512;
-
-const STEPS_PER_SEGMENT = 16;
-
-function ease(shape, t) {
-  switch (shape) {
-   case "linear":
-    {
-      return t;
-    }
-
-   case "exponential":
-    {
-      return t * t;
-    }
-
-   case "logarithmic":
-    {
-      return 1 - (1 - t) * (1 - t);
-    }
-
-   case "sine":
-    {
-      return (1 - Math.cos(Math.PI * t)) / 2;
-    }
-
-   case "s-curve":
-    {
-      return t * t * (3 - 2 * t);
-    }
-
-   case "step":
-    {
-      return t < 1 ? 0 : 1;
-    }
-  }
-}
-
-function densify(anchors, shape) {
-  if (anchors.length < 2 || shape === "step") return [ ...anchors ];
-  const points = [];
-  for (let i = 0; i < anchors.length - 1; i++) {
-    const [t0, v0] = anchors[i];
-    const [t1, v1] = anchors[i + 1];
-    for (let step = 0; step < STEPS_PER_SEGMENT; step++) {
-      const progress = step / STEPS_PER_SEGMENT;
-      points.push([ t0 + (t1 - t0) * progress, v0 + (v1 - v0) * ease(shape, progress) ]);
-    }
-  }
-  const last = anchors.at(-1);
-  points.push([ ...last ]);
-  if (points.length <= MAX_AUTOMATION_POINTS) return points;
-  return downsample(points, MAX_AUTOMATION_POINTS);
-}
-
-function downsample(points, maxPoints) {
-  const stride = (points.length - 1) / (maxPoints - 1);
-  const out = [];
-  for (let i = 0; i < maxPoints; i++) {
-    out.push(points[Math.round(i * stride)]);
-  }
-  return out;
-}
-
-const POINT_PATTERN = /^(\S+)\s*:\s*([\d.]+)$/;
-
-function parsePoints(input) {
-  const entries = input.split(/[\n,]/).map(entry => entry.trim()).filter(entry => entry.length > 0);
-  if (entries.length === 0) {
-    throw new Error("points is empty — expected '<bar|beat>:<value>' pairs");
-  }
-  if (entries.length > MAX_AUTOMATION_POINTS) {
-    throw new Error(`too many points: ${entries.length} (max ${MAX_AUTOMATION_POINTS})`);
-  }
-  return entries.map(entry => parseEntry(entry));
-}
-
-function parseEntry(entry) {
-  const match = POINT_PATTERN.exec(entry);
-  if (!match) {
-    throw new Error(`invalid point "${entry}" — expected '<bar|beat>:<value>' like '1|1:0.5'`);
-  }
-  const barBeat = match[1];
-  const value = Number.parseFloat(match[2]);
-  if (!barBeat.includes("|")) {
-    throw new Error(`invalid point "${entry}" — position must be bar|beat like '9|1'`);
-  }
-  if (Number.isNaN(value) || value < 0 || value > 1) {
-    throw new Error(`invalid point "${entry}" — value must be between 0 and 1`);
-  }
-  return {
-    barBeat: barBeat,
-    value: value
-  };
-}
-
-const EXPLICIT = "explicit";
-
-const MIXER_VOLUME = "mixer-volume";
-
-const SEND_A = "send-a";
-
-const RECIPE_TARGET_RULES = {
-  "filter-sweep-up": EXPLICIT,
-  "filter-sweep-down": EXPLICIT,
-  "volume-fade-in": MIXER_VOLUME,
-  "volume-fade-out": MIXER_VOLUME,
-  "dub-throw": SEND_A,
-  "sidechain-pump": MIXER_VOLUME,
-  "tape-stop": EXPLICIT,
-  washout: SEND_A
-};
-
-const PUMP_DIP_VALUE = .3;
-
-const PUMP_RECOVER_BEATS = .5;
-
-function generateRecipePoints(recipe, regionStartBeats, regionEndBeats, abletonBeatsPerBar) {
-  const length = regionEndBeats - regionStartBeats;
-  if (length <= 0) {
-    throw new Error(`recipe "${recipe}" needs a non-empty clip play region (got ${length} beats)`);
-  }
-  switch (recipe) {
-   case "filter-sweep-up":
-    {
-      return ramp(regionStartBeats, regionEndBeats, 0, 1);
-    }
-
-   case "volume-fade-in":
-    {
-      return ramp(regionStartBeats, regionEndBeats, 0, 1);
-    }
-
-   case "filter-sweep-down":
-    {
-      return ramp(regionStartBeats, regionEndBeats, 1, 0);
-    }
-
-   case "volume-fade-out":
-    {
-      return ramp(regionStartBeats, regionEndBeats, 1, 0);
-    }
-
-   case "dub-throw":
-    {
-      return dubThrow(regionStartBeats, regionEndBeats, abletonBeatsPerBar);
-    }
-
-   case "sidechain-pump":
-    {
-      return sidechainPump(regionStartBeats, regionEndBeats);
-    }
-
-   case "tape-stop":
-    {
-      return tapeStop(regionStartBeats, regionEndBeats, abletonBeatsPerBar);
-    }
-
-   case "washout":
-    {
-      return washout(regionStartBeats, regionEndBeats, abletonBeatsPerBar);
-    }
-  }
-}
-
-function ramp(start, end, from, to) {
-  return densify([ [ start, from ], [ end, to ] ], "linear");
-}
-
-function dubThrow(start, end, beatsPerBar) {
-  const mid = start + (end - start) / 2;
-  const attackStart = Math.max(start, mid - 1);
-  const decayEnd = Math.min(end, mid + beatsPerBar * 2);
-  const anchors = [ [ start, 0 ] ];
-  if (attackStart > start) anchors.push([ attackStart, 0 ]);
-  anchors.push([ mid, 1 ]);
-  const decay = densify([ [ mid, 1 ], [ decayEnd, 0 ] ], "logarithmic");
-  anchors.push(...decay.slice(1));
-  if (decayEnd < end) anchors.push([ end, 0 ]);
-  return anchors;
-}
-
-function sidechainPump(start, end) {
-  const points = [];
-  for (let beat = start; beat < end && points.length < MAX_AUTOMATION_POINTS - 2; beat += 1) {
-    points.push([ beat, PUMP_DIP_VALUE ]);
-    const recover = beat + PUMP_RECOVER_BEATS;
-    if (recover < end) points.push([ recover, 1 ]);
-  }
-  points.push([ end, 1 ]);
-  return points;
-}
-
-function tapeStop(start, end, beatsPerBar) {
-  const dropStart = Math.max(start, end - beatsPerBar);
-  const anchors = [];
-  if (dropStart > start) anchors.push([ start, 1 ]);
-  return [ ...anchors, ...densify([ [ dropStart, 1 ], [ end, 0 ] ], "exponential") ];
-}
-
-function washout(start, end, beatsPerBar) {
-  const riseStart = Math.max(start, end - beatsPerBar * 2);
-  const anchors = [];
-  if (riseStart > start) anchors.push([ start, 0 ]);
-  return [ ...anchors, ...densify([ [ riseStart, 0 ], [ end, 1 ] ], "s-curve") ];
-}
-
-function parseToolPayload(response) {
-  const text = extractText(response);
-  try {
-    return JSON.parse(text);
-  } catch {
-    return JSON.parse(quoteCompactLiteralKeys(text));
-  }
-}
-
-function extractText(response) {
-  const item = response.content.at(-1);
-  if (item?.type !== "text") {
-    throw new Error("unexpected tool response shape");
-  }
-  return item.text;
-}
-
-function quoteCompactLiteralKeys(text) {
-  let out = "";
-  let inString = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      out += ch;
-      if (ch === "\\") {
-        out += text[++i] ?? "";
-      } else if (ch === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (ch === '"') {
-      inString = true;
-      out += ch;
-      continue;
-    }
-    out += ch;
-    if (ch === "{" || ch === ",") {
-      const key = /^[A-Za-z_$][\w$]*(?=:)/.exec(text.slice(i + 1));
-      if (key) {
-        out += `"${key[0]}"`;
-        i += key[0].length;
-      }
-    }
-  }
-  return out;
-}
-
-const STALE_BRIDGE_HINT = "Bridge is outdated and missing the automation ops. Rerun `npm run install:bridge`, restart Live, and re-enable the control surface.";
-
-async function handleAutomate(bridge, next, args) {
-  const action = args.action ?? "write";
-  if (!await bridge.ensureAlive()) {
-    return formatErrorResponse(INSTALL_HINT);
-  }
-  try {
-    const clipInfo = await resolveClipInfo(next, args);
-    if (isErrorResponse(clipInfo)) return clipInfo;
-    return await runAction(bridge, action, args, clipInfo);
-  } catch (err) {
-    return formatErrorResponse(formatAutomateError(err));
-  }
-}
-
-function isErrorResponse(value) {
-  return "content" in value;
-}
-
-async function runAction(bridge, action, args, clipInfo) {
-  if (action === "clear-all") {
-    return formatSuccessResponse(await bridge.automationClear({
-      clip: clipInfo.ref
-    }));
-  }
-  const target = resolveTarget(args, clipInfo);
-  if (action === "clear") {
-    return formatSuccessResponse(await bridge.automationClear({
-      clip: clipInfo.ref,
-      target: target
-    }));
-  }
-  if (action === "read") {
-    const result = await bridge.automationRead({
-      clip: clipInfo.ref,
-      target: target
-    });
-    return formatSuccessResponse({
-      ...result,
-      points: result.points.map(([timeBeats, value]) => `${abletonBeatsToBarBeat(timeBeats, clipInfo.timeSigNumerator, clipInfo.timeSigDenominator)}:${round(value)}`)
-    });
-  }
-  const points = buildWritePoints(args, clipInfo);
-  return formatSuccessResponse(await bridge.automationWrite({
-    clip: clipInfo.ref,
-    target: target,
-    points: points,
-    clearFirst: args.clear === true
-  }));
-}
-
-async function resolveClipInfo(next, args) {
-  if (args.clipId == null && args.slot == null) {
-    throw new Error("either clipId or slot is required");
-  }
-  const readArgs = {
-    include: [ "timing" ]
-  };
-  if (args.clipId != null) readArgs.clipId = args.clipId; else readArgs.slot = args.slot;
-  const response = await next("adj-read-clip", readArgs);
-  if (response.isError) return response;
-  const payload = parseToolPayload(response);
-  if (payload.id == null) {
-    throw new Error(`no clip at slot ${args.slot}`);
-  }
-  const [timeSigNumerator, timeSigDenominator] = parseTimeSignature(payload.timeSignature);
-  const ref = await resolveClipRef(next, payload);
-  return {
-    ref: ref,
-    timeSigNumerator: timeSigNumerator,
-    timeSigDenominator: timeSigDenominator,
-    startBeats: barBeatToAbletonBeats(payload.start ?? "1|1", timeSigNumerator, timeSigDenominator),
-    endBeats: barBeatToAbletonBeats(payload.end ?? "1|1", timeSigNumerator, timeSigDenominator)
-  };
-}
-
-async function resolveClipRef(next, payload) {
-  if (payload.view === "arrangement") {
-    if (payload.trackIndex == null || payload.arrangementStart == null) {
-      throw new Error("arrangement clip is missing location properties");
-    }
-    const liveSetResponse = await next("adj-read-live-set", {});
-    if (liveSetResponse.isError) {
-      throw new Error(extractText(liveSetResponse));
-    }
-    const liveSet = parseToolPayload(liveSetResponse);
-    const [songNumerator, songDenominator] = parseTimeSignature(liveSet.timeSignature);
-    return {
-      trackIndex: payload.trackIndex,
-      arrangementStartBeats: barBeatToAbletonBeats(payload.arrangementStart, songNumerator, songDenominator)
-    };
-  }
-  if (payload.slot == null) {
-    throw new Error("session clip is missing its slot");
-  }
-  const [trackIndex, sceneIndex] = payload.slot.split("/").map(part => Number.parseInt(part));
-  if (trackIndex == null || sceneIndex == null || Number.isNaN(trackIndex) || Number.isNaN(sceneIndex)) {
-    throw new Error(`could not parse clip slot "${payload.slot}"`);
-  }
-  return {
-    trackIndex: trackIndex,
-    sceneIndex: sceneIndex
-  };
-}
-
-function resolveTarget(args, clipInfo) {
-  if (args.devicePath != null) {
-    if (!args.paramName) {
-      throw new Error("paramName is required when devicePath is set");
-    }
-    const segments = parseDevicePathSegments(args.devicePath);
-    if (segments.trackIndex !== clipInfo.ref.trackIndex) {
-      throw new Error(`devicePath track t${segments.trackIndex} does not match the clip's track t${clipInfo.ref.trackIndex}`);
-    }
-    return {
-      kind: "device",
-      chain: segments.chain,
-      paramName: args.paramName
-    };
-  }
-  if (args.paramName) return parseMixerParamName(args.paramName);
-  return defaultTargetForRecipe(args.recipe);
-}
-
-function parseMixerParamName(paramName) {
-  const name = paramName.trim().toLowerCase();
-  if (name === "volume") return {
-    kind: "mixer",
-    param: "volume"
-  };
-  if (name === "pan" || name === "panning") {
-    return {
-      kind: "mixer",
-      param: "panning"
-    };
-  }
-  const sendMatch = /^send\s+([a-l])$/.exec(name);
-  if (sendMatch) {
-    const letter = sendMatch[1];
-    return {
-      kind: "mixer",
-      param: "send",
-      sendIndex: letter.charCodeAt(0) - "a".charCodeAt(0)
-    };
-  }
-  throw new Error(`unknown mixer param "${paramName}" — use 'Volume', 'Pan', or 'Send A'..'Send L', or set devicePath for device params`);
-}
-
-function defaultTargetForRecipe(recipe) {
-  const rule = recipe == null ? void 0 : RECIPE_TARGET_RULES[recipe];
-  if (rule === "mixer-volume") return {
-    kind: "mixer",
-    param: "volume"
-  };
-  if (rule === "send-a") return {
-    kind: "mixer",
-    param: "send",
-    sendIndex: 0
-  };
-  if (rule === "explicit") {
-    throw new Error(`recipe "${recipe}" requires an explicit devicePath + paramName (it never guesses which parameter to sweep)`);
-  }
-  throw new Error("paramName is required (or devicePath + paramName)");
-}
-
-function buildWritePoints(args, clipInfo) {
-  if (args.recipe != null) {
-    return generateRecipePoints(args.recipe, clipInfo.startBeats, clipInfo.endBeats, timeSigToAbletonBeatsPerBar(clipInfo.timeSigNumerator, clipInfo.timeSigDenominator));
-  }
-  if (args.points == null) {
-    throw new Error("points (or recipe) is required for write");
-  }
-  const anchors = parsePoints(args.points).map(({barBeat: barBeat, value: value}) => [ barBeatToAbletonBeats(barBeat, clipInfo.timeSigNumerator, clipInfo.timeSigDenominator), value ]);
-  for (let i = 1; i < anchors.length; i++) {
-    const current = anchors[i];
-    const previous = anchors[i - 1];
-    if (current[0] <= previous[0]) {
-      throw new Error("points must be in ascending bar|beat order");
-    }
-  }
-  return densify(anchors, args.shape ?? "linear");
-}
-
-function parseTimeSignature(timeSignature) {
-  if (timeSignature == null) return [ 4, 4 ];
-  const match = /^(\d+)\/(\d+)$/.exec(timeSignature);
-  if (!match) {
-    throw new Error(`could not parse time signature "${timeSignature}"`);
-  }
-  return [ Number.parseInt(match[1]), Number.parseInt(match[2]) ];
-}
-
-function formatAutomateError(err) {
-  if (err instanceof BridgeCallError) {
-    if (err.code === "INVALID_ARGS" && err.message.includes("unknown op")) {
-      return STALE_BRIDGE_HINT;
-    }
-    return `Bridge automation failed [${err.code}]: ${err.message}`;
-  }
-  if (err instanceof Error) return `automate failed: ${err.message}`;
-  return `automate failed: ${String(err)}`;
-}
-
-function round(value) {
-  return Math.round(value * 1e3) / 1e3;
-}
+const INSTALL_HINT = "Bridge unavailable. Run `npm run install:bridge`, then restart Live and enable AbletonDjMcp under Preferences → Link/Tempo/MIDI → Control Surface.";
 
 function makeBridgeDispatcher(next, bridge) {
   return async (tool, args) => {
     if (tool === "adj-browse") {
       return await handleBrowse(bridge, args);
-    }
-    if (tool === "adj-automate") {
-      return await handleAutomate(bridge, next, args);
     }
     if (tool === "adj-create-device") {
       const cdArgs = args;
@@ -52361,26 +51738,6 @@ const toolDefBrowse = defineTool("adj-browse", {
   }
 });
 
-const toolDefAutomate = defineTool("adj-automate", {
-  title: "Automate",
-  description: "Write, read, or clear parameter automation envelopes inside a clip (session or arrangement). Values are normalized 0..1 across the parameter's range. Requires the Live Browser Bridge — install with `npm run install:bridge`.",
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: true
-  },
-  inputSchema: {
-    action: _enum$2([ "write", "read", "clear", "clear-all" ]).optional().describe("write = insert envelope points (default). read = sample existing envelope. clear = wipe one parameter's envelope. clear-all = wipe every envelope on the clip"),
-    clipId: string().optional().describe("provide this or slot"),
-    slot: string().optional().describe("session clip slot: trackIndex/sceneIndex (e.g., '0/3'). provide this or clipId"),
-    devicePath: string$1().optional().describe("device to automate, e.g. 't0/d1' or 't0/d0/c1/d0' for rack chains. Must be on the clip's track. Omit for track mixer params"),
-    paramName: string$1().optional().describe("parameter name as shown in Live (case-insensitive). Mixer params (no devicePath): 'Volume', 'Pan', or 'Send A'/'Send B'/..."),
-    points: string$1().optional().describe([ "comma- or newline-separated '<bar|beat>:<value>' pairs, value 0..1.", "'1|1' = clip start. Times must be ascending.", "Example: '1|1:0, 9|1:1, 17|1:0.25'" ].join("\n")),
-    shape: _enum$2([ "linear", "exponential", "logarithmic", "sine", "s-curve", "step" ]).optional().describe("interpolation between points (default linear). step = hold each value until the next point"),
-    recipe: _enum$2([ "filter-sweep-up", "filter-sweep-down", "volume-fade-in", "volume-fade-out", "dub-throw", "sidechain-pump", "tape-stop", "washout" ]).optional().describe("named move generating points over the clip's play region (overrides points). filter-sweep-up/down + tape-stop require devicePath + paramName. volume-fade-in/out + sidechain-pump default to mixer Volume. dub-throw + washout default to Send A"),
-    clear: boolean().optional().describe("on write: wipe this parameter's existing envelope first (default false)")
-  }
-});
-
 const MAX_SPLIT_POINTS = 32;
 
 const MONITORING_STATE = {
@@ -52984,7 +52341,7 @@ const toolDefContext = defineTool("adj-context", {
   }
 });
 
-const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefMicrosectionMute, toolDefAutomate, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
+const STANDARD_TOOL_DEFS = [ toolDefConnect, toolDefContext, toolDefReadLiveSet, toolDefUpdateLiveSet, toolDefReadTrack, toolDefCreateTrack, toolDefUpdateTrack, toolDefReadScene, toolDefCreateScene, toolDefUpdateScene, toolDefReadClip, toolDefCreateClip, toolDefUpdateClip, toolDefMicrosectionMute, toolDefReadDevice, toolDefCreateDevice, toolDefUpdateDevice, toolDefDelete, toolDefDuplicate, toolDefSelect, toolDefPlayback, toolDefGenerate, toolDefBrowse ];
 
 const TOOL_NAMES = Object.freeze(STANDARD_TOOL_DEFS.map(td => td.toolName));
 
