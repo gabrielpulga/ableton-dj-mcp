@@ -1,6 +1,6 @@
 # Tools Reference
 
-Canonical catalog of all 23 `adj-*` tools. Other docs link here instead of
+Canonical catalog of all 24 `adj-*` tools. Other docs link here instead of
 duplicating. Read the `.def.ts` files for the full Zod schemas.
 
 ---
@@ -117,6 +117,52 @@ Update existing clip content or properties.
   `pitchFine` cents), `legato`, `muted`, `ramMode`, `velocityAmount` (MIDI)
 - `duplicateLoop: true` doubles the clip's loop length in-place
 - Transform expressions: `velocity *= 0.8`, `pitch += 12`
+
+### `adj-microsection-mute`
+
+Silence pitches in bar ranges via velocity=0 transforms. Encodes a
+4-microsection arc (intro/lift/peak/resolution) without per-element transform
+calls.
+
+- `clipIds` — comma-separated clip ID(s)
+- `microsections` — multi-line mute map:
+  `'<barStart>-<barEnd>: <pitch1>, <pitch2>, ...'` per line; `all` mutes the
+  whole clip across the range; an empty list means nothing muted
+
+### `adj-automate`
+
+Write, read, or clear parameter automation envelopes inside a session clip.
+Arrangement clips are rejected — Live's envelope API raises "Not a session clip"
+even from Python. Values are normalized 0..1 across the parameter's range.
+Requires the Live Browser Bridge (`npm run install:bridge`) — the clip envelope
+API is Python-only (see
+`docs/findings/dev/device/clip-envelope-api-python-only.md`).
+
+- `action`: `"write"` (default) | `"read"` | `"clear"` | `"clear-all"`
+- `clipId` or `slot` — target clip
+- `devicePath` — device to automate (`"t0/d1"`, rack chains like
+  `"t0/d0/c1/d0"`); must be on the clip's track. Omit for mixer params
+- `paramName` — parameter name as shown in Live (case-insensitive). Mixer
+  params: `"Volume"`, `"Pan"`, `"Send A"`..`"Send L"`
+- `points` — `'<bar|beat>:<value>'` pairs, comma- or newline-separated
+  (`"1|1:0, 9|1:1"`); `"1|1"` = clip start; times ascending
+- `shape` — interpolation between points: `linear` (default), `exponential`,
+  `logarithmic`, `sine`, `s-curve`, `step` (hold values)
+- `recipe` — named move generating points over the clip's play region (overrides
+  `points`)
+- `clear` — on write, wipe the parameter's existing envelope first
+- Reads sample the envelope on a 0.25-beat grid (Live exposes no breakpoint
+  list) and return `'<bar|beat>:<value>'` strings
+
+Recipe targets:
+
+| Recipe                                 | Default target                  |
+| -------------------------------------- | ------------------------------- |
+| `filter-sweep-up`, `filter-sweep-down` | requires devicePath + paramName |
+| `tape-stop`                            | requires devicePath + paramName |
+| `volume-fade-in`, `volume-fade-out`    | mixer Volume                    |
+| `sidechain-pump`                       | mixer Volume                    |
+| `dub-throw`, `washout`                 | Send A                          |
 
 ---
 

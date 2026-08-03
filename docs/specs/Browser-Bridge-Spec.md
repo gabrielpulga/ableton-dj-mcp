@@ -78,7 +78,8 @@ JSON, UTF-8.
 ```json
 {
   "id": "req_<uuid4>",
-  "op": "browse" | "load_item" | "ping" | "shutdown",
+  "op": "browse" | "load_item" | "ping" | "shutdown"
+      | "automation_write" | "automation_read" | "automation_clear",
   "args": { ... }
 }
 ```
@@ -99,8 +100,8 @@ JSON, UTF-8.
   "ok": false,
   "error": {
     "code": "BRIDGE_NOT_FOUND" | "MAIN_THREAD_ERROR"
-          | "BROWSER_API_FAILED" | "INVALID_ARGS"
-          | "TIMEOUT_INTERNAL",
+          | "BROWSER_API_FAILED" | "AUTOMATION_FAILED"
+          | "INVALID_ARGS" | "TIMEOUT_INTERNAL",
     "message": "<human-readable>"
   }
 }
@@ -173,6 +174,49 @@ Result:
 
 `deviceId` resolution: bridge captures the track's `devices` list before and
 after `load_item`, returns the new id.
+
+#### `automation_write` / `automation_read` / `automation_clear` (issue #25, bridge ≥ 0.2.0)
+
+Clip automation-envelope ops. `Clip.automation_envelope`,
+`Clip.create_automation_envelope`, `AutomationEnvelope.insert_step`, and
+`AutomationEnvelope.value_at_time` are Python-only (absent from the M4L LOM
+whitelist — see
+[`docs/findings/dev/device/clip-envelope-api-python-only.md`](../findings/dev/device/clip-envelope-api-python-only.md)),
+so `adj-automate` forwards here. Implemented in
+`live_browser_bridge/automation_ops.py`.
+
+Shared arg shapes (all beat values are Ableton beats relative to clip time 0):
+
+```json
+"clip":   {"trackIndex": 0, "sceneIndex": 3}
+          | {"trackIndex": 0, "arrangementStartBeats": 64.0}
+"target": {"kind": "device", "chain": [{"type": "d"|"c"|"rc", "index": 0}],
+           "paramName": "Frequency"}
+          | {"kind": "mixer", "param": "volume"|"panning"|"send", "sendIndex": 0}
+```
+
+- `automation_write` args
+  `{clip, target, points: [[beats, value01], ...], clearFirst}` →
+  `{pointCount, paramName, paramMin, paramMax, envelopeCreated, clipLengthBeats}`.
+  One datagram carries all points (the main thread drains 8 requests per ~100 ms
+  tick); the Node side caps writes at 512 points. Values are normalized 0..1 and
+  denormalized onto `param.min..param.max` Python-side before `insert_step`
+  (native range verified live: normalized 0.25 on pan reads back as −0.5). Steps
+  are written contiguous — duration = gap to the next point — because a
+  zero-length `insert_step` is a silent no-op. Session clips only: Live raises
+  `RuntimeError: Not a session clip` for arrangement clips, so the Node side
+  rejects them before reaching the bridge.
+- `automation_read` args `{clip, target, stepBeats?, maxPoints?}` →
+  `{hasEnvelope, sampled, stepBeats, points, paramMin, paramMax, clipLengthBeats}`.
+  Live has no breakpoint-enumeration API, so reads sample `value_at_time` on a
+  0.25-beat grid, capped at 257 points. A missing envelope is
+  `hasEnvelope: false`, not an error.
+- `automation_clear` args `{clip, target?}` → `{cleared: "param" | "all"}`
+  (`clear_envelope(param)` / `clear_all_envelopes()`).
+
+Resolution/envelope failures use error code `AUTOMATION_FAILED`. An old bridge
+replies `INVALID_ARGS: unknown op: automation_*`; the Node side maps that to a
+"rerun `npm run install:bridge`" hint.
 
 ---
 

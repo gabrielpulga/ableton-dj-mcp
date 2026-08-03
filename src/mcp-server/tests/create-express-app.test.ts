@@ -120,6 +120,7 @@ describe("MCP Express App", () => {
         "adj-create-clip",
         "adj-update-clip",
         "adj-microsection-mute",
+        "adj-automate",
         "adj-read-device",
         "adj-create-device",
         "adj-update-device",

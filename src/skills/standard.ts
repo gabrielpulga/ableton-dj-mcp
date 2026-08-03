@@ -187,6 +187,8 @@ ${productionTechniquesSkills}
 
 **Locators:** Use adj-update-live-set to create/rename/delete locators at bar|beat positions. Use locator names with adj-playback to start or loop from named positions.
 
+**Automation:** Use adj-automate to write parameter envelopes inside a clip (requires the Live Browser Bridge). Points are \`bar|beat:value\` pairs with values normalized 0..1 (e.g. \`points: "1|1:0, 9|1:1"\` sweeps over 8 bars). Target a device param via \`devicePath\` + \`paramName\`, or omit \`devicePath\` for mixer params (Volume, Pan, Send A..L). Shapes: linear, exponential, logarithmic, sine, s-curve, step. Recipes generate the points for common moves — see Production Techniques.
+
 ### Device Paths
 
 Slash-separated segments: \`t\`=track, \`rt\`=return, \`mt\`=master, \`d\`=device, \`c\`=chain, \`rc\`=return chain, \`p\`=drum pad

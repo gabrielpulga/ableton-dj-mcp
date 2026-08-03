@@ -31,6 +31,16 @@ export const productionTechniquesSkills = `
 - **Four-layer bass architecture (melodic techno)**: Sub/low layer (long notes), top/mid layer (same rhythm, shorter notes), acid layer (16ths, sections only), breakdown layer (sustained chords).
 - **Breakdown bass**: Same chord progression as peak, but long sustained notes (t8, t16) instead of rhythm. Maximum tension from a single held note.
 
+### Automation (adj-automate recipes)
+
+- **filter-sweep-up / filter-sweep-down**: Cutoff ramp across the clip. Requires explicit devicePath + paramName (e.g. Auto Filter "Frequency"). Sweep up into a drop, down for an outro.
+- **volume-fade-in / volume-fade-out**: Mixer Volume ramp over the clip (default target). Fades for intros/outros and transitions.
+- **dub-throw**: Send spike to 1.0 at the clip midpoint, decaying back — defaults to Send A (point it at a delay/reverb return). Classic dub delay throw on a vocal or stab.
+- **sidechain-pump**: Volume dips on every beat, recovering by the "and". Fake-sidechain pump for pads/bass without a compressor.
+- **tape-stop**: Accelerating ramp to zero over the final bar. Aim at a pitch or frequency param for the slow-down effect.
+- **washout**: Send ramp 0 → 1 over the final 2 bars (defaults to Send A). Drowns the loop in reverb/delay for a smooth section exit.
+- Custom moves: pass explicit \`points\` + \`shape\` instead of a recipe. Use \`clear: true\` to replace an existing envelope instead of stacking points onto it.
+
 ### Pads & Chords
 
 - **Always chords (3+ notes)** — never single notes for pads.

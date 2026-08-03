@@ -7,9 +7,11 @@
 // to the existing v8 LiveAPI dispatcher.
 
 import { formatErrorResponse } from "#src/shared/mcp-response-utils.ts";
+import { handleAutomate } from "#src/tools/clip/automate/automate-handler.ts";
 import {
   BridgeCallError,
   type BrowserBridgeClient,
+  INSTALL_HINT,
 } from "./browser-bridge-client.ts";
 import { type CallLiveApiFunction } from "./create-mcp-server.ts";
 import { type McpResponse } from "./max-api-adapter.ts";
@@ -30,10 +32,6 @@ interface CreateDeviceArgs {
   focus?: boolean;
 }
 
-const INSTALL_HINT =
-  "Bridge unavailable. Run `npm run install:bridge`, then restart Live and " +
-  "enable AbletonDjMcp under Preferences → Link/Tempo/MIDI → Control Surface.";
-
 /**
  * Wrap the v8 dispatcher with bridge-aware handling for browser tools.
  *
@@ -48,6 +46,10 @@ export function makeBridgeDispatcher(
   return async (tool: string, args: object): Promise<object> => {
     if (tool === "adj-browse") {
       return await handleBrowse(bridge, args);
+    }
+
+    if (tool === "adj-automate") {
+      return await handleAutomate(bridge, next, args);
     }
 
     if (tool === "adj-create-device") {

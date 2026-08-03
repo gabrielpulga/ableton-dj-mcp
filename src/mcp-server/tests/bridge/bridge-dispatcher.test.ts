@@ -11,6 +11,9 @@ interface FakeBridge {
   ensureAlive: ReturnType<typeof vi.fn>;
   browse: ReturnType<typeof vi.fn>;
   loadItem: ReturnType<typeof vi.fn>;
+  automationWrite: ReturnType<typeof vi.fn>;
+  automationRead: ReturnType<typeof vi.fn>;
+  automationClear: ReturnType<typeof vi.fn>;
 }
 
 function makeFakeBridge(overrides: Partial<FakeBridge> = {}): FakeBridge {
@@ -18,6 +21,9 @@ function makeFakeBridge(overrides: Partial<FakeBridge> = {}): FakeBridge {
     ensureAlive: overrides.ensureAlive ?? vi.fn().mockResolvedValue(true),
     browse: overrides.browse ?? vi.fn(),
     loadItem: overrides.loadItem ?? vi.fn(),
+    automationWrite: overrides.automationWrite ?? vi.fn(),
+    automationRead: overrides.automationRead ?? vi.fn(),
+    automationClear: overrides.automationClear ?? vi.fn(),
   };
 }
 
@@ -160,6 +166,48 @@ describe("makeBridgeDispatcher", () => {
       path: "t0",
     });
     expect(bridge.loadItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes adj-automate through the automation handler", async () => {
+    const bridge = makeFakeBridge({
+      automationClear: vi.fn().mockResolvedValue({ cleared: "all" }),
+    });
+    const next = vi.fn().mockResolvedValue({
+      content: [
+        {
+          type: "text",
+          text: '{"id":"id 5","view":"session","slot":"0/3","timeSignature":"4/4","start":"1|1","end":"9|1"}',
+        },
+      ],
+    });
+    const dispatch = makeBridgeDispatcher(next, asBridge(bridge));
+
+    const response = (await dispatch("adj-automate", {
+      action: "clear-all",
+      slot: "0/3",
+    })) as McpResponse;
+
+    const parsed = parseSuccess(response) as { cleared: string };
+
+    expect(parsed.cleared).toBe("all");
+    expect(next).toHaveBeenCalledWith("adj-read-clip", {
+      include: ["timing"],
+      slot: "0/3",
+    });
+  });
+
+  it("returns install hint for adj-automate when bridge is down", async () => {
+    const bridge = makeFakeBridge({
+      ensureAlive: vi.fn().mockResolvedValue(false),
+    });
+    const dispatch = makeBridgeDispatcher(vi.fn(), asBridge(bridge));
+
+    const response = (await dispatch("adj-automate", {
+      slot: "0/3",
+    })) as McpResponse;
+
+    expect(response.isError).toBe(true);
+    expect(response.content[0]?.text).toMatch(/install:bridge/);
   });
 
   it("browserUri without path errors before touching bridge", async () => {

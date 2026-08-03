@@ -46,6 +46,10 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ### device
 
+- [clip-envelope-api-python-only](dev/device/clip-envelope-api-python-only.md)
+  [src/tools/clip/automate/**, live_browser_bridge/**] — clip envelope
+  write/read is Python-remote-script-only (LOM whitelist gap); route through the
+  bridge, reads must sample value_at_time
 - [drum-kit-uri-loads-full-rack](dev/device/drum-kit-uri-loads-full-rack.md)
   [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
   live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
