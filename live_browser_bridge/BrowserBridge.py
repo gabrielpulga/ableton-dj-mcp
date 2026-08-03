@@ -2,12 +2,13 @@
 # Copyright (C) 2026 Gabriel Pulga
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""ControlSurface that opens a UDP socket and dispatches browser ops on Live's
+"""ControlSurface that opens a UDP socket and dispatches bridge ops on Live's
 main thread.
 
 Wire-protocol:
 
-    Request:  {"id": "...", "op": "ping|browse|load_item|shutdown", "args": {...}}
+    Request:  {"id": "...", "op": "ping|browse|load_item|automation_write|
+               automation_read|automation_clear|shutdown", "args": {...}}
     Reply OK: {"id": "...", "ok": true,  "result": {...}}
     Reply NO: {"id": "...", "ok": false, "error": {"code": "...", "message": "..."}}
 
@@ -48,7 +49,7 @@ except ImportError:  # pragma: no cover - tests stub the base class
         def update_display(self):
             pass
 
-from . import browser_ops
+from . import automation_ops, browser_ops
 from .queue_runner import BridgeQueues
 from .version import BRIDGE_VERSION, DEFAULT_PORT
 
@@ -170,12 +171,20 @@ class BrowserBridge(ControlSurface):
                 return self._ok(req_id, self._op_browse(args))
             if op == "load_item":
                 return self._ok(req_id, self._op_load_item(args))
+            if op == "automation_write":
+                return self._ok(req_id, self._op_automation_write(args))
+            if op == "automation_read":
+                return self._ok(req_id, self._op_automation_read(args))
+            if op == "automation_clear":
+                return self._ok(req_id, self._op_automation_clear(args))
             if op == "shutdown":
                 # Best-effort; Live restart is the canonical way to stop us.
                 return self._ok(req_id, {"acknowledged": True})
             return self._error(req_id, "INVALID_ARGS", "unknown op: %s" % op)
         except browser_ops.BrowserOpError as exc:
             return self._error(req_id, "BROWSER_API_FAILED", str(exc))
+        except automation_ops.AutomationOpError as exc:
+            return self._error(req_id, "AUTOMATION_FAILED", str(exc))
         except Exception as exc:
             return self._error(
                 req_id,
@@ -239,6 +248,51 @@ class BrowserBridge(ControlSurface):
             "deviceCountBefore": len(before_ids),
             "deviceCountAfter": len(after_ids),
         }
+
+    def _song(self):
+        song = self.application().get_document()
+        if song is None:
+            raise automation_ops.AutomationOpError("Live document unavailable")
+        return song
+
+    def _resolve_clip_and_param(self, args):
+        clip_ref = args.get("clip") or {}
+        target = args.get("target")
+        clip, track = automation_ops.resolve_clip(self._song(), clip_ref)
+        param = None
+        if target is not None:
+            param = automation_ops.resolve_parameter(track, target)
+        return clip, param
+
+    def _op_automation_write(self, args):
+        clip, param = self._resolve_clip_and_param(args)
+        if param is None:
+            raise automation_ops.AutomationOpError(
+                "target is required for automation_write"
+            )
+        return automation_ops.write_points(
+            clip,
+            param,
+            args.get("points") or [],
+            clear_first=bool(args.get("clearFirst")),
+        )
+
+    def _op_automation_read(self, args):
+        clip, param = self._resolve_clip_and_param(args)
+        if param is None:
+            raise automation_ops.AutomationOpError(
+                "target is required for automation_read"
+            )
+        return automation_ops.read_points(
+            clip,
+            param,
+            step_beats=args.get("stepBeats"),
+            max_points=args.get("maxPoints"),
+        )
+
+    def _op_automation_clear(self, args):
+        clip, param = self._resolve_clip_and_param(args)
+        return automation_ops.clear(clip, param)
 
     def _focused_track_device_ids(self):
         try:

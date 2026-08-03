@@ -73,7 +73,7 @@ part of this repo, so don't expect it to exist on a fresh clone.)
 
 ## Tools
 
-23 tools, all prefixed `adj-`. Each tool has a `.def.ts` (Zod schema) and a
+24 tools, all prefixed `adj-`. Each tool has a `.def.ts` (Zod schema) and a
 `.ts` (implementation). Full catalog with action lists and parameters:
 [`docs/Tools-Reference.md`](docs/Tools-Reference.md).
 

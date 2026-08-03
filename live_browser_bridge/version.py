@@ -4,7 +4,7 @@
 
 # Bridge protocol/package version. Bump on protocol changes.
 # Read by ping op so the Node side can warn on mismatch.
-BRIDGE_VERSION = "0.1.0"
+BRIDGE_VERSION = "0.2.0"
 
 # Default UDP port. Configurable via env var ADJ_BRIDGE_PORT (read at boot).
 DEFAULT_PORT = 11077

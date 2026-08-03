@@ -5,6 +5,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { VERSION } from "#src/shared/version.ts";
 import { toolDefBrowse } from "#src/tools/browse/browse.def.ts";
+import { toolDefAutomate } from "#src/tools/clip/automate/automate.def.ts";
 import { toolDefCreateClip } from "#src/tools/clip/create/create-clip.def.ts";
 import { toolDefMicrosectionMute } from "#src/tools/clip/microsection-mute/microsection-mute.def.ts";
 import { toolDefReadClip } from "#src/tools/clip/read/read-clip.def.ts";
@@ -50,6 +51,7 @@ export const STANDARD_TOOL_DEFS: ToolDefFunction[] = [
   toolDefCreateClip,
   toolDefUpdateClip,
   toolDefMicrosectionMute,
+  toolDefAutomate,
   toolDefReadDevice,
   toolDefCreateDevice,
   toolDefUpdateDevice,

@@ -1,16 +1,19 @@
 # Ableton DJ MCP — Browser Bridge
 
-Live remote-control script that exposes `Application.Browser` over a local UDP
-socket. The Node-side MCP server forwards browser navigation and URI-based
-device loads here; nothing else in the package needs the bridge.
+Live remote-control script that exposes Python-only Live APIs over a local UDP
+socket. The Node-side MCP server forwards browser navigation, URI-based device
+loads, and clip automation-envelope ops here; nothing else in the package needs
+the bridge.
 
 License: GPL-3.0-or-later (matches the parent project).
 
 ## Why it exists
 
-`Application.Browser` is exposed to Python remote scripts but deliberately
-filtered out of Live's Max-for-Live JavaScript bindings. See
-`docs/findings/dev/browser/m4l-no-browser-api.md` and
+`Application.Browser` and the clip automation-envelope API
+(`Clip.automation_envelope`, `AutomationEnvelope.insert_step`, ...) are exposed
+to Python remote scripts but deliberately filtered out of Live's Max-for-Live
+JavaScript bindings. See `docs/findings/dev/browser/m4l-no-browser-api.md`,
+`docs/findings/dev/device/clip-envelope-api-python-only.md`, and
 `docs/specs/Browser-Bridge-Spec.md` in the parent repo for the full rationale.
 
 ## Install
@@ -37,13 +40,14 @@ datagram per request and reply. See the parent repo spec for the full schema.
 
 ## Layout
 
-| File               | Purpose                                                |
-| ------------------ | ------------------------------------------------------ |
-| `__init__.py`      | Live entry point; returns the `BrowserBridge` instance |
-| `BrowserBridge.py` | ControlSurface subclass, owns the UDP loop             |
-| `browser_ops.py`   | Pure tree walking / serialisation helpers              |
-| `queue_runner.py`  | Thread-safe queues bridging socket and main thread     |
-| `version.py`       | Version + default port constants                       |
+| File                | Purpose                                                |
+| ------------------- | ------------------------------------------------------ |
+| `__init__.py`       | Live entry point; returns the `BrowserBridge` instance |
+| `BrowserBridge.py`  | ControlSurface subclass, owns the UDP loop             |
+| `browser_ops.py`    | Pure tree walking / serialisation helpers              |
+| `automation_ops.py` | Pure clip automation-envelope helpers                  |
+| `queue_runner.py`   | Thread-safe queues bridging socket and main thread     |
+| `version.py`        | Version + default port constants                       |
 
-`browser_ops.py` is import-clean (no Live import) so it can be unit-tested with
-a stubbed browser module.
+`browser_ops.py` and `automation_ops.py` are import-clean (no Live import) so
+they can be unit-tested with a stubbed object graph.

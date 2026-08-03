@@ -8,11 +8,21 @@
 
 import { randomUUID } from "node:crypto";
 import { type RemoteInfo, type Socket, createSocket } from "node:dgram";
+import {
+  type AutomationClearArgs,
+  type AutomationClearResult,
+  type AutomationReadArgs,
+  type AutomationReadResult,
+  type AutomationWriteArgs,
+  type AutomationWriteResult,
+} from "./bridge-automation-types.ts";
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 11_077;
 const DEFAULT_BROWSE_TIMEOUT_MS = 10_000;
 const DEFAULT_LOAD_TIMEOUT_MS = 30_000;
+const DEFAULT_AUTOMATION_WRITE_TIMEOUT_MS = 15_000;
+const DEFAULT_AUTOMATION_TIMEOUT_MS = 10_000;
 const DEFAULT_PING_TIMEOUT_MS = 1_500;
 // How long a successful ping is treated as "bridge up". Avoids round-tripping
 // a ping before every browse.
@@ -23,8 +33,13 @@ export type BridgeErrorCode =
   | "BRIDGE_NOT_FOUND"
   | "MAIN_THREAD_ERROR"
   | "BROWSER_API_FAILED"
+  | "AUTOMATION_FAILED"
   | "INVALID_ARGS"
   | "TIMEOUT_INTERNAL";
+
+export const INSTALL_HINT =
+  "Bridge unavailable. Run `npm run install:bridge`, then restart Live and " +
+  "enable AbletonDjMcp under Preferences → Link/Tempo/MIDI → Control Surface.";
 
 export interface BridgeError {
   code: BridgeErrorCode;
@@ -47,7 +62,14 @@ type BridgeReply<T> = BridgeReplyOk<T> | BridgeReplyErr;
 
 interface BridgeRequest {
   id: string;
-  op: "ping" | "browse" | "load_item" | "shutdown";
+  op:
+    | "ping"
+    | "browse"
+    | "load_item"
+    | "automation_write"
+    | "automation_read"
+    | "automation_clear"
+    | "shutdown";
   args: Record<string, unknown>;
 }
 
@@ -104,6 +126,17 @@ export interface LoadItemResult {
   deviceCountBefore: number;
   deviceCountAfter: number;
 }
+
+export type {
+  AutomationClearArgs,
+  AutomationClearResult,
+  AutomationClipRef,
+  AutomationReadArgs,
+  AutomationReadResult,
+  AutomationTarget,
+  AutomationWriteArgs,
+  AutomationWriteResult,
+} from "./bridge-automation-types.ts";
 
 /**
  * Client for the Python browser bridge. One instance per process; methods are
@@ -181,6 +214,57 @@ export class BrowserBridgeClient {
     timeoutMs: number = DEFAULT_LOAD_TIMEOUT_MS,
   ): Promise<LoadItemResult> {
     return await this.send<LoadItemResult>("load_item", { ...args }, timeoutMs);
+  }
+
+  /**
+   * Write automation points onto a clip envelope (single datagram).
+   * @param args - Clip ref, parameter target, points, and clear-first flag
+   * @param timeoutMs - Operation timeout in milliseconds
+   * @returns Write summary including the parameter's native range
+   */
+  async automationWrite(
+    args: AutomationWriteArgs,
+    timeoutMs: number = DEFAULT_AUTOMATION_WRITE_TIMEOUT_MS,
+  ): Promise<AutomationWriteResult> {
+    return await this.send<AutomationWriteResult>(
+      "automation_write",
+      { ...args },
+      timeoutMs,
+    );
+  }
+
+  /**
+   * Sample a clip envelope on a fixed beat grid (Live has no breakpoint API).
+   * @param args - Clip ref, parameter target, and optional sampling controls
+   * @param timeoutMs - Operation timeout in milliseconds
+   * @returns Sampled points with normalized values
+   */
+  async automationRead(
+    args: AutomationReadArgs,
+    timeoutMs: number = DEFAULT_AUTOMATION_TIMEOUT_MS,
+  ): Promise<AutomationReadResult> {
+    return await this.send<AutomationReadResult>(
+      "automation_read",
+      { ...args },
+      timeoutMs,
+    );
+  }
+
+  /**
+   * Clear one parameter's envelope, or all envelopes when target is omitted.
+   * @param args - Clip ref plus optional parameter target
+   * @param timeoutMs - Operation timeout in milliseconds
+   * @returns What was cleared
+   */
+  async automationClear(
+    args: AutomationClearArgs,
+    timeoutMs: number = DEFAULT_AUTOMATION_TIMEOUT_MS,
+  ): Promise<AutomationClearResult> {
+    return await this.send<AutomationClearResult>(
+      "automation_clear",
+      { ...args },
+      timeoutMs,
+    );
   }
 
   /** Tear down the client. Outstanding requests reject with TIMEOUT_INTERNAL. */
