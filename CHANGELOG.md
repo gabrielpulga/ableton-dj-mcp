@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.2.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v2.1.0...ableton-dj-mcp-v2.2.0) (2026-08-04)
+
+
+### Features
+
+* session-validated automation findings + humanize skills rules ([#263](https://github.com/gabrielpulga/ableton-dj-mcp/issues/263)) ([f89d52a](https://github.com/gabrielpulga/ableton-dj-mcp/commit/f89d52a8b173317e76c961e6a190dd505a0afeda))
+
+
+### Bug Fixes
+
+* restore CI by reverting to the last working eslint pairing ([#274](https://github.com/gabrielpulga/ableton-dj-mcp/issues/274)) ([2d1e2c5](https://github.com/gabrielpulga/ableton-dj-mcp/commit/2d1e2c509ebbb46c770fed22f33683c2eac85220))
+* warn and clamp instead of silently dropping out-of-range param writes ([#271](https://github.com/gabrielpulga/ableton-dj-mcp/issues/271)) ([af8b50b](https://github.com/gabrielpulga/ableton-dj-mcp/commit/af8b50b3d7050c21fa8ffc89eca5faf65f467e00)), closes [#269](https://github.com/gabrielpulga/ableton-dj-mcp/issues/269)
+
+
+### Dependencies
+
+* bump @modelcontextprotocol/sdk from 1.29.0 to 1.30.0 ([#261](https://github.com/gabrielpulga/ableton-dj-mcp/issues/261)) ([8ce2ec6](https://github.com/gabrielpulga/ableton-dj-mcp/commit/8ce2ec6c9331080eccd0ce0e8281fcdb32098f99))
+* bump @types/node from 26.1.1 to 26.1.2 ([#257](https://github.com/gabrielpulga/ableton-dj-mcp/issues/257)) ([a203061](https://github.com/gabrielpulga/ableton-dj-mcp/commit/a2030616c111ab002e584d9c16ed167984296ad6))
+* bump eslint from 9.39.5 to 10.8.0 ([#258](https://github.com/gabrielpulga/ableton-dj-mcp/issues/258)) ([bd96aba](https://github.com/gabrielpulga/ableton-dj-mcp/commit/bd96aba412c38197a3559a2e53305be094401cbd))
+* bump eslint-plugin-jsdoc from 63.3.0 to 63.3.2 ([#262](https://github.com/gabrielpulga/ableton-dj-mcp/issues/262)) ([64e7cc5](https://github.com/gabrielpulga/ableton-dj-mcp/commit/64e7cc5e479e84043a0170b0da35dc0e9a1943bd))
+* bump eslint-plugin-unicorn from 65.0.1 to 72.0.0 ([#259](https://github.com/gabrielpulga/ableton-dj-mcp/issues/259)) ([26c76b3](https://github.com/gabrielpulga/ableton-dj-mcp/commit/26c76b313fb42d73ca430017e5993e3f5057b037))
+* bump jscpd from 5.0.12 to 5.0.14 ([#260](https://github.com/gabrielpulga/ableton-dj-mcp/issues/260)) ([c74dbbf](https://github.com/gabrielpulga/ableton-dj-mcp/commit/c74dbbffb7a53ec0dd5b994f21f70cd9d80019a9))
+
 ## [2.1.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v2.0.0...ableton-dj-mcp-v2.1.0) (2026-08-03)
 
 
