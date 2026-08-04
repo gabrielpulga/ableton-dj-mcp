@@ -743,8 +743,8 @@ import os from "node:os";
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "82953bf1",
-  buildTime: "2026-08-03T00:36:53.853Z"
+  sha: "2d1e2c50",
+  buildTime: "2026-08-04T21:26:32.084Z"
 };
 
 function buildIdentifier() {
@@ -1361,6 +1361,158 @@ var getRequestListener = (fetchCallback, options = {}) => {
     }
   };
 };
+
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
+
+function getDefaultExportFromCjs(x) {
+  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
+}
+
+var contentType$1 = {};
+
+var hasRequiredContentType;
+
+function requireContentType() {
+  if (hasRequiredContentType) return contentType$1;
+  hasRequiredContentType = 1;
+  var PARAM_REGEXP = /; *([!#$%&'*+.^_`|~0-9A-Za-z-]+) *= *("(?:[\u000b\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\u000b\u0020-\u00ff])*"|[!#$%&'*+.^_`|~0-9A-Za-z-]+) */g;
+  var TEXT_REGEXP = /^[\u000b\u0020-\u007e\u0080-\u00ff]+$/;
+  var TOKEN_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+  var QESC_REGEXP = /\\([\u000b\u0020-\u00ff])/g;
+  var QUOTE_REGEXP = /([\\"])/g;
+  var TYPE_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+  contentType$1.format = format;
+  contentType$1.parse = parse;
+  function format(obj) {
+    if (!obj || typeof obj !== "object") {
+      throw new TypeError("argument obj is required");
+    }
+    var parameters = obj.parameters;
+    var type = obj.type;
+    if (!type || !TYPE_REGEXP.test(type)) {
+      throw new TypeError("invalid type");
+    }
+    var string = type;
+    if (parameters && typeof parameters === "object") {
+      var param;
+      var params = Object.keys(parameters).sort();
+      for (var i = 0; i < params.length; i++) {
+        param = params[i];
+        if (!TOKEN_REGEXP.test(param)) {
+          throw new TypeError("invalid parameter name");
+        }
+        string += "; " + param + "=" + qstring(parameters[param]);
+      }
+    }
+    return string;
+  }
+  function parse(string) {
+    if (!string) {
+      throw new TypeError("argument string is required");
+    }
+    var header = typeof string === "object" ? getcontenttype(string) : string;
+    if (typeof header !== "string") {
+      throw new TypeError("argument string is required to be a string");
+    }
+    var index = header.indexOf(";");
+    var type = index !== -1 ? header.slice(0, index).trim() : header.trim();
+    if (!TYPE_REGEXP.test(type)) {
+      throw new TypeError("invalid media type");
+    }
+    var obj = new ContentType(type.toLowerCase());
+    if (index !== -1) {
+      var key;
+      var match;
+      var value;
+      PARAM_REGEXP.lastIndex = index;
+      while (match = PARAM_REGEXP.exec(header)) {
+        if (match.index !== index) {
+          throw new TypeError("invalid parameter format");
+        }
+        index += match[0].length;
+        key = match[1].toLowerCase();
+        value = match[2];
+        if (value.charCodeAt(0) === 34) {
+          value = value.slice(1, -1);
+          if (value.indexOf("\\") !== -1) {
+            value = value.replace(QESC_REGEXP, "$1");
+          }
+        }
+        obj.parameters[key] = value;
+      }
+      if (index !== header.length) {
+        throw new TypeError("invalid parameter format");
+      }
+    }
+    return obj;
+  }
+  function getcontenttype(obj) {
+    var header;
+    if (typeof obj.getHeader === "function") {
+      header = obj.getHeader("content-type");
+    } else if (typeof obj.headers === "object") {
+      header = obj.headers && obj.headers["content-type"];
+    }
+    if (typeof header !== "string") {
+      throw new TypeError("content-type header is missing from object");
+    }
+    return header;
+  }
+  function qstring(val) {
+    var str = String(val);
+    if (TOKEN_REGEXP.test(str)) {
+      return str;
+    }
+    if (str.length > 0 && !TEXT_REGEXP.test(str)) {
+      throw new TypeError("invalid parameter value");
+    }
+    return '"' + str.replace(QUOTE_REGEXP, "\\$1") + '"';
+  }
+  function ContentType(type) {
+    this.parameters = Object.create(null);
+    this.type = type;
+  }
+  return contentType$1;
+}
+
+var contentTypeExports = requireContentType();
+
+var contentType = getDefaultExportFromCjs(contentTypeExports);
+
+function mediaTypeEssence(header) {
+  if (!header) {
+    return undefined;
+  }
+  try {
+    return contentType.parse(header).type;
+  } catch {
+    const essence = (header.split(";", 1)[0] ?? "").trim().toLowerCase();
+    if (essence === "" || header.slice(essence.length).includes(",")) {
+      return undefined;
+    }
+    return essence;
+  }
+}
+
+function isJsonContentType(header) {
+  if (header === "application/json") {
+    return true;
+  }
+  return mediaTypeEssence(header) === "application/json";
+}
+
+const DEFAULT_SSE_KEEP_ALIVE_MS = 15e3;
+
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
+
+function armSseKeepAlive(intervalMs, onTick) {
+  if (!Number.isFinite(intervalMs) || intervalMs < 1) {
+    return undefined;
+  }
+  const timer = setInterval(onTick, Math.min(intervalMs, MAX_TIMER_DELAY_MS));
+  timer.unref?.();
+  return timer;
+}
 
 var _a$1;
 
@@ -7633,10 +7785,12 @@ class WebStandardStreamableHTTPServerTransport {
     this._hasHandledRequest = false;
     this._streamMapping = new Map;
     this._requestToStreamMapping = new Map;
+    this._resumableStreams = new Set;
     this._requestResponseMap = new Map;
     this._initialized = false;
     this._enableJsonResponse = false;
     this._standaloneSseStreamId = "_GET_stream";
+    this._closed = false;
     this.sessionIdGenerator = options.sessionIdGenerator;
     this._enableJsonResponse = options.enableJsonResponse ?? false;
     this._eventStore = options.eventStore;
@@ -7646,6 +7800,18 @@ class WebStandardStreamableHTTPServerTransport {
     this._allowedOrigins = options.allowedOrigins;
     this._enableDnsRebindingProtection = options.enableDnsRebindingProtection ?? false;
     this._retryInterval = options.retryInterval;
+    this._keepAliveMs = options.keepAliveMs ?? DEFAULT_SSE_KEEP_ALIVE_MS;
+  }
+  startKeepAlive(controller, encoder) {
+    if (this._closed) return undefined;
+    const timer = armSseKeepAlive(this._keepAliveMs, () => {
+      try {
+        controller.enqueue(encoder.encode(": keepalive\n\n"));
+      } catch {
+        if (timer !== undefined) clearInterval(timer);
+      }
+    });
+    return timer;
   }
   async start() {
     if (this._started) {
@@ -7696,6 +7862,9 @@ class WebStandardStreamableHTTPServerTransport {
     return undefined;
   }
   async handleRequest(req, options) {
+    if (this._closed) {
+      return this.createJsonErrorResponse(404, -32001, "Session not found");
+    }
     if (!this.sessionIdGenerator && this._hasHandledRequest) {
       throw new Error("Stateless transport cannot be reused across requests. Create a new transport per request.");
     }
@@ -7731,6 +7900,7 @@ class WebStandardStreamableHTTPServerTransport {
       primingEvent = `id: ${primingEventId}\nretry: ${this._retryInterval}\ndata: \n\n`;
     }
     controller.enqueue(encoder.encode(primingEvent));
+    this._resumableStreams.add(streamId);
   }
   async handleGetRequest(req) {
     const acceptHeader = req.headers.get("accept");
@@ -7758,18 +7928,25 @@ class WebStandardStreamableHTTPServerTransport {
     }
     const encoder = new TextEncoder;
     let streamController;
+    let keepAliveTimer = undefined;
     const readable = new ReadableStream({
       start: controller => {
         streamController = controller;
       },
       cancel: () => {
-        this._streamMapping.delete(this._standaloneSseStreamId);
+        if (keepAliveTimer !== undefined) {
+          clearInterval(keepAliveTimer);
+        }
+        if (this._streamMapping.get(this._standaloneSseStreamId)?.controller === streamController) {
+          this._streamMapping.delete(this._standaloneSseStreamId);
+        }
       }
     });
     const headers = {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive"
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no"
     };
     if (this.sessionId !== undefined) {
       headers["mcp-session-id"] = this.sessionId;
@@ -7778,12 +7955,16 @@ class WebStandardStreamableHTTPServerTransport {
       controller: streamController,
       encoder: encoder,
       cleanup: () => {
+        if (keepAliveTimer !== undefined) {
+          clearInterval(keepAliveTimer);
+        }
         this._streamMapping.delete(this._standaloneSseStreamId);
         try {
           streamController.close();
         } catch {}
       }
     });
+    keepAliveTimer = this.startKeepAlive(streamController, encoder);
     return new Response(readable, {
       headers: headers
     });
@@ -7809,20 +7990,33 @@ class WebStandardStreamableHTTPServerTransport {
       const headers = {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive"
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no"
       };
       if (this.sessionId !== undefined) {
         headers["mcp-session-id"] = this.sessionId;
       }
       const encoder = new TextEncoder;
       let streamController;
+      let keepAliveTimer = undefined;
+      let replayedStreamId = undefined;
+      let cancelled = false;
       const readable = new ReadableStream({
         start: controller => {
           streamController = controller;
         },
-        cancel: () => {}
+        cancel: () => {
+          cancelled = true;
+          if (keepAliveTimer !== undefined) {
+            clearInterval(keepAliveTimer);
+          }
+          if (replayedStreamId !== undefined && this._streamMapping.get(replayedStreamId)?.controller === streamController) {
+            this._streamMapping.delete(replayedStreamId);
+          }
+        }
       });
-      const replayedStreamId = await this._eventStore.replayEventsAfter(lastEventId, {
+      const replayedEventIds = new Set;
+      replayedStreamId = await this._eventStore.replayEventsAfter(lastEventId, {
         send: async (eventId, message) => {
           const success = this.writeSSEEvent(streamController, encoder, message, eventId);
           if (!success) {
@@ -7830,19 +8024,34 @@ class WebStandardStreamableHTTPServerTransport {
             try {
               streamController.close();
             } catch {}
+          } else {
+            replayedEventIds.add(eventId);
           }
         }
       });
+      if (this._closed || cancelled) {
+        try {
+          streamController.close();
+        } catch {}
+        return this.createJsonErrorResponse(404, -32001, "Session not found");
+      }
+      this._streamMapping.get(replayedStreamId)?.cleanup();
       this._streamMapping.set(replayedStreamId, {
         controller: streamController,
         encoder: encoder,
+        replayedEventIds: replayedEventIds,
         cleanup: () => {
+          if (keepAliveTimer !== undefined) {
+            clearInterval(keepAliveTimer);
+          }
           this._streamMapping.delete(replayedStreamId);
           try {
             streamController.close();
           } catch {}
         }
       });
+      this._resumableStreams.add(replayedStreamId);
+      keepAliveTimer = this.startKeepAlive(streamController, encoder);
       return new Response(readable, {
         headers: headers
       });
@@ -7890,7 +8099,7 @@ class WebStandardStreamableHTTPServerTransport {
         return this.createJsonErrorResponse(406, -32e3, "Not Acceptable: Client must accept both application/json and text/event-stream");
       }
       const ct = req.headers.get("content-type");
-      if (!ct || !ct.includes("application/json")) {
+      if (!isJsonContentType(ct)) {
         this.onerror?.(new Error("Unsupported Media Type: Content-Type must be application/json"));
         return this.createJsonErrorResponse(415, -32e3, "Unsupported Media Type: Content-Type must be application/json");
       }
@@ -7920,6 +8129,9 @@ class WebStandardStreamableHTTPServerTransport {
         this.onerror?.(new Error("Parse error: Invalid JSON-RPC message"));
         return this.createJsonErrorResponse(400, -32700, "Parse error: Invalid JSON-RPC message");
       }
+      if (this._closed) {
+        return this.createJsonErrorResponse(404, -32001, "Session not found");
+      }
       const isInitializationRequest = messages.some(isInitializeRequest);
       if (isInitializationRequest) {
         if (this._initialized && this.sessionId !== undefined) {
@@ -7945,6 +8157,9 @@ class WebStandardStreamableHTTPServerTransport {
         if (protocolError) {
           return protocolError;
         }
+      }
+      if (this._closed) {
+        return this.createJsonErrorResponse(404, -32001, "Session not found");
       }
       const hasRequests = messages.some(isJSONRPCRequest);
       if (!hasRequests) {
@@ -7984,18 +8199,25 @@ class WebStandardStreamableHTTPServerTransport {
       }
       const encoder = new TextEncoder;
       let streamController;
+      let keepAliveTimer = undefined;
       const readable = new ReadableStream({
         start: controller => {
           streamController = controller;
         },
         cancel: () => {
-          this._streamMapping.delete(streamId);
+          if (keepAliveTimer !== undefined) {
+            clearInterval(keepAliveTimer);
+          }
+          if (this._streamMapping.get(streamId)?.controller === streamController) {
+            this._streamMapping.delete(streamId);
+          }
         }
       });
       const headers = {
         "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive"
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no"
       };
       if (this.sessionId !== undefined) {
         headers["mcp-session-id"] = this.sessionId;
@@ -8006,6 +8228,9 @@ class WebStandardStreamableHTTPServerTransport {
             controller: streamController,
             encoder: encoder,
             cleanup: () => {
+              if (keepAliveTimer !== undefined) {
+                clearInterval(keepAliveTimer);
+              }
               this._streamMapping.delete(streamId);
               try {
                 streamController.close();
@@ -8015,24 +8240,38 @@ class WebStandardStreamableHTTPServerTransport {
           this._requestToStreamMapping.set(message.id, streamId);
         }
       }
-      await this.writePrimingEvent(streamController, encoder, streamId, clientProtocolVersion);
-      for (const message of messages) {
-        let closeSSEStream;
-        let closeStandaloneSSEStream;
-        if (isJSONRPCRequest(message) && this._eventStore && clientProtocolVersion >= "2025-11-25") {
-          closeSSEStream = () => {
-            this.closeSSEStream(message.id);
-          };
-          closeStandaloneSSEStream = () => {
-            this.closeStandaloneSSEStream();
-          };
+      try {
+        await this.writePrimingEvent(streamController, encoder, streamId, clientProtocolVersion);
+        for (const message of messages) {
+          let closeSSEStream;
+          let closeStandaloneSSEStream;
+          if (isJSONRPCRequest(message) && this._eventStore && clientProtocolVersion >= "2025-11-25") {
+            closeSSEStream = () => {
+              this.closeSSEStream(message.id);
+            };
+            closeStandaloneSSEStream = () => {
+              this.closeStandaloneSSEStream();
+            };
+          }
+          this.onmessage?.(message, {
+            authInfo: options?.authInfo,
+            requestInfo: requestInfo,
+            closeSSEStream: closeSSEStream,
+            closeStandaloneSSEStream: closeStandaloneSSEStream
+          });
         }
-        this.onmessage?.(message, {
-          authInfo: options?.authInfo,
-          requestInfo: requestInfo,
-          closeSSEStream: closeSSEStream,
-          closeStandaloneSSEStream: closeStandaloneSSEStream
-        });
+      } catch (error) {
+        this._streamMapping.get(streamId)?.cleanup();
+        this._resumableStreams.delete(streamId);
+        for (const message of messages) {
+          if (isJSONRPCRequest(message)) {
+            this._requestToStreamMapping.delete(message.id);
+          }
+        }
+        throw error;
+      }
+      if (this._streamMapping.get(streamId)?.controller === streamController) {
+        keepAliveTimer = this.startKeepAlive(streamController, encoder);
       }
       return new Response(readable, {
         status: 200,
@@ -8054,11 +8293,14 @@ class WebStandardStreamableHTTPServerTransport {
     if (protocolError) {
       return protocolError;
     }
-    await Promise.resolve(this._onsessionclosed?.(this.sessionId));
-    await this.close();
-    return new Response(null, {
-      status: 200
-    });
+    try {
+      await Promise.resolve(this._onsessionclosed?.(this.sessionId));
+      return new Response(null, {
+        status: 200
+      });
+    } finally {
+      await this.close();
+    }
   }
   validateSession(req) {
     if (this.sessionIdGenerator === undefined) {
@@ -8088,11 +8330,16 @@ class WebStandardStreamableHTTPServerTransport {
     return undefined;
   }
   async close() {
+    if (this._closed) {
+      return;
+    }
+    this._closed = true;
     this._streamMapping.forEach(({cleanup: cleanup}) => {
       cleanup();
     });
     this._streamMapping.clear();
     this._requestResponseMap.clear();
+    this._resumableStreams.clear();
     this.onclose?.();
   }
   closeSSEStream(requestId) {
@@ -8126,7 +8373,7 @@ class WebStandardStreamableHTTPServerTransport {
       if (standaloneSse === undefined) {
         return;
       }
-      if (standaloneSse.controller && standaloneSse.encoder) {
+      if (standaloneSse.controller && standaloneSse.encoder && (eventId === undefined || !standaloneSse.replayedEventIds?.has(eventId))) {
         this.writeSSEEvent(standaloneSse.controller, standaloneSse.encoder, message, eventId);
       }
       return;
@@ -8135,13 +8382,19 @@ class WebStandardStreamableHTTPServerTransport {
     if (!streamId) {
       throw new Error(`No connection established for request ID: ${String(requestId)}`);
     }
-    const stream = this._streamMapping.get(streamId);
-    if (!this._enableJsonResponse && stream?.controller && stream?.encoder) {
+    let stream = this._streamMapping.get(streamId);
+    if (!this._enableJsonResponse) {
       let eventId;
       if (this._eventStore) {
         eventId = await this._eventStore.storeEvent(streamId, message);
+        stream = this._streamMapping.get(streamId);
       }
-      this.writeSSEEvent(stream.controller, stream.encoder, message, eventId);
+      if (stream?.controller && stream?.encoder && (eventId === undefined || !stream.replayedEventIds?.has(eventId))) {
+        const written = this.writeSSEEvent(stream.controller, stream.encoder, message, eventId);
+        if (written && eventId !== undefined) {
+          this._resumableStreams.add(streamId);
+        }
+      }
     }
     if (isJSONRPCResultResponse(message) || isJSONRPCErrorResponse(message)) {
       this._requestResponseMap.set(requestId, message);
@@ -8149,6 +8402,25 @@ class WebStandardStreamableHTTPServerTransport {
       const allResponsesReady = relatedIds.every(id => this._requestResponseMap.has(id));
       if (allResponsesReady) {
         if (!stream) {
+          if (this._closed) {
+            for (const id of relatedIds) {
+              this._requestResponseMap.delete(id);
+              this._requestToStreamMapping.delete(id);
+            }
+            return;
+          }
+          if (!this._enableJsonResponse && this._eventStore && this._resumableStreams.has(streamId)) {
+            for (const id of relatedIds) {
+              this._requestResponseMap.delete(id);
+              this._requestToStreamMapping.delete(id);
+            }
+            this._resumableStreams.delete(streamId);
+            return;
+          }
+          for (const id of relatedIds) {
+            this._requestResponseMap.delete(id);
+            this._requestToStreamMapping.delete(id);
+          }
           throw new Error(`No connection established for request ID: ${String(requestId)}`);
         }
         if (this._enableJsonResponse && stream.resolveJson) {
@@ -8177,6 +8449,7 @@ class WebStandardStreamableHTTPServerTransport {
           this._requestResponseMap.delete(id);
           this._requestToStreamMapping.delete(id);
         }
+        this._resumableStreams.delete(streamId);
       }
     }
   }
@@ -8242,12 +8515,6 @@ class StreamableHTTPServerTransport {
   closeStandaloneSSEStream() {
     this._webStandardTransport.closeStandaloneSSEStream();
   }
-}
-
-var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
-
-function getDefaultExportFromCjs(x) {
-  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
 
 var express$2 = {
@@ -12569,113 +12836,6 @@ function requireOnFinished() {
 var typeIs = {
   exports: {}
 };
-
-var contentType = {};
-
-var hasRequiredContentType;
-
-function requireContentType() {
-  if (hasRequiredContentType) return contentType;
-  hasRequiredContentType = 1;
-  var PARAM_REGEXP = /; *([!#$%&'*+.^_`|~0-9A-Za-z-]+) *= *("(?:[\u000b\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\u000b\u0020-\u00ff])*"|[!#$%&'*+.^_`|~0-9A-Za-z-]+) */g;
-  var TEXT_REGEXP = /^[\u000b\u0020-\u007e\u0080-\u00ff]+$/;
-  var TOKEN_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
-  var QESC_REGEXP = /\\([\u000b\u0020-\u00ff])/g;
-  var QUOTE_REGEXP = /([\\"])/g;
-  var TYPE_REGEXP = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
-  contentType.format = format;
-  contentType.parse = parse;
-  function format(obj) {
-    if (!obj || typeof obj !== "object") {
-      throw new TypeError("argument obj is required");
-    }
-    var parameters = obj.parameters;
-    var type = obj.type;
-    if (!type || !TYPE_REGEXP.test(type)) {
-      throw new TypeError("invalid type");
-    }
-    var string = type;
-    if (parameters && typeof parameters === "object") {
-      var param;
-      var params = Object.keys(parameters).sort();
-      for (var i = 0; i < params.length; i++) {
-        param = params[i];
-        if (!TOKEN_REGEXP.test(param)) {
-          throw new TypeError("invalid parameter name");
-        }
-        string += "; " + param + "=" + qstring(parameters[param]);
-      }
-    }
-    return string;
-  }
-  function parse(string) {
-    if (!string) {
-      throw new TypeError("argument string is required");
-    }
-    var header = typeof string === "object" ? getcontenttype(string) : string;
-    if (typeof header !== "string") {
-      throw new TypeError("argument string is required to be a string");
-    }
-    var index = header.indexOf(";");
-    var type = index !== -1 ? header.slice(0, index).trim() : header.trim();
-    if (!TYPE_REGEXP.test(type)) {
-      throw new TypeError("invalid media type");
-    }
-    var obj = new ContentType(type.toLowerCase());
-    if (index !== -1) {
-      var key;
-      var match;
-      var value;
-      PARAM_REGEXP.lastIndex = index;
-      while (match = PARAM_REGEXP.exec(header)) {
-        if (match.index !== index) {
-          throw new TypeError("invalid parameter format");
-        }
-        index += match[0].length;
-        key = match[1].toLowerCase();
-        value = match[2];
-        if (value.charCodeAt(0) === 34) {
-          value = value.slice(1, -1);
-          if (value.indexOf("\\") !== -1) {
-            value = value.replace(QESC_REGEXP, "$1");
-          }
-        }
-        obj.parameters[key] = value;
-      }
-      if (index !== header.length) {
-        throw new TypeError("invalid parameter format");
-      }
-    }
-    return obj;
-  }
-  function getcontenttype(obj) {
-    var header;
-    if (typeof obj.getHeader === "function") {
-      header = obj.getHeader("content-type");
-    } else if (typeof obj.headers === "object") {
-      header = obj.headers && obj.headers["content-type"];
-    }
-    if (typeof header !== "string") {
-      throw new TypeError("content-type header is missing from object");
-    }
-    return header;
-  }
-  function qstring(val) {
-    var str = String(val);
-    if (TOKEN_REGEXP.test(str)) {
-      return str;
-    }
-    if (str.length > 0 && !TEXT_REGEXP.test(str)) {
-      throw new TypeError("invalid parameter value");
-    }
-    return '"' + str.replace(QUOTE_REGEXP, "\\$1") + '"';
-  }
-  function ContentType(type) {
-    this.parameters = Object.create(null);
-    this.type = type;
-  }
-  return contentType;
-}
 
 var mimeTypes = {};
 
@@ -35595,16 +35755,33 @@ function normalizeObjectSchema(schema) {
   return undefined;
 }
 
+function getDotPath(path) {
+  if (path.length === 0) {
+    return "object root";
+  }
+  return path.reduce((acc, seg, index) => {
+    if (index === 0) {
+      return String(seg);
+    }
+    if (typeof seg === "number") {
+      return `${acc}[${seg}]`;
+    }
+    return `${acc}.${seg}`;
+  }, "");
+}
+
 function getParseErrorMessage(error) {
   if (error && typeof error === "object") {
+    if ("issues" in error && Array.isArray(error.issues) && error.issues.length > 0) {
+      return error.issues.map(i => {
+        if (!i.path?.length) {
+          return i.message;
+        }
+        return `${i.message} at ${getDotPath(i.path)}`;
+      }).join("\n");
+    }
     if ("message" in error && typeof error.message === "string") {
       return error.message;
-    }
-    if ("issues" in error && Array.isArray(error.issues) && error.issues.length > 0) {
-      const firstIssue = error.issues[0];
-      if (firstIssue && typeof firstIssue === "object" && "message" in firstIssue) {
-        return String(firstIssue.message);
-      }
     }
     try {
       return JSON.stringify(error);
@@ -51091,16 +51268,7 @@ class Server extends Protocol {
     if (!methodSchema) {
       throw new Error("Schema is missing a method literal");
     }
-    let methodValue;
-    if (isZ4Schema(methodSchema)) {
-      const v4Schema = methodSchema;
-      const v4Def = v4Schema._zod?.def;
-      methodValue = v4Def?.value ?? v4Schema.value;
-    } else {
-      const v3Schema = methodSchema;
-      const legacyDef = v3Schema._def;
-      methodValue = legacyDef?.value ?? v3Schema.value;
-    }
+    const methodValue = getLiteralValue(methodSchema);
     if (typeof methodValue !== "string") {
       throw new Error("Schema method literal must be a string");
     }
