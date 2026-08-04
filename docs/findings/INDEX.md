@@ -17,6 +17,10 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/track/update/**] — no LOM hook to trigger freeze/flatten on a
   track, only read-only can_be_frozen/is_frozen; feature removed, don't re-add
   without a real API path
+- [track-index-not-stable](dev/track-index-not-stable.md) [src/tools/track/**,
+  src/tools/live-set/**, src/tools/clip/duplicate/**] — trackIndex is
+  positional, not identity; deleting tracks in Live renumbers everything after
+  them, re-read before batch ops
 - [v8-task-needs-persistent-ref](dev/v8-task-needs-persistent-ref.md)
   [src/shared/v8-sleep.ts, src/live-api-adapter/**] — inline
   `new Task(cb).schedule(ms)` risks GC before firing; keep a persistent
@@ -27,6 +31,9 @@ subdirs (see `HOW-TO-WRITE.md`).
 - [barbeat-notation-order](dev/notation/barbeat-notation-order.md)
   [src/notation/barbeat/**, src/tools/generative/**, *_/notes-formatter_] —
   pitch must precede time pos in barbeat or first note drops + warning
+- [transform-time-filter-needs-range](dev/notation/transform-time-filter-needs-range.md)
+  [src/notation/transforms/**, src/tools/clip/update/**] — transform time
+  selectors must be ranges; a single `4|1` fails to parse, use `4|1-4|1`
 
 ### browser
 
@@ -46,6 +53,14 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ### device
 
+- [arrangement-clip-is-snapshot](dev/device/arrangement-clip-is-snapshot.md)
+  [src/tools/operations/duplicate/**, src/tools/clip/update/**,
+  src/tools/clip/automate/**] — adj-duplicate copies by value; editing the
+  session source after tiling requires deleting and re-duplicating every tile
+- [automate-normalized-log-scale](dev/device/automate-normalized-log-scale.md)
+  [src/tools/clip/automate/**, live_browser_bridge/**] — adj-automate 0..1 maps
+  logarithmically on frequency params; 0.34 = 224 Hz on a 20-20k filter, verify
+  in Hz by reading back
 - [clip-envelope-api-python-only](dev/device/clip-envelope-api-python-only.md)
   [src/tools/clip/automate/**, live_browser_bridge/**] — clip envelope
   write/read is Python-remote-script-only (LOM whitelist gap); route through the
@@ -61,6 +76,10 @@ subdirs (see `HOW-TO-WRITE.md`).
 - [live-instrument-limit](dev/device/live-instrument-limit.md)
   [src/tools/device/**, src/tools/track/**] — Live blocks 2nd instrument per
   track with vague error; delete first
+- [param-write-silently-ignored](dev/device/param-write-silently-ignored.md)
+  [src/tools/device/update/**] — adj-update-device returns success even when the
+  value is rejected; params with normalized or degenerate min/max ignore
+  display-unit writes
 
 ### build
 
