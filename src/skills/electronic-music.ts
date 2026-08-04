@@ -155,6 +155,8 @@ Add Simple Delay (~30% dry/wet) on FX tracks for echo tail. Use clip fade-out fo
 - **Stay scoped** -- only touch the section being discussed.
 - **Fills as dedicated clips** -- separate from groove clips for easier editing.
 - **Humanize everything**: \`timing += 0.02 * rand()\` and \`velocity += rand(-5, 5)\` on all parts.
+- **Humanize respects loop boundaries** -- never random-jitter a bar-1 downbeat (can land before clip start) or final-bar tails (can spill past the loop wrap); jitter can also merge same-pitch neighbors. For boundary-adjacent notes, bake humanization into positions instead (\`1|1.76\`, \`3|3.01\`). Velocity ranges (\`v86-94\`) are always safe.
+- **End sustains half a beat early** -- a note lasting exactly to the loop end retriggers with an audible dip. Note-off at the final bar's |4.5 and let release + sends bridge the seam. Same trick at section scale: trim ALL parts to |4.5 before a drop for a half-beat of true silence, then the drop slams.
 - **v0 won't delete humanized notes** -- use transform \`PITCH: velocity = 0\` to delete all notes of a pitch regardless of timing.
 
 ### Velocity Reference (all genres)

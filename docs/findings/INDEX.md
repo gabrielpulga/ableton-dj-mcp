@@ -50,6 +50,10 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/clip/automate/**, live_browser_bridge/**] — clip envelope
   write/read is Python-remote-script-only (LOM whitelist gap); route through the
   bridge, reads must sample value_at_time
+- [clip-envelope-survives-duplicate](dev/device/clip-envelope-survives-duplicate.md)
+  [src/tools/clip/automate/**, src/tools/operations/duplicate/**] — envelopes
+  written on a session clip survive adj-duplicate to arrangement; only path to
+  arrangement automation (write → dup → clear source)
 - [drum-kit-uri-loads-full-rack](dev/device/drum-kit-uri-loads-full-rack.md)
   [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
   live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
@@ -103,6 +107,9 @@ subdirs (see `HOW-TO-WRITE.md`).
 - [device-deploy-flow](workflow/device-deploy-flow.md) [max-for-live-device/**,
   dist/**, package.json] — build → copy bundles to max-for-live-device → restart
   Live to load new version
+- [portal-restart-exposes-new-tools](workflow/portal-restart-exposes-new-tools.md)
+  [src/portal/**, src/mcp-server/**, dist/**] — MCP tool list fixed at connect
+  time; tools added by a server update need an MCP reconnect to appear
 - [self-bootstrap-prereq](workflow/self-bootstrap-prereq.md)
   [src/portal/lazy-boot*, scripts/start-live.ts, docs/Setup.md] — lazy-boot only
   opens Live; device load needs "Save Live Set as Default Set" with device on
