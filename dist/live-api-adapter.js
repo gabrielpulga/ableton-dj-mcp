@@ -971,9 +971,9 @@ if (!Array.prototype.with) {
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "2d1e2c50",
+  sha: "bb98d6d4",
   dirty: false,
-  buildTime: "2026-08-04T21:26:32.084Z",
+  buildTime: "2026-08-04T21:40:27.411Z",
   source: "local"
 };
 
@@ -1104,7 +1104,7 @@ function hasPreReleaseSuffix(version) {
   return cleaned.includes("-");
 }
 
-const VERSION = "2.1.0";
+const VERSION = "2.2.0";
 
 const MIN_LIVE_VERSION = "12.3.0";
 
