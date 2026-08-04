@@ -569,6 +569,29 @@ describe("device-display-helpers", () => {
       expect(result.value).toBe("Repitch");
     });
 
+    it("reports raw bounds for both min and max when one label is unparseable", () => {
+      // Compressor Ratio: min label "1.00:1" parses to 1, max label "inf:1"
+      // does not. Reporting the parsed min alongside the raw max produced a
+      // nonsensical min:1 max:1 range.
+      setupParamMock({ name: "Ratio", value: 0.3, min: 0, max: 1 });
+      setupValueLabels({ 0.3: "4.00:1", 0: "1.00:1", 1: "inf:1" });
+
+      const result = readParameter(createMockParamApi("param_ratio"));
+
+      expect(result.min).toBe(0);
+      expect(result.max).toBe(1);
+    });
+
+    it("keeps parsed display bounds when both labels are parseable", () => {
+      setupParamMock({ name: "Freq", value: 0.5, min: 0, max: 1 });
+      setupValueLabels({ 0.5: "1000 Hz", 0: "20 Hz", 1: "20000 Hz" });
+
+      const result = readParameter(createMockParamApi("param_freq"));
+
+      expect(result.min).toBe(20);
+      expect(result.max).toBe(20000);
+    });
+
     it("handles division param detected via minLabel", () => {
       // Edge case: current value is "1" (not a fraction) but min is "1/64"
       setupParamMock({ name: "Division", value: 0, min: -2, max: 0 });
