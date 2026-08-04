@@ -9,6 +9,19 @@ updates:
       prefix: "deps"
     labels:
       - dependencies
+    ignore:
+      # eslint 10 breaks the build in three ways and CI cannot catch it,
+      # because npm ci fails before any job runs. See PR #274.
+      #   - eslint-plugin-import caps its eslint peer at ^9 (no v10 release yet)
+      #   - @eslint/js stops arriving transitively; eslint.config.js imports it
+      #   - eslint-plugin-unicorn >=72 requires eslint >=10.4, so the two
+      #     plugins cannot both be satisfied
+      # Unblock once eslint-plugin-import supports eslint 10, or once that
+      # plugin is replaced by eslint-import-resolver-typescript + tsc.
+      - dependency-name: eslint
+        versions: [">=10"]
+      - dependency-name: eslint-plugin-unicorn
+        versions: [">=66"]
 
   - package-ecosystem: github-actions
     directory: /
