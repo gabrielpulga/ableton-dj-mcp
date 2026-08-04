@@ -81,9 +81,10 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/device/**, src/tools/track/**] — Live blocks 2nd instrument per
   track with vague error; delete first
 - [param-write-silently-ignored](dev/device/param-write-silently-ignored.md)
-  [src/tools/device/update/**] — adj-update-device returns success even when the
-  value is rejected; params with normalized or degenerate min/max ignore
-  display-unit writes
+  [src/tools/device/update/**,
+  src/tools/shared/device/helpers/device-display-helpers.ts] — Live ignores
+  out-of-range param sets rather than clamping; adj-update-device clamps + warns
+  since #271, and params with unparseable labels can't be set by display value
 
 ### build
 
