@@ -9,17 +9,17 @@ evidence: "user confirmed (Live 12.4.3, server 2.1.0)"
 
 Clip envelopes written on a session clip survive `adj-duplicate` to the
 arrangement. Since the envelope API is session-clip-only (see
-clip-envelope-api-python-only), this is the only path to arrangement
-automation: write envelope on session source → duplicate to arrangement
-position → clear the source's envelope.
+clip-envelope-api-python-only), this is the only path to arrangement automation:
+write envelope on session source → duplicate to arrangement position → clear the
+source's envelope.
 
 ## Evidence
 
-Live 12.4.3 session: `adj-automate` dub-throw recipe on session clip (19
-points, B-Delay send), `adj-duplicate` to arrangement 21|1, user confirmed the
-envelope visible in the arrangement clip's Envelopes box and audible as a delay
-throw. API read-back cannot verify — `adj-automate read` on the arrangement
-clip raises the session-clip error.
+Live 12.4.3 session: `adj-automate` dub-throw recipe on session clip (19 points,
+B-Delay send), `adj-duplicate` to arrangement 21|1, user confirmed the envelope
+visible in the arrangement clip's Envelopes box and audible as a delay throw.
+API read-back cannot verify — `adj-automate read` on the arrangement clip raises
+the session-clip error.
 
 ## Apply when
 
