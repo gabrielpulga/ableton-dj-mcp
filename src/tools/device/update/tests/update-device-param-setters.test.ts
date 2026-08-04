@@ -431,4 +431,90 @@ describe("updateDevice - param value conversion", () => {
       );
     });
   });
+
+  describe("out-of-range numeric values", () => {
+    let param: RegisteredMockObject;
+
+    beforeEach(() => {
+      registerMockObject("dev1", {
+        path: livePath.track(0).device(0),
+        type: "Device",
+        properties: { parameters: children("q-param") },
+      });
+      // Mirrors EQ Eight "2 Q A": raw range 0-1, display labels match raw
+      param = registerMockObject("q-param", {
+        properties: {
+          name: "2 Q A",
+          original_name: "2 Q A",
+          is_quantized: 0,
+          value: 0.71,
+          min: 0,
+          max: 1,
+        },
+        methods: {
+          str_for_value: (v: unknown) => `${Number(v)}`,
+        },
+      });
+    });
+
+    it("should clamp a value above max instead of letting Live drop it", () => {
+      updateDevice({ ids: "dev1", params: "2 Q A = 1.1" });
+
+      expect(param.set).toHaveBeenCalledWith("value", 1);
+    });
+
+    it("should warn when a value is clamped", () => {
+      updateDevice({ ids: "dev1", params: "2 Q A = 1.1" });
+
+      expect(outlet).toHaveBeenCalledWith(
+        1,
+        expect.stringContaining("outside the parameter range 0-1"),
+      );
+    });
+
+    it("should clamp a value below min", () => {
+      updateDevice({ ids: "dev1", params: "2 Q A = -3" });
+
+      expect(param.set).toHaveBeenCalledWith("value", 0);
+    });
+
+    it("should not warn for an in-range value", () => {
+      updateDevice({ ids: "dev1", params: "2 Q A = 0.4" });
+
+      expect(param.set).toHaveBeenCalledWith("value", 0.4);
+      expect(outlet).not.toHaveBeenCalledWith(
+        1,
+        expect.stringContaining("outside the parameter range"),
+      );
+    });
+
+    it("should clamp when the display mapping is unknown", () => {
+      // Mirrors Compressor Ratio: max label "inf:1" is unparseable, so the
+      // display-to-raw mapping fails and the input is treated as raw
+      registerMockObject("dev2", {
+        path: livePath.track(0).device(1),
+        type: "Device",
+        properties: { parameters: children("ratio-param") },
+      });
+
+      const ratio = registerMockObject("ratio-param", {
+        properties: {
+          name: "Ratio",
+          original_name: "Ratio",
+          is_quantized: 0,
+          value: 0.3,
+          min: 0,
+          max: 1,
+        },
+        methods: {
+          str_for_value: (v: unknown) =>
+            Number(v) >= 1 ? "inf:1" : `${(1 + Number(v) * 9).toFixed(2)}:1`,
+        },
+      });
+
+      updateDevice({ ids: "dev2", params: "Ratio = 5" });
+
+      expect(ratio.set).toHaveBeenCalledWith("value", 1);
+    });
+  });
 });

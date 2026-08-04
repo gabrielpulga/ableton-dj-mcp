@@ -174,14 +174,47 @@ function setParamValue(param: LiveAPI, inputValue: string | number): void {
       rawMax,
       minLabel,
     );
+    const paramName = param.getProperty("name") as string;
 
-    param.set("value", rawValue ?? inputValue);
+    param.set(
+      "value",
+      clampToRawRange(rawValue ?? inputValue, rawMin, rawMax, paramName),
+    );
 
     return;
   }
 
   // 6. String fallback
   param.set("value", inputValue);
+}
+
+/**
+ * Clamp a raw value into the parameter's raw range, warning when it was outside.
+ * Live silently ignores out-of-range sets, so an unclamped write looks like a
+ * success while leaving the parameter untouched.
+ * @param rawValue - Candidate raw value
+ * @param rawMin - Raw minimum value
+ * @param rawMax - Raw maximum value
+ * @param paramName - Parameter name, for the warning
+ * @returns Raw value guaranteed to be within range
+ */
+function clampToRawRange(
+  rawValue: number,
+  rawMin: number,
+  rawMax: number,
+  paramName: string,
+): number {
+  const lo = Math.min(rawMin, rawMax);
+  const hi = Math.max(rawMin, rawMax);
+  const clamped = Math.min(Math.max(rawValue, lo), hi);
+
+  if (clamped !== rawValue) {
+    console.warn(
+      `updateDevice: "${paramName}" value ${rawValue} is outside the parameter range ${lo}-${hi}; clamped to ${clamped}`,
+    );
+  }
+
+  return clamped;
 }
 
 /**

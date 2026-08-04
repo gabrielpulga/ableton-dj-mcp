@@ -307,13 +307,18 @@ export function readParameter(paramApi: LiveAPI): Record<string, unknown> {
     return result;
   }
 
+  // min/max must share a unit. Mixing a parsed display bound with a raw bound
+  // reports a nonsensical range (e.g. Compressor Ratio, whose max label "inf:1"
+  // is unparseable, reported min:1 from the label and max:1 from the raw value).
+  const boundsParseable =
+    typeof minParsed.value === "number" && typeof maxParsed.value === "number";
   const result: Record<string, unknown> = {
     id: paramApi.id,
     name,
     value:
       valueParsed.value ?? paramApi.getProperty("display_value") ?? rawValue,
-    min: minParsed.value ?? rawMin,
-    max: maxParsed.value ?? rawMax,
+    min: boundsParseable ? minParsed.value : rawMin,
+    max: boundsParseable ? maxParsed.value : rawMax,
   };
 
   if (unit) result.unit = unit;
