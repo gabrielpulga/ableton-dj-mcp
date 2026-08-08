@@ -78,6 +78,18 @@ class WalkPathTest(unittest.TestCase):
             browser_ops.walk_path(root, "Synths/Nope")
 
 
+class ChildrenOfTest(unittest.TestCase):
+    def test_max_items_caps_result(self):
+        item = FakeItem(children=[FakeItem(name="Item%d" % i) for i in range(10)])
+        result = browser_ops.children_of(item, max_items=3)
+        self.assertEqual([c.name for c in result], ["Item0", "Item1", "Item2"])
+
+    def test_max_items_none_returns_all(self):
+        item = FakeItem(children=[FakeItem(name="Item%d" % i) for i in range(10)])
+        result = browser_ops.children_of(item)
+        self.assertEqual(len(result), 10)
+
+
 class BrowseTest(unittest.TestCase):
     def test_no_category_lists_categories(self):
         result = browser_ops.browse(_build_browser())
@@ -114,6 +126,56 @@ class BrowseTest(unittest.TestCase):
         result = browser_ops.browse(browser, category="instruments", limit=3)
         self.assertEqual(len(result["items"]), 3)
         self.assertTrue(result["truncated"])
+
+    def test_large_unfiltered_folder_stops_enumeration_early(self):
+        # An unfiltered browse of a huge folder must not walk every child
+        # just to discard most of them. limit=50 keeps the reply well under
+        # MAX_REPLY_BYTES so this isolates the item-count cap from the
+        # separate byte-budget cap (see test_oversized_reply_is_trimmed_*).
+        pulled = []
+
+        def counting_children():
+            for i in range(100_000):
+                pulled.append(i)
+                yield FakeItem(name="Item%d" % i)
+
+        huge_root = FakeItem(name="Huge", is_folder=True)
+        huge_root.children = counting_children()
+        browser = FakeBrowser(instruments=huge_root)
+
+        result = browser_ops.browse(browser, category="instruments", limit=50)
+
+        self.assertEqual(len(result["items"]), 50)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(len(pulled), 51)
+
+    def test_oversized_reply_is_trimmed_to_fit_one_datagram(self):
+        # Regression test for issue #270: the bridge silently drops a browse
+        # reply that doesn't fit in a single UDP datagram (macOS rejects the
+        # sendto() with EMSGSIZE), which surfaces to the caller as an
+        # unexplained timeout. A folder with ~100 items already blows the
+        # default limit=100 past MAX_REPLY_BYTES, well before `limit` kicks in.
+        children = [FakeItem(name="Item%d" % i, uri="query:Big#Item%d" % i)
+                    for i in range(100)]
+        root = FakeItem(name="Big", is_folder=True, children=children)
+        browser = FakeBrowser(instruments=root)
+
+        result = browser_ops.browse(browser, category="instruments", limit=100)
+
+        self.assertLess(len(result["items"]), 100)
+        self.assertTrue(result["truncated"])
+        self.assertLessEqual(
+            browser_ops._reply_bytes("instruments", "", result["items"]),
+            browser_ops.MAX_REPLY_BYTES,
+        )
+
+    def test_small_unfiltered_folder_not_truncated(self):
+        children = [FakeItem(name="Item%d" % i) for i in range(5)]
+        root = FakeItem(name="Small", is_folder=True, children=children)
+        browser = FakeBrowser(instruments=root)
+        result = browser_ops.browse(browser, category="instruments", limit=150)
+        self.assertEqual(len(result["items"]), 5)
+        self.assertFalse(result["truncated"])
 
     def test_depth_recurses(self):
         result = browser_ops.browse(_build_browser(), category="instruments",

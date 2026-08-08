@@ -12,6 +12,18 @@ The functions tolerate Live's mix of attribute/iterator-style children
 (``BrowserItem.children`` is a sequence in modern versions; older versions
 exposed ``iter_children``)."""
 
+import itertools
+import json
+
+# macOS's default net.inet.udp.maxdgram is 9216 bytes; a sendto() over that
+# fails with EMSGSIZE. BrowserBridge._send() catches that and only logs it,
+# so an oversized reply is silently dropped and the caller just sees its own
+# request time out with no indication why (issue #270 — a folder with ~65+
+# items already blows this budget, including under the tool's default
+# limit=100). Stay well under the OS ceiling to leave room for UDP/IP framing
+# and the {id, ok, result} envelope BrowserBridge wraps this in.
+MAX_REPLY_BYTES = 8192
+
 CATEGORY_ATTRS = (
     "instruments",
     "audio_effects",
@@ -55,17 +67,25 @@ def get_category_root(browser, category):
     return root
 
 
-def children_of(item):
-    """Return a list of children for a BrowserItem, abstracting over Live versions."""
+def children_of(item, max_items=None):
+    """Return children for a BrowserItem, abstracting over Live versions.
+
+    ``max_items``, when given, stops enumeration after that many children via
+    ``itertools.islice`` instead of materializing the whole collection first.
+    A populated Library folder can hold thousands of entries; on a large,
+    unfiltered folder this avoids paying for entries the caller is going to
+    discard anyway."""
     children = getattr(item, "children", None)
     if children is None:
         children = getattr(item, "iter_children", None)
         if callable(children):
-            children = list(children())
+            children = children()
         else:
             children = []
-    # children may be a Live "vector" — coerce to plain list
-    return list(children)
+    if max_items is None:
+        # children may be a Live "vector" — coerce to plain list
+        return list(children)
+    return list(itertools.islice(children, max_items))
 
 
 def serialize_item(item, depth=0, max_depth=1, include_children=True):
@@ -120,6 +140,12 @@ def walk_path(root, path):
     return current
 
 
+def _reply_bytes(category, path, items):
+    """Size of the JSON `browse` result payload, as sent over the wire."""
+    envelope = {"category": category, "path": path or "", "items": items, "truncated": True}
+    return len(json.dumps(envelope).encode("utf-8"))
+
+
 def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
     """Return a serialized listing of the browser tree.
 
@@ -138,11 +164,19 @@ def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
 
     root = get_category_root(browser, category)
     target = walk_path(root, path)
-    raw_items = children_of(target)
 
     if search:
+        # A search needs to scan every child to find matches, so there's no
+        # cheaper enumeration cap to apply here.
+        raw_items = children_of(target)
         needle = search.lower()
         raw_items = [it for it in raw_items if needle in (getattr(it, "name", "") or "").lower()]
+    else:
+        # No filter: stop enumerating as soon as we have one more than
+        # `limit` so truncation can still be detected, instead of walking
+        # (and paying for) the rest of a large folder just to discard it.
+        scan_cap = (limit + 1) if limit is not None else None
+        raw_items = children_of(target, max_items=scan_cap)
 
     truncated = False
     if limit is not None and len(raw_items) > limit:
@@ -153,6 +187,13 @@ def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
         serialize_item(it, depth=0, max_depth=max(depth - 1, 0), include_children=depth > 1)
         for it in raw_items
     ]
+
+    # Belt-and-suspenders: `limit` alone doesn't bound reply size (long
+    # names, depth>1 sub-trees), so trim further if the JSON still wouldn't
+    # fit in one UDP datagram.
+    while items and _reply_bytes(category, path, items) > MAX_REPLY_BYTES:
+        items.pop()
+        truncated = True
 
     return {
         "category": category,
