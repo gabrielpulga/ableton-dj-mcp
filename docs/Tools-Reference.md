@@ -181,7 +181,8 @@ Read device parameters and chain structure.
 Load a device onto a track by name, or by browser URI (via the bridge).
 
 - `deviceName` — Ableton native device name (see `src/tools/constants.ts`)
-- `path` — `"trackIndex/deviceIndex"` where to insert
+- `path` — insertion path, e.g. `"t0"`, `"t0/d1"`, `"t0/d0/c0"` (`t`=track,
+  `d`=device, `c`=chain — bare `"trackIndex/deviceIndex"` is rejected)
 - `browserUri` — load the exact item from `adj-browse` (e.g., a specific preset
   or User Library file). Pair with `deviceName: "Drum Rack"` to insert a rack
   and load a kit into it in one call. Requires the Live Browser Bridge — install

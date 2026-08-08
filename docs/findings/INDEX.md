@@ -69,6 +69,10 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/clip/automate/**, src/tools/operations/duplicate/**] — envelopes
   written on a session clip survive adj-duplicate to arrangement; only path to
   arrangement automation (write → dup → clear source)
+- [clip-groove-write-no-op](dev/device/clip-groove-write-no-op.md)
+  [src/tools/clip/update/**, live_browser_bridge/**] — Clip.groove is a child
+  object reference; generic set_property reports success but doesn't actually
+  assign it, check the Python bridge before building on this
 - [drum-kit-uri-loads-full-rack](dev/device/drum-kit-uri-loads-full-rack.md)
   [src/tools/device/create/**, src/mcp-server/bridge-dispatcher.ts,
   live_browser_bridge/BrowserBridge.py] — load_item on a kit URI creates a
