@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   release-please:
@@ -18,3 +19,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: config/release-please-config.json
           manifest-file: config/.release-please-manifest.json
+      - name: Dispatch CI for the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # main requires 5 status checks, but release-please's PR is created/
+          # updated with GITHUB_TOKEN, which never triggers push/pull_request
+          # workflow runs (GitHub Actions anti-recursion rule). Without this,
+          # the release PR sits BLOCKED forever with no checks ever recorded
+          # on its head commit. Dispatch CI explicitly against its branch so
+          # the resulting check runs attach to that commit and satisfy the
+          # requirement.
+          for branch in $(gh pr list --state open --json headRefName \
+            -q '.[] | select(.headRefName | startswith("release-please--")) | .headRefName'); do
+            gh workflow run ci.yml --ref "$branch"
+          done
