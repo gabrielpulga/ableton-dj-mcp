@@ -44,7 +44,10 @@ update state in Ableton Live.
 
 ## Raw Live API Tool
 
-Available only in debug builds (`npm run build:debug` or `npm run dev:debug`).
+Available only when built with the raw API flag enabled:
+`ENABLE_RAW_LIVE_API=true npm run build` (there is no `build:debug` /
+`dev:debug` script — the flag is a build-time env var read by
+`config/rollup.config.mjs`).
 
 ### Purpose
 
@@ -183,9 +186,9 @@ node scripts/adj-client.ts tools/call adj-read-live-set '{}'
 ### Full Validation
 
 ```bash
-# Clean build
-npm run clean
-npm run build:debug
+# Clean build (raw Live API tool enabled — there is no `npm run clean` script)
+rm -rf dist
+ENABLE_RAW_LIVE_API=true npm run build
 
 # Run all tests with coverage
 npm run test:coverage
