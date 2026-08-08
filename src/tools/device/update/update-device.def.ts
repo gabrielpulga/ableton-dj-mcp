@@ -91,6 +91,18 @@ export const toolDefUpdateDevice = defineTool("adj-update-device", {
       .string()
       .optional()
       .describe("output MIDI note e.g. 'C3' (drum chains only)"),
+    sidechainInputRoutingTypeId: z.coerce
+      .string()
+      .optional()
+      .describe(
+        "sidechain input source track identifier, from adj-read-device include=available-routings (Compressor only)",
+      ),
+    sidechainInputRoutingChannelId: z.coerce
+      .string()
+      .optional()
+      .describe(
+        "sidechain input channel identifier, from adj-read-device include=available-routings (Compressor only)",
+      ),
     wrapInRack: z
       .boolean()
       .optional()
@@ -105,6 +117,8 @@ export const toolDefUpdateDevice = defineTool("adj-update-device", {
       "abCompare",
       "chokeGroup",
       "mappedPitch",
+      "sidechainInputRoutingTypeId",
+      "sidechainInputRoutingChannelId",
       "wrapInRack",
     ],
     descriptionOverrides: {

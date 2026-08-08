@@ -35,6 +35,8 @@ interface ReadOptions {
   includeParams: boolean;
   includeParamValues: boolean;
   includeSample: boolean;
+  includeRoutings: boolean;
+  includeAvailableRoutings: boolean;
   maxDepth: number;
   paramSearch?: string;
 }
@@ -64,6 +66,9 @@ export function readDevice(
   const includeParamValues = includeAll || include.includes("param-values");
   const includeParams = includeParamValues || include.includes("params");
   const includeSample = includeAll || include.includes("sample");
+  const includeRoutings = includeAll || include.includes("routings");
+  const includeAvailableRoutings =
+    includeAll || include.includes("available-routings");
 
   // Force chain processing internally when drum-map is requested (needed for getDrumMap)
   const chainsForDrumMap = includeDrumMap && !includeChains;
@@ -76,6 +81,8 @@ export function readDevice(
     includeParams,
     includeParamValues,
     includeSample,
+    includeRoutings,
+    includeAvailableRoutings,
     // drum-map needs depth >= 1 to detect instruments in drum pad chains
     maxDepth: includeDrumMap ? Math.max(1, maxDepth) : maxDepth,
     paramSearch,

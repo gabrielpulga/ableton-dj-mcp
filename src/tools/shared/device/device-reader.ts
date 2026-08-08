@@ -19,6 +19,7 @@ import {
   readDeviceParameters,
   readMacroVariations,
 } from "./helpers/device-reader-helpers.ts";
+import { readSidechainRouting } from "./helpers/device-routing-helpers.ts";
 import { extractDevicePath } from "./helpers/path/device-path-helpers.ts";
 
 export interface ReadDeviceOptions {
@@ -28,6 +29,8 @@ export interface ReadDeviceOptions {
   includeParams?: boolean;
   includeParamValues?: boolean;
   includeSample?: boolean;
+  includeRoutings?: boolean;
+  includeAvailableRoutings?: boolean;
   paramSearch?: string;
   depth?: number;
   maxDepth?: number;
@@ -198,6 +201,8 @@ export function readDevice(
     includeParams = false,
     includeParamValues = false,
     includeSample = false,
+    includeRoutings = false,
+    includeAvailableRoutings = false,
     paramSearch,
     depth = 0,
     maxDepth = 4,
@@ -212,26 +217,9 @@ export function readDevice(
 
   const deviceType = getDeviceType(device);
   const className = device.getProperty("class_display_name") as string;
-  const userDisplayName = device.getProperty("name") as string;
-  const isRedundant = isRedundantDeviceClassName(deviceType, className);
   // Use parentPath if provided (for devices inside drum pads), otherwise extract from Live API path
   const path = parentPath ?? extractDevicePath(device.path);
-
-  const deviceInfo: Record<string, unknown> = {
-    id: device.id,
-    ...(path && { path }),
-    type: isRedundant ? deviceType : `${deviceType}: ${className}`,
-  };
-
-  if (userDisplayName !== className) {
-    deviceInfo.name = userDisplayName;
-  }
-
-  const isActive = (device.getProperty("is_active") as number) > 0;
-
-  if (!isActive) {
-    deviceInfo.deactivated = true;
-  }
+  const deviceInfo = buildBaseDeviceInfo(device, deviceType, className, path);
 
   // collapsed — kept for potential future use
   // const deviceView = LiveAPI.from(`${device.path} view`);
@@ -254,6 +242,16 @@ export function readDevice(
     Object.assign(deviceInfo, readSimplerSample(device, className));
   }
 
+  // Add Compressor sidechain routing (spreads empty object otherwise)
+  Object.assign(
+    deviceInfo,
+    readRequestedSidechainRouting(
+      device,
+      includeRoutings,
+      includeAvailableRoutings,
+    ),
+  );
+
   // Process chains for rack devices
   processDeviceChains(device, deviceInfo, deviceType, {
     includeChains,
@@ -273,6 +271,64 @@ export function readDevice(
   }
 
   return deviceInfo;
+}
+
+/**
+ * Build the core id/path/type/name/deactivated fields for a device info object.
+ * @param device - Live API device object
+ * @param deviceType - Combined device type string
+ * @param className - Device class display name
+ * @param path - Simplified device path, or undefined
+ * @returns Device info object with core fields populated
+ */
+function buildBaseDeviceInfo(
+  device: LiveAPI,
+  deviceType: string,
+  className: string,
+  path: string | null | undefined,
+): Record<string, unknown> {
+  const isRedundant = isRedundantDeviceClassName(deviceType, className);
+  const userDisplayName = device.getProperty("name") as string;
+
+  const deviceInfo: Record<string, unknown> = {
+    id: device.id,
+    ...(path && { path }),
+    type: isRedundant ? deviceType : `${deviceType}: ${className}`,
+  };
+
+  if (userDisplayName !== className) {
+    deviceInfo.name = userDisplayName;
+  }
+
+  const isActive = (device.getProperty("is_active") as number) > 0;
+
+  if (!isActive) {
+    deviceInfo.deactivated = true;
+  }
+
+  return deviceInfo;
+}
+
+/**
+ * Read Compressor sidechain routing if requested.
+ * @param device - Live API device object
+ * @param includeRoutings - Whether to include current routing selection
+ * @param includeAvailableRoutings - Whether to include available routing options
+ * @returns Sidechain routing fields, or an empty object if neither requested or not applicable
+ */
+function readRequestedSidechainRouting(
+  device: LiveAPI,
+  includeRoutings: boolean,
+  includeAvailableRoutings: boolean,
+): Record<string, unknown> {
+  if (!includeRoutings && !includeAvailableRoutings) {
+    return {};
+  }
+
+  return readSidechainRouting(device, {
+    includeCurrent: includeRoutings,
+    includeAvailable: includeAvailableRoutings,
+  });
 }
 
 /**
