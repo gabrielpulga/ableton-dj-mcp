@@ -625,3 +625,124 @@ describe("updateDevice", () => {
 
   // Drum chain move tests are in update-device-drum-chain-move.test.js
 });
+
+describe("updateDevice - sidechain routing (#268, #93)", () => {
+  let compressor: RegisteredMockObject;
+  let plugin: RegisteredMockObject;
+
+  beforeEach(() => {
+    compressor = registerMockObject("comp-1", {
+      path: livePath.track(0).device(0),
+      type: "CompressorDevice",
+    });
+
+    plugin = registerMockObject("plugin-1", {
+      path: livePath.track(0).device(1),
+      type: "PluginDevice",
+    });
+  });
+
+  it("sets sidechain input routing type on a Compressor", () => {
+    const result = updateDevice({
+      ids: "comp-1",
+      sidechainInputRoutingTypeId: "3",
+    });
+
+    // setProperty for routing properties JSON-encodes onto .set()
+    expect(compressor.set).toHaveBeenCalledWith(
+      "input_routing_type",
+      JSON.stringify({ input_routing_type: { identifier: 3 } }),
+    );
+    expect(result).toStrictEqual({ id: "comp-1" });
+  });
+
+  it("sets sidechain input routing channel on a Compressor", () => {
+    updateDevice({
+      ids: "comp-1",
+      sidechainInputRoutingChannelId: "1",
+    });
+
+    expect(compressor.set).toHaveBeenCalledWith(
+      "input_routing_channel",
+      JSON.stringify({ input_routing_channel: { identifier: 1 } }),
+    );
+  });
+
+  it("sets both type and channel in one call", () => {
+    const result = updateDevice({
+      ids: "comp-1",
+      sidechainInputRoutingTypeId: "3",
+      sidechainInputRoutingChannelId: "1",
+    });
+
+    expect(compressor.set).toHaveBeenCalledWith(
+      "input_routing_type",
+      JSON.stringify({ input_routing_type: { identifier: 3 } }),
+    );
+    expect(compressor.set).toHaveBeenCalledWith(
+      "input_routing_channel",
+      JSON.stringify({ input_routing_channel: { identifier: 1 } }),
+    );
+    expect(result).toStrictEqual({ id: "comp-1" });
+  });
+
+  it("warns and does not write when target is not a Compressor", () => {
+    const result = updateDevice({
+      ids: "plugin-1",
+      sidechainInputRoutingTypeId: "3",
+    });
+
+    expect(outlet).toHaveBeenCalledWith(
+      1,
+      "updateDevice: 'sidechainInputRoutingTypeId' not applicable to PluginDevice",
+    );
+    expect(plugin.set).not.toHaveBeenCalledWith(
+      "input_routing_type",
+      expect.anything(),
+    );
+    expect(result).toStrictEqual({ id: "plugin-1" });
+  });
+
+  it("warns for sidechainInputRoutingChannelId on non-Compressor devices", () => {
+    updateDevice({
+      ids: "plugin-1",
+      sidechainInputRoutingChannelId: "1",
+    });
+
+    expect(outlet).toHaveBeenCalledWith(
+      1,
+      "updateDevice: 'sidechainInputRoutingChannelId' not applicable to PluginDevice",
+    );
+  });
+
+  it("does nothing when neither sidechain param is set", () => {
+    const result = updateDevice({
+      ids: "comp-1",
+      name: "My Compressor",
+    });
+
+    expect(compressor.set).toHaveBeenCalledWith("name", "My Compressor");
+    expect(result).toStrictEqual({ id: "comp-1" });
+  });
+
+  it("warns on chains too (never applicable)", () => {
+    const chain = registerMockObject("chain-1", {
+      path: livePath.track(0).device(0).chain(0),
+      type: "Chain",
+    });
+
+    updateDevice({
+      ids: "chain-1",
+      sidechainInputRoutingTypeId: "3",
+    });
+
+    expect(outlet).toHaveBeenCalledWith(
+      1,
+      "updateDevice: 'sidechainInputRoutingTypeId' not applicable to Chain",
+    );
+    expect(chain.set).not.toHaveBeenCalledWith(
+      "input_routing_type",
+      expect.anything(),
+    );
+  });
+});

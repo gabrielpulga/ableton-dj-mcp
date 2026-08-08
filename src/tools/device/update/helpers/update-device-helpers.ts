@@ -5,8 +5,50 @@
 import { livePath } from "#src/shared/live-api-path-builders.ts";
 import { noteNameToMidi } from "#src/shared/pitch.ts";
 import * as console from "#src/shared/v8-max-console.ts";
+import {
+  applySidechainRouting,
+  isSidechainRoutableDevice,
+} from "#src/tools/shared/device/helpers/device-routing-helpers.ts";
 import { resolveInsertionPath } from "#src/tools/shared/device/helpers/path/device-path-helpers.ts";
 import { toLiveApiId } from "#src/tools/shared/utils.ts";
+import { warnIfSet } from "./update-device-type-helpers.ts";
+
+/**
+ * Apply sidechain input routing if the target supports it (Compressor
+ * only), otherwise warn that the parameters don't apply. Safe to call
+ * unconditionally for any device, chain, or drum pad target.
+ * @param target - Target to update
+ * @param type - Target's Live object type
+ * @param sidechainInputRoutingTypeId - Sidechain source track identifier
+ * @param sidechainInputRoutingChannelId - Sidechain source channel identifier
+ */
+export function applyOrWarnSidechainRouting(
+  target: LiveAPI,
+  type: string,
+  sidechainInputRoutingTypeId: string | undefined,
+  sidechainInputRoutingChannelId: string | undefined,
+): void {
+  if (!isSidechainRoutableDevice(type)) {
+    warnIfSet("sidechainInputRoutingTypeId", sidechainInputRoutingTypeId, type);
+    warnIfSet(
+      "sidechainInputRoutingChannelId",
+      sidechainInputRoutingChannelId,
+      type,
+    );
+
+    return;
+  }
+
+  if (
+    sidechainInputRoutingTypeId != null ||
+    sidechainInputRoutingChannelId != null
+  ) {
+    applySidechainRouting(target, {
+      sidechainInputRoutingTypeId,
+      sidechainInputRoutingChannelId,
+    });
+  }
+}
 
 // ============================================================================
 // Device move helpers

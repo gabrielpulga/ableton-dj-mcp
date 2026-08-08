@@ -24,19 +24,21 @@ export const toolDefReadDevice = defineTool("adj-read-device", {
     include: z
       .array(
         z.enum([
+          "available-routings",
           "chains",
           "drum-map",
           "drum-pads",
           "params",
           "param-values",
           "return-chains",
+          "routings",
           "sample",
           "*",
         ]),
       )
       .default([])
       .describe(
-        'chains, return-chains, drum-pads = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. "*" = all',
+        'chains, return-chains, drum-pads = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. routings, available-routings = Compressor sidechain input source (Compressor only). "*" = all',
       ),
     maxDepth: z.coerce
       .number()
@@ -55,10 +57,12 @@ export const toolDefReadDevice = defineTool("adj-read-device", {
   },
 
   smallModelModeConfig: {
-    excludeEnumValues: { include: ["drum-pads", "return-chains", "*"] },
+    excludeEnumValues: {
+      include: ["available-routings", "drum-pads", "return-chains", "*"],
+    },
     descriptionOverrides: {
       include:
-        "chains = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file",
+        "chains = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. routings = Compressor sidechain input source (Compressor only)",
       maxDepth:
         "Device tree depth for chains. 0=chains only with deviceCount, 1=direct devices, 2+=deeper",
     },

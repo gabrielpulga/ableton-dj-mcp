@@ -2,14 +2,9 @@
 // Copyright (C) 2026 Gabriel Pulga
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { errorMessage } from "#src/shared/error-utils.ts";
 import { noteNameToMidi } from "#src/shared/pitch.ts";
 import * as console from "#src/shared/v8-max-console.ts";
 import { select } from "#src/tools/control/select.ts";
-import {
-  resolveDrumPadFromPath,
-  resolvePathToLiveApi,
-} from "#src/tools/shared/device/helpers/path/device-path-helpers.ts";
 import {
   parseCommaSeparatedIds,
   unwrapSingleResult,
@@ -24,6 +19,7 @@ import {
   parseNames,
 } from "#src/tools/shared/validation/name-utils.ts";
 import {
+  applyOrWarnSidechainRouting,
   moveDeviceToPath,
   moveDrumChainToPath,
   setParamValues,
@@ -32,6 +28,11 @@ import {
   updateMacroCount,
   updateMacroVariation,
 } from "./helpers/update-device-helpers.ts";
+import {
+  type ResolvedTarget,
+  resolveIdToTarget,
+  resolvePathToTargetSafe,
+} from "./helpers/update-device-target-resolution-helpers.ts";
 import {
   isChainType,
   isDeviceType,
@@ -55,6 +56,8 @@ interface UpdateProperties {
   color?: string;
   chokeGroup?: number;
   mappedPitch?: string;
+  sidechainInputRoutingTypeId?: string;
+  sidechainInputRoutingChannelId?: string;
 }
 
 interface UpdateDeviceArgs extends UpdateProperties {
@@ -65,11 +68,6 @@ interface UpdateDeviceArgs extends UpdateProperties {
 }
 
 interface UpdateOptions extends UpdateProperties {
-  isDrumPadPath?: boolean;
-}
-
-interface ResolvedTarget {
-  target: LiveAPI;
   isDrumPadPath?: boolean;
 }
 
@@ -90,6 +88,8 @@ interface ResolvedTarget {
  * @param args.color - Color #RRGGBB (chains only)
  * @param args.chokeGroup - Choke group 0-16 (drum chains only)
  * @param args.mappedPitch - Output MIDI note (drum chains only)
+ * @param args.sidechainInputRoutingTypeId - Sidechain input source track identifier (Compressor only)
+ * @param args.sidechainInputRoutingChannelId - Sidechain input channel identifier (Compressor only)
  * @param args.wrapInRack - Wrap device(s) in a new rack
  * @param args.focus - Select the device and show device detail view
  * @param _context - Internal context object (unused)
@@ -111,6 +111,8 @@ export function updateDevice(
     color,
     chokeGroup,
     mappedPitch,
+    sidechainInputRoutingTypeId,
+    sidechainInputRoutingChannelId,
     wrapInRack,
     focus,
   }: UpdateDeviceArgs,
@@ -143,6 +145,8 @@ export function updateDevice(
       color,
       chokeGroup,
       mappedPitch,
+      sidechainInputRoutingTypeId,
+      sidechainInputRoutingChannelId,
     };
 
     result = updateMultipleTargets(
@@ -212,89 +216,6 @@ function updateMultipleTargets(
   }
 
   return unwrapSingleResult(results);
-}
-
-/**
- * Resolve an ID to a LiveAPI target
- * @param id - Object ID
- * @returns Resolved target or null if not found
- */
-function resolveIdToTarget(id: string): ResolvedTarget | null {
-  const target = LiveAPI.from(id);
-
-  return target.exists() ? { target } : null;
-}
-
-/**
- * Safely resolve a path to a Live API target, catching errors
- * @param path - Device/chain/drum-pad path
- * @returns Resolved target or null if not found or invalid
- */
-function resolvePathToTargetSafe(path: string): ResolvedTarget | null {
-  try {
-    return resolvePathToTarget(path);
-  } catch (e) {
-    console.warn(`updateDevice: ${errorMessage(e)}`);
-
-    return null;
-  }
-}
-
-/**
- * Resolve a path to a Live API target (device, chain, or drum pad)
- * @param path - Device/chain/drum-pad path
- * @returns Resolved target or null if not found
- */
-function resolvePathToTarget(path: string): ResolvedTarget | null {
-  const resolved = resolvePathToLiveApi(path);
-
-  switch (resolved.targetType) {
-    case "device": // fallthrough
-    case "chain": // fallthrough
-
-    case "return-chain": {
-      const target = resolveTargetFromPath(resolved.liveApiPath);
-
-      return target ? { target } : null;
-    }
-
-    case "drum-pad": {
-      // drumPadNote is guaranteed for drum-pad targetType
-      const drumPadNote = resolved.drumPadNote as string;
-      const { remainingSegments } = resolved;
-      const drumPadResult = resolveDrumPadFromPath(
-        resolved.liveApiPath,
-        drumPadNote,
-        remainingSegments,
-      );
-
-      if (!drumPadResult.target) {
-        return null;
-      }
-
-      // Detect if this is a drum pad path (no explicit chain index) vs chain path
-      // pC1 = pad path, pC1/c0 = chain path
-      const hasExplicitChainIndex =
-        remainingSegments.length > 0 &&
-        (remainingSegments[0] as string).startsWith("c");
-
-      return {
-        target: drumPadResult.target,
-        isDrumPadPath: !hasExplicitChainIndex,
-      };
-    }
-  }
-}
-
-/**
- * Resolve device or chain target from Live API path
- * @param liveApiPath - Live API canonical path
- * @returns LiveAPI object or null if not found
- */
-function resolveTargetFromPath(liveApiPath: string): LiveAPI | null {
-  const target = LiveAPI.from(liveApiPath);
-
-  return target.exists() ? target : null;
 }
 
 /**
@@ -371,6 +292,8 @@ function updateDeviceProperties(
     color,
     chokeGroup,
     mappedPitch,
+    sidechainInputRoutingTypeId,
+    sidechainInputRoutingChannelId,
   } = options;
 
   // collapsed — kept for potential future use
@@ -401,6 +324,14 @@ function updateDeviceProperties(
     warnIfSet("macroCount", macroCount, type);
   }
 
+  // Compressor-only: sidechain input routing
+  applyOrWarnSidechainRouting(
+    target,
+    type,
+    sidechainInputRoutingTypeId,
+    sidechainInputRoutingChannelId,
+  );
+
   // Warn for non-device properties on devices
   warnIfSet("mute", mute, type);
   warnIfSet("solo", solo, type);
@@ -426,6 +357,13 @@ function updateNonDeviceProperties(
   warnIfSet("macroVariationIndex", options.macroVariationIndex, type);
   warnIfSet("macroCount", options.macroCount, type);
   warnIfSet("abCompare", options.abCompare, type);
+  // Never applicable here (Chain/DrumPad types), always warns
+  applyOrWarnSidechainRouting(
+    target,
+    type,
+    options.sidechainInputRoutingTypeId,
+    options.sidechainInputRoutingChannelId,
+  );
 
   // Mute/solo work on Chain, DrumChain, DrumPad
   if (options.mute != null) {
