@@ -116,6 +116,24 @@ describe("BrowserBridgeClient", () => {
     );
   });
 
+  it("surfaces REPLY_TOO_LARGE when the bridge reports an oversized reply", async () => {
+    const { client, socket } = makeClient();
+
+    socket.onSend = (msg) =>
+      socket.reply({
+        id: msg.id,
+        ok: false,
+        error: {
+          code: "REPLY_TOO_LARGE",
+          message: "[Errno 40] Message too long",
+        },
+      });
+
+    await expect(client.browse({ category: "sounds" })).rejects.toMatchObject({
+      code: "REPLY_TOO_LARGE",
+    });
+  });
+
   it("times out when bridge does not reply", async () => {
     vi.useFakeTimers();
     const { client, socket } = makeClient();

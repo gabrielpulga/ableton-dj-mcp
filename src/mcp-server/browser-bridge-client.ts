@@ -35,7 +35,9 @@ export type BridgeErrorCode =
   | "BROWSER_API_FAILED"
   | "AUTOMATION_FAILED"
   | "INVALID_ARGS"
-  | "TIMEOUT_INTERNAL";
+  | "TIMEOUT_INTERNAL"
+  | "REPLY_TOO_LARGE"
+  | "SEND_FAILED";
 
 export const INSTALL_HINT =
   "Bridge unavailable. Run `npm run install:bridge`, then restart Live and " +
@@ -355,10 +357,8 @@ export class BrowserBridgeClient {
     }).catch((err: Error) => {
       const pending = this.pending.get(id);
 
-      if (pending) {
-        clearTimeout(pending.timer);
-        this.pending.delete(id);
-      }
+      if (pending) clearTimeout(pending.timer);
+      this.pending.delete(id);
 
       throw new BridgeCallError({
         code: "BRIDGE_NOT_FOUND",

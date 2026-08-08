@@ -45,6 +45,11 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/tools/browse/**, live_browser_bridge/browser_ops.py,
   src/mcp-server/bridge-dispatcher.ts] — adj-browse search filters only direct
   children; user Places not reachable via Live categories
+- [large-udp-reply-silently-dropped](dev/browser/large-udp-reply-silently-dropped.md)
+  [live_browser_bridge/browser_ops.py, live_browser_bridge/BrowserBridge.py,
+  src/mcp-server/browser-bridge-client.ts] — browse replies over 9216 bytes fail
+  sendto() with EMSGSIZE and are silently dropped, presenting as a timeout, not
+  a slow-enumeration bug
 - [m4l-no-browser-api](dev/browser/m4l-no-browser-api.md) [src/tools/browse/**,
   src/tools/device/create/**, live_browser_bridge/**,
   src/mcp-server/browser-bridge-client.ts, src/mcp-server/bridge-dispatcher.ts]
@@ -128,6 +133,9 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ## workflow
 
+- [browser-bridge-needs-live-restart](workflow/browser-bridge-needs-live-restart.md)
+  [live_browser_bridge/**, scripts/install-bridge.ts] — install:bridge alone
+  doesn't reload edited Python while Live is running; full Live restart required
 - [device-deploy-flow](workflow/device-deploy-flow.md) [max-for-live-device/**,
   dist/**, package.json] — build → copy bundles to max-for-live-device → restart
   Live to load new version
