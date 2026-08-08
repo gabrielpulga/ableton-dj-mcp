@@ -45,13 +45,14 @@ export const toolDefReadTrack = defineTool("adj-read-track", {
           "routings",
           "available-routings",
           "mixer",
+          "meters",
           "color",
           "*",
         ]),
       )
       .default([])
       .describe(
-        'session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, available-routings, mixer = track data. color = track + clip color. "*" = all',
+        'session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, available-routings, mixer, meters = track data. color = track + clip color. "*" = all',
       ),
   },
 
@@ -59,7 +60,7 @@ export const toolDefReadTrack = defineTool("adj-read-track", {
     excludeEnumValues: { include: ["available-routings", "*"] },
     descriptionOverrides: {
       include:
-        "session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, mixer = track data. color = track + clip color",
+        "session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, mixer, meters = track data. color = track + clip color",
     },
   },
 });

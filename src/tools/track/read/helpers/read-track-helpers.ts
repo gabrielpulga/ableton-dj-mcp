@@ -30,6 +30,12 @@ interface MixerResult {
   sends?: SendInfo[];
 }
 
+interface MeterResult {
+  meterLeft: number;
+  meterRight: number;
+  meterLevel: number;
+}
+
 /**
  * Read all session clips from a track
  * @param track - Track object
@@ -387,4 +393,19 @@ export function readMixerProperties(
   }
 
   return result;
+}
+
+/**
+ * Read live output meter levels for a track (or the master track).
+ * Values are instantaneous (0.0-1.0) and read 0 when the transport is
+ * stopped, since Live only updates meters during playback.
+ * @param track - Track object
+ * @returns Object with left/right/mono meter levels
+ */
+export function readMeterProperties(track: LiveAPI): MeterResult {
+  return {
+    meterLeft: track.getProperty("output_meter_left") as number,
+    meterRight: track.getProperty("output_meter_right") as number,
+    meterLevel: track.getProperty("output_meter_level") as number,
+  };
 }

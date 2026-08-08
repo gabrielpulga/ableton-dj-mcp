@@ -44,7 +44,7 @@ debugging, but should be avoided in production for large Live Sets.
 `adj-read-track` and `adj-read-scene` pass their full `include` array through to
 `readClip()`. Only clip-recognized includes affect clip output.
 `adj-read-live-set` propagates only track-level includes (`routings`, `mixer`,
-`color`) to its nested track/scene reads.
+`meters`, `color`) to its nested track/scene reads.
 
 ### Redundant field stripping
 
@@ -104,6 +104,9 @@ Returns the Live Set overview. Use includes to expand track/scene detail.
 - `scenes` — replaces `sceneCount` with scene list (read-scene default format)
 - `routings` — propagated: adds routing info to tracks
 - `mixer` — propagated: adds gain, pan, sends to tracks
+- `meters` — propagated: adds live output meter levels to tracks (see
+  `adj-read-track`'s `"meters"` include below). Combine with `tracks` for a
+  one-call mix snapshot of every track's levels
 - `color` — propagated: adds hex color to tracks and scenes
 - `locators` — adds arrangement cue points with names and bar|beat positions
 
@@ -171,6 +174,25 @@ Adds track-level mixer properties. Fields are merged into the track object.
 
 Device-structural includes (`chains`, `return-chains`, `drum-pads`) are not
 available at this level. Use `adj-read-device` for chain/drum-pad detail.
+
+### Include: `"meters"`
+
+Adds live output meter levels. Works on regular, return, and master tracks.
+Values are instantaneous — Live only updates them during playback, so they read
+`0` while the transport is stopped.
+
+| Field        | Type     | Description                               |
+| ------------ | -------- | ----------------------------------------- |
+| `meterLeft`  | `number` | Left channel output meter level, 0.0-1.0  |
+| `meterRight` | `number` | Right channel output meter level, 0.0-1.0 |
+| `meterLevel` | `number` | Mono output meter level, 0.0-1.0          |
+
+Unlike `mixer`'s fields, these are always present (not omitted at zero) since
+zero is meaningful signal information, not a default value to hide. Exception:
+`meterLeft`/`meterRight` are absent on a MIDI track with no audio-producing
+device — only `meterLevel` reads there. Audio tracks, return tracks, and the
+master track always expose all three (verified live against Ableton Live
+12.4.3).
 
 ## adj-read-scene
 

@@ -99,6 +99,11 @@ subdirs (see `HOW-TO-WRITE.md`).
 - [live-instrument-limit](dev/device/live-instrument-limit.md)
   [src/tools/device/**, src/tools/track/**] — Live blocks 2nd instrument per
   track with vague error; delete first
+- [midi-track-no-stereo-meter](dev/device/midi-track-no-stereo-meter.md)
+  [src/tools/track/read/helpers/read-track-helpers.ts,
+  src/tools/track/read/read-track.ts] — MIDI tracks without an audio-producing
+  device omit meterLeft/meterRight, only meterLevel reads; audio/return/master
+  tracks expose all three
 - [param-write-silently-ignored](dev/device/param-write-silently-ignored.md)
   [src/tools/device/update/**,
   src/tools/shared/device/helpers/device-display-helpers.ts] — Live ignores

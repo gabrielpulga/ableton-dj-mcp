@@ -22,6 +22,7 @@ export const toolDefReadLiveSet = defineTool("adj-read-live-set", {
           "scenes",
           "routings",
           "mixer",
+          "meters",
           "color",
           "locators",
           "*",
@@ -29,7 +30,7 @@ export const toolDefReadLiveSet = defineTool("adj-read-live-set", {
       )
       .default([])
       .describe(
-        'tracks, scenes = lists. routings, mixer, color = detail (use with tracks/scenes). locators = arrangement markers. "*" = all',
+        'tracks, scenes = lists. routings, mixer, meters, color = detail (use with tracks/scenes). locators = arrangement markers. "*" = all',
       ),
   },
 
@@ -37,7 +38,7 @@ export const toolDefReadLiveSet = defineTool("adj-read-live-set", {
     excludeEnumValues: { include: ["locators", "*"] },
     descriptionOverrides: {
       include:
-        "tracks, scenes = lists. routings, mixer, color = detail (use with tracks/scenes)",
+        "tracks, scenes = lists. routings, mixer, meters, color = detail (use with tracks/scenes)",
     },
   },
 });

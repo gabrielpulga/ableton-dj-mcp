@@ -31,6 +31,7 @@ const ALL_FLAGS_FALSE = {
   includeTiming: false,
   includeWarp: false,
   includeMixer: false,
+  includeMeters: false,
   includeLocators: false,
 };
 
