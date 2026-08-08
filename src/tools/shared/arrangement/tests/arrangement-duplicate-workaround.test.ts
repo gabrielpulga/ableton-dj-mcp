@@ -323,6 +323,87 @@ describe("clearClipAtDuplicateTarget", () => {
     );
   });
 
+  it("does not clear the source clip itself when a small move overlaps its own old position (#264)", () => {
+    // Source: 1.906 beats long (start_time=8, end_time=9.906), moved a
+    // short distance to target position=8.5. Target range [8.5, 10.406)
+    // overlaps the source's own current position [8, 9.906) — the source
+    // clip is still present in arrangement_clips (hasn't moved yet), so
+    // without self-exclusion it gets trimmed to a sliver by this workaround
+    // before duplicate_clip_to_arrangement ever runs.
+    setupClip("100", {
+      properties: {
+        is_arrangement_clip: 1,
+        start_time: 8,
+        end_time: 9.906,
+      },
+    });
+
+    const trackMock = setupTrack(0, {
+      properties: {
+        arrangement_clips: ["id", "100"],
+      },
+    });
+
+    clearClipAtDuplicateTarget(
+      LiveAPI.from(trackMock.path),
+      "100",
+      8.5,
+      false,
+      mockContext,
+    );
+
+    expect(trackMock.call).not.toHaveBeenCalled();
+  });
+
+  it("still clears a genuine overlapping neighbor when the source is also in the list (#264)", () => {
+    // Source at 8-9.906 moves to target 8.5 (range 8.5-10.406). A separate
+    // neighbor clip at 9-11 genuinely overlaps and must still be cleared;
+    // only the source clip itself should be skipped.
+    setupClip("100", {
+      properties: {
+        is_arrangement_clip: 1,
+        start_time: 8,
+        end_time: 9.906,
+      },
+    });
+
+    const neighbor = setupArrangementClip("201", 0, {
+      start_time: 9,
+      end_time: 11,
+    });
+
+    const trackMock = setupTrack(0, {
+      properties: {
+        arrangement_clips: ["id", "100", "id", neighbor.id],
+      },
+      methods: {
+        duplicate_clip_to_arrangement: () => ["id", "400"],
+        create_midi_clip: () => ["id", "300"],
+        delete_clip: () => null,
+      },
+    });
+
+    clearClipAtDuplicateTarget(
+      LiveAPI.from(trackMock.path),
+      "100",
+      8.5,
+      true,
+      mockContext,
+    );
+
+    // Neighbor [9,11] genuinely overlaps and end_time 11 > targetEnd 10.406,
+    // so it must still go through the holding-clip workaround (proves the
+    // fix only skips the source, not overlap detection generally).
+    expect(trackMock.call).toHaveBeenCalledWith("delete_clip", "id 201");
+    // The source clip 100 must never be treated as an obstacle.
+    expect(trackMock.call).not.toHaveBeenCalledWith("delete_clip", "id 100");
+    expect(trackMock.call).not.toHaveBeenCalledWith(
+      "duplicate_clip_to_arrangement",
+      "id 100",
+      expect.anything(),
+    );
+  });
+
   it("checks multiple arrangement clips for overlap", () => {
     // Source: 4 beats long, target position=16
     // Target range: 16 to 20. Clip1 at 0-4 doesn't overlap, clip2 at 16-20 does.

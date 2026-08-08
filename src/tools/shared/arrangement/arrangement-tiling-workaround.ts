@@ -52,7 +52,8 @@ export function clearClipAtDuplicateTarget(
 ): void {
   if (!arrangementDuplicateCrashWorkaround) return;
 
-  const sourceClip = LiveAPI.from(toLiveApiId(sourceClipId));
+  const normalizedSourceId = toLiveApiId(sourceClipId);
+  const sourceClip = LiveAPI.from(normalizedSourceId);
 
   if (sourceClip.getProperty("is_arrangement_clip") !== 1) return;
 
@@ -66,6 +67,12 @@ export function clearClipAtDuplicateTarget(
   const clipIds = track.getChildIds("arrangement_clips");
 
   for (const clipId of clipIds) {
+    // The source clip is still at its old position and hasn't moved yet, so a
+    // short move (new target overlapping the old position) makes it match its
+    // own overlap check. Skip it or this workaround destroys the very clip
+    // duplicate_clip_to_arrangement is about to move (see #264).
+    if (clipId === normalizedSourceId) continue;
+
     const clip = LiveAPI.from(clipId);
     const clipStart = clip.getProperty("start_time") as number;
     const clipEnd = clip.getProperty("end_time") as number;
