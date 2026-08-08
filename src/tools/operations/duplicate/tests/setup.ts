@@ -12,8 +12,10 @@ interface MockTrack {
 
 /**
  * Mock implementation for updateClip that returns tiled clip array format.
+ * Async to match the real updateClip signature — a synchronous mock here
+ * previously hid a bug where the caller never awaited the real call (#279).
  */
-export const updateClipMock = vi.fn(({ ids }: { ids: string }) => [
+export const updateClipMock = vi.fn(async ({ ids }: { ids: string }) => [
   { id: ids },
 ]);
 

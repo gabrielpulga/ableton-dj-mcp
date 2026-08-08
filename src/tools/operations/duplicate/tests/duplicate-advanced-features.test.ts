@@ -21,7 +21,7 @@ vi.mock(import("#src/tools/control/select.ts"), () => ({
 }));
 
 describe("duplicate - routeToSource with duplicate track names", () => {
-  it("should handle duplicate track names without crashing", () => {
+  it("should handle duplicate track names without crashing", async () => {
     registerSourceTrackWithRouting("track2", livePath.track(1), "Synth");
 
     registerMockObject("live_set", {
@@ -50,7 +50,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
     });
 
     // Test that the function doesn't crash with duplicate names
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track2", // Duplicate second "Synth" track
       routeToSource: true,
@@ -59,7 +59,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
     expectTrackResult(result);
   });
 
-  it("should handle unique track names without crashing (backward compatibility)", () => {
+  it("should handle unique track names without crashing (backward compatibility)", async () => {
     registerSourceTrackWithRouting("track1", livePath.track(0), "UniqueTrack");
     registerMockObject("live_set", { path: livePath.liveSet });
 
@@ -70,7 +70,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
       ],
     });
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       routeToSource: true,
@@ -79,7 +79,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
     expectTrackResult(result);
   });
 
-  it("should warn when track is not found in routing options", () => {
+  it("should warn when track is not found in routing options", async () => {
     registerSourceTrackWithRouting(
       "track1",
       livePath.track(0),
@@ -94,7 +94,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
       ],
     });
 
-    duplicate({
+    await duplicate({
       type: "track",
       id: "track1",
       routeToSource: true,
@@ -119,7 +119,7 @@ describe("duplicate - routeToSource with duplicate track names", () => {
 describe("duplicate - focus functionality", () => {
   const selectMock = setupSelectMock();
 
-  it("should select clip and show clip detail when duplicating to arrangement", () => {
+  it("should select clip and show clip detail when duplicating to arrangement", async () => {
     registerMockObject("clip1", {
       path: livePath.track(0).clipSlot(0).clip(),
       properties: { length: 4 },
@@ -128,7 +128,7 @@ describe("duplicate - focus functionality", () => {
     registerTrackWithArrangementDup(0);
     registerArrangementClip(0, 0, 0);
 
-    duplicate({
+    await duplicate({
       type: "clip",
       id: "clip1",
       arrangementStart: "1|1",
@@ -141,12 +141,12 @@ describe("duplicate - focus functionality", () => {
     });
   });
 
-  it("should select clip and show clip detail when duplicating to session", () => {
+  it("should select clip and show clip detail when duplicating to session", async () => {
     registerSessionClipDuplication({
       destClipProperties: { is_arrangement_clip: 0 },
     });
 
-    duplicate({
+    await duplicate({
       type: "clip",
       id: "clip1",
       focus: true,
@@ -159,10 +159,10 @@ describe("duplicate - focus functionality", () => {
     });
   });
 
-  it("should not call select when duplicating tracks", () => {
+  it("should not call select when duplicating tracks", async () => {
     setupTrackForFocus();
 
-    duplicate({
+    await duplicate({
       type: "track",
       id: "track1",
       focus: true,
@@ -171,7 +171,7 @@ describe("duplicate - focus functionality", () => {
     expect(selectMock.get()).not.toHaveBeenCalled();
   });
 
-  it("should select scene in session view when duplicating scenes", () => {
+  it("should select scene in session view when duplicating scenes", async () => {
     registerMockObject("scene1", { path: livePath.scene(0) });
     registerMockObject("live_set", {
       path: livePath.liveSet,
@@ -183,7 +183,7 @@ describe("duplicate - focus functionality", () => {
     });
     registerMockObject("live_set/scenes/1", { path: livePath.scene(1) });
 
-    duplicate({
+    await duplicate({
       type: "scene",
       id: "scene1",
       focus: true,
@@ -195,10 +195,10 @@ describe("duplicate - focus functionality", () => {
     });
   });
 
-  it("should not call select when focus=false", () => {
+  it("should not call select when focus=false", async () => {
     setupTrackForFocus();
 
-    duplicate({
+    await duplicate({
       type: "track",
       id: "track1",
       focus: false,
@@ -207,7 +207,7 @@ describe("duplicate - focus functionality", () => {
     expect(selectMock.get()).not.toHaveBeenCalled();
   });
 
-  it("should not call select for multiple track duplicates when focus=true", () => {
+  it("should not call select for multiple track duplicates when focus=true", async () => {
     setupTrackForFocus();
     // Register second new track for count=2
     registerMockObject("live_set/tracks/2", {
@@ -215,7 +215,7 @@ describe("duplicate - focus functionality", () => {
       properties: { devices: [], clip_slots: [], arrangement_clips: [] },
     });
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       count: 2,
@@ -241,10 +241,10 @@ describe("duplicate - comma-separated names", () => {
     return { newTrack1, newTrack2 };
   }
 
-  it("should assign different names to each track when comma-separated", () => {
+  it("should assign different names to each track when comma-separated", async () => {
     const { newTrack1, newTrack2 } = setupTwoNewTracks();
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       count: 2,
@@ -256,10 +256,10 @@ describe("duplicate - comma-separated names", () => {
     expect(result).toHaveLength(2);
   });
 
-  it("should not set name for extras beyond the comma-separated list", () => {
+  it("should not set name for extras beyond the comma-separated list", async () => {
     const { newTrack1, newTrack2 } = setupTwoNewTracks();
 
-    duplicate({
+    await duplicate({
       type: "track",
       id: "track1",
       count: 2,
