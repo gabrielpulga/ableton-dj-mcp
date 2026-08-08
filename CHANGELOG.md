@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.3.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v2.2.0...ableton-dj-mcp-v2.3.0) (2026-08-08)
+
+
+### Features
+
+* add live output meter levels to adj-read-track ([#295](https://github.com/gabrielpulga/ableton-dj-mcp/issues/295)) ([b0a0fa2](https://github.com/gabrielpulga/ableton-dj-mcp/commit/b0a0fa2ecf4668e8e70830d1b5f7685ef1d1ac11))
+* expose Compressor sidechain input routing ([#268](https://github.com/gabrielpulga/ableton-dj-mcp/issues/268), [#93](https://github.com/gabrielpulga/ableton-dj-mcp/issues/93)) ([#288](https://github.com/gabrielpulga/ableton-dj-mcp/issues/288)) ([88cc2c6](https://github.com/gabrielpulga/ableton-dj-mcp/commit/88cc2c65fb192a31c254f1f40cb8b0ecafd5da6a))
+
+
+### Bug Fixes
+
+* await updateClip in duplicate's arrangementLength tiling path ([#279](https://github.com/gabrielpulga/ableton-dj-mcp/issues/279)) ([#287](https://github.com/gabrielpulga/ableton-dj-mcp/issues/287)) ([6cca800](https://github.com/gabrielpulga/ableton-dj-mcp/commit/6cca800ebdf7de72772a7b61c708904778a1707c))
+* bound adj-browse reply size to fit one UDP datagram ([#290](https://github.com/gabrielpulga/ableton-dj-mcp/issues/290)) ([f090b80](https://github.com/gabrielpulga/ableton-dj-mcp/commit/f090b800b5381ef820e65d186e630c2b7028452f))
+* dispatch CI explicitly so bot-authored PRs aren't blocked forever ([#296](https://github.com/gabrielpulga/ableton-dj-mcp/issues/296)) ([9cdb644](https://github.com/gabrielpulga/ableton-dj-mcp/commit/9cdb6442cbcaa4234ab215957454d94a144ccd98))
+* restore CI by reverting typescript and @eslint/js bumps ([#281](https://github.com/gabrielpulga/ableton-dj-mcp/issues/281)) ([d19b18d](https://github.com/gabrielpulga/ableton-dj-mcp/commit/d19b18dceb6dc5f4777df50b656c67e1674c8769))
+* skip source clip in arrangement-clip overlap clearing ([#264](https://github.com/gabrielpulga/ableton-dj-mcp/issues/264)) ([#280](https://github.com/gabrielpulga/ableton-dj-mcp/issues/280)) ([e671f27](https://github.com/gabrielpulga/ableton-dj-mcp/commit/e671f279c6fc60ff0b82b89ebb878bad0014993f))
+* surface a REPLY_TOO_LARGE/SEND_FAILED error instead of silently dropping ([#293](https://github.com/gabrielpulga/ableton-dj-mcp/issues/293)) ([c9d1471](https://github.com/gabrielpulga/ableton-dj-mcp/commit/c9d14711eee04db69b1c22e59d4579a92007b474))
+
+
+### Dependencies
+
+* bump @eslint/js from 9.39.5 to 10.0.1 ([#278](https://github.com/gabrielpulga/ableton-dj-mcp/issues/278)) ([a07128b](https://github.com/gabrielpulga/ableton-dj-mcp/commit/a07128b71a8a84a7cc03765568b971262f1fed9a))
+* bump @typescript-eslint/eslint-plugin from 8.65.0 to 8.66.0 ([#284](https://github.com/gabrielpulga/ableton-dj-mcp/issues/284)) ([84dd25b](https://github.com/gabrielpulga/ableton-dj-mcp/commit/84dd25b358ee9d73ea586959dd74d4ecc787bf9a))
+* bump @vitest/eslint-plugin from 1.6.24 to 1.6.26 ([#286](https://github.com/gabrielpulga/ableton-dj-mcp/issues/286)) ([f824dca](https://github.com/gabrielpulga/ableton-dj-mcp/commit/f824dca2d21c29c38c247e4540ddbfffdd3bb6dd))
+* bump eslint-plugin-jsdoc from 63.3.2 to 63.3.3 ([#283](https://github.com/gabrielpulga/ableton-dj-mcp/issues/283)) ([17d1f97](https://github.com/gabrielpulga/ableton-dj-mcp/commit/17d1f970c4e2885a4a1f7aa8c31acec7b0e53d4e))
+* bump rollup from 4.62.3 to 4.62.4 ([#277](https://github.com/gabrielpulga/ableton-dj-mcp/issues/277)) ([1ef16ce](https://github.com/gabrielpulga/ableton-dj-mcp/commit/1ef16ce303903c3669c3758c50f6bec92033bdc3))
+* bump typescript from 6.0.3 to 7.0.2 ([#276](https://github.com/gabrielpulga/ableton-dj-mcp/issues/276)) ([ffe2e65](https://github.com/gabrielpulga/ableton-dj-mcp/commit/ffe2e65bab696a09bdcc565554e94749d8645e3f))
+
 ## [2.2.0](https://github.com/gabrielpulga/ableton-dj-mcp/compare/ableton-dj-mcp-v2.1.0...ableton-dj-mcp-v2.2.0) (2026-08-04)
 
 
