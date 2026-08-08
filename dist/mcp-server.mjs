@@ -743,8 +743,8 @@ import os from "node:os";
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "bb98d6d4",
-  buildTime: "2026-08-04T21:40:27.411Z"
+  sha: "9cdb6442",
+  buildTime: "2026-08-08T23:04:13.444Z"
 };
 
 function buildIdentifier() {
@@ -31228,10 +31228,8 @@ class BrowserBridgeClient {
       });
     }).catch(err => {
       const pending = this.pending.get(id);
-      if (pending) {
-        clearTimeout(pending.timer);
-        this.pending.delete(id);
-      }
+      if (pending) clearTimeout(pending.timer);
+      this.pending.delete(id);
       throw new BridgeCallError({
         code: "BRIDGE_NOT_FOUND",
         message: `udp send failed: ${err.message}`
@@ -52761,16 +52759,16 @@ const toolDefReadDevice = defineTool("adj-read-device", {
   inputSchema: {
     deviceId: string().optional().describe("Device ID to read"),
     path: string$1().optional().describe("path (e.g., 't1/d0', 't1/d0/c0', 't1/d0/pC1', 't1/d0/rc0')"),
-    include: array(_enum$2([ "chains", "drum-map", "drum-pads", "params", "param-values", "return-chains", "sample", "*" ])).default([]).describe('chains, return-chains, drum-pads = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. "*" = all'),
+    include: array(_enum$2([ "available-routings", "chains", "drum-map", "drum-pads", "params", "param-values", "return-chains", "routings", "sample", "*" ])).default([]).describe('chains, return-chains, drum-pads = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. routings, available-routings = Compressor sidechain input source (Compressor only). "*" = all'),
     maxDepth: number().int().min(0).default(0).describe("Device tree depth for chains/drum-pads. 0=chains only with deviceCount, 1=direct devices, 2+=deeper"),
     paramSearch: string$1().optional().describe("Filter parameters by case-insensitive substring match on name")
   },
   smallModelModeConfig: {
     excludeEnumValues: {
-      include: [ "drum-pads", "return-chains", "*" ]
+      include: [ "available-routings", "drum-pads", "return-chains", "*" ]
     },
     descriptionOverrides: {
-      include: "chains = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file",
+      include: "chains = rack contents (use maxDepth). params, param-values = parameters. drum-map = note names. sample = Simpler file. routings = Compressor sidechain input source (Compressor only)",
       maxDepth: "Device tree depth for chains. 0=chains only with deviceCount, 1=direct devices, 2+=deeper"
     }
   }
@@ -52798,10 +52796,12 @@ const toolDefUpdateDevice = defineTool("adj-update-device", {
     color: string$1().optional().describe("#RRGGBB for all, or comma-separated for each (cycles if fewer than ids; chains only)"),
     chokeGroup: number().int().min(0).max(16).optional().describe("choke group 0-16, 0=none (drum chains only)"),
     mappedPitch: string$1().optional().describe("output MIDI note e.g. 'C3' (drum chains only)"),
+    sidechainInputRoutingTypeId: string().optional().describe("sidechain input source track identifier, from adj-read-device include=available-routings (Compressor only)"),
+    sidechainInputRoutingChannelId: string().optional().describe("sidechain input channel identifier, from adj-read-device include=available-routings (Compressor only)"),
     wrapInRack: boolean().optional().describe("Wrap device(s) in a new rack (auto-detects type from device)")
   },
   smallModelModeConfig: {
-    excludeParams: [ "macroVariation", "macroVariationIndex", "macroCount", "abCompare", "chokeGroup", "mappedPitch", "wrapInRack" ],
+    excludeParams: [ "macroVariation", "macroVariationIndex", "macroCount", "abCompare", "chokeGroup", "mappedPitch", "sidechainInputRoutingTypeId", "sidechainInputRoutingChannelId", "wrapInRack" ],
     descriptionOverrides: {
       path: "device path like 't0/d0' (track 0, device 0)",
       toPath: "destination path to move device to",
@@ -52873,14 +52873,14 @@ const toolDefReadLiveSet = defineTool("adj-read-live-set", {
     destructiveHint: false
   },
   inputSchema: {
-    include: array(_enum$2([ "tracks", "scenes", "routings", "mixer", "color", "locators", "*" ])).default([]).describe('tracks, scenes = lists. routings, mixer, color = detail (use with tracks/scenes). locators = arrangement markers. "*" = all')
+    include: array(_enum$2([ "tracks", "scenes", "routings", "mixer", "meters", "color", "locators", "*" ])).default([]).describe('tracks, scenes = lists. routings, mixer, meters, color = detail (use with tracks/scenes). locators = arrangement markers. "*" = all')
   },
   smallModelModeConfig: {
     excludeEnumValues: {
       include: [ "locators", "*" ]
     },
     descriptionOverrides: {
-      include: "tracks, scenes = lists. routings, mixer, color = detail (use with tracks/scenes)"
+      include: "tracks, scenes = lists. routings, mixer, meters, color = detail (use with tracks/scenes)"
     }
   }
 });
@@ -53067,14 +53067,14 @@ const toolDefReadTrack = defineTool("adj-read-track", {
     trackId: string().optional().describe("provide this or trackType/trackIndex"),
     trackType: _enum$2([ "return", "master" ]).optional().describe("return or master (omit for audio/midi tracks, which have independent trackIndexes)"),
     trackIndex: number().int().min(0).optional().describe("0-based index"),
-    include: array(_enum$2([ "session-clips", "arrangement-clips", "notes", "timing", "sample", "devices", "drum-map", "routings", "available-routings", "mixer", "color", "*" ])).default([]).describe('session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, available-routings, mixer = track data. color = track + clip color. "*" = all')
+    include: array(_enum$2([ "session-clips", "arrangement-clips", "notes", "timing", "sample", "devices", "drum-map", "routings", "available-routings", "mixer", "meters", "color", "*" ])).default([]).describe('session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, available-routings, mixer, meters = track data. color = track + clip color. "*" = all')
   },
   smallModelModeConfig: {
     excludeEnumValues: {
       include: [ "available-routings", "*" ]
     },
     descriptionOverrides: {
-      include: "session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, mixer = track data. color = track + clip color"
+      include: "session-clips, arrangement-clips = clip lists. notes, timing, sample = clip detail (use with clips). devices, drum-map, routings, mixer, meters = track data. color = track + clip color"
     }
   }
 });
