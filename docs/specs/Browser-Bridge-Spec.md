@@ -101,7 +101,8 @@ JSON, UTF-8.
   "error": {
     "code": "BRIDGE_NOT_FOUND" | "MAIN_THREAD_ERROR"
           | "BROWSER_API_FAILED" | "AUTOMATION_FAILED"
-          | "INVALID_ARGS" | "TIMEOUT_INTERNAL",
+          | "INVALID_ARGS" | "TIMEOUT_INTERNAL"
+          | "REPLY_TOO_LARGE" | "SEND_FAILED",
     "message": "<human-readable>"
   }
 }
@@ -151,12 +152,15 @@ since matches can appear anywhere in the folder.
 
 The reply is also trimmed to `MAX_REPLY_BYTES` (8192, see `browser_ops.py`)
 regardless of `limit`: macOS's default `net.inet.udp.maxdgram` is 9216 bytes,
-and `BrowserBridge._send()`'s `sendto()` fails with `EMSGSIZE` above that —
-caught and only logged, so an oversized reply was silently dropped and the
-caller just saw its own request time out (issue #270). A folder with ~65-70
-items of typical name length already crosses that limit, which is well under the
-tool's default `limit=100` — this was not a slow-enumeration problem, despite
-how it presented.
+and `BrowserBridge._send()`'s `sendto()` fails with `EMSGSIZE` above that (issue
+#270). A folder with ~65-70 items of typical name length already crosses that
+limit, which is well under the tool's default `limit=100` — this was not a
+slow-enumeration problem, despite how it presented. `MAX_REPLY_BYTES` should
+keep any `browse` reply under the OS ceiling going forward; as defense in depth,
+`_send()` also reports a `REPLY_TOO_LARGE` (`EMSGSIZE`) or `SEND_FAILED` (any
+other `sendto()` exception) error reply on send failure, in place of the
+original payload, so a future oversized-reply bug fails fast instead of
+presenting as an unexplained timeout (issue #290).
 
 #### `load_item`
 
@@ -318,13 +322,14 @@ Risk-gated — not in the first ship.
 
 ## Recovery and error handling
 
-| Scenario                                         | Bridge state                                                 | Node behavior                                                  |
-| ------------------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| Bridge not installed                             | UDP send fails with ECONNREFUSED-equivalent                  | tool returns error: "install:bridge then enable in Live prefs" |
-| Bridge installed, Live not running               | Send timeouts                                                | error: "start Live first"                                      |
-| Bridge installed, Live running, prefs toggle off | Same as above                                                | error: "enable AbletonDjMcp in Live prefs"                     |
-| Bridge crashed mid-session                       | Subsequent ops timeout                                       | error: "bridge died, restart Live"                             |
-| Bridge slow / blocked on Live main thread        | Op exceeds timeout (10 s for `browse`, 30 s for `load_item`) | error: "bridge timeout, retry"                                 |
+| Scenario                                         | Bridge state                                                                            | Node behavior                                                  |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Bridge not installed                             | UDP send fails with ECONNREFUSED-equivalent                                             | tool returns error: "install:bridge then enable in Live prefs" |
+| Bridge installed, Live not running               | Send timeouts                                                                           | error: "start Live first"                                      |
+| Bridge installed, Live running, prefs toggle off | Same as above                                                                           | error: "enable AbletonDjMcp in Live prefs"                     |
+| Bridge crashed mid-session                       | Subsequent ops timeout                                                                  | error: "bridge died, restart Live"                             |
+| Bridge slow / blocked on Live main thread        | Op exceeds timeout (10 s for `browse`, 30 s for `load_item`)                            | error: "bridge timeout, retry"                                 |
+| Reply too large to fit one UDP datagram          | `sendto()` fails `EMSGSIZE`; bridge sends a small `REPLY_TOO_LARGE` error reply instead | error surfaces immediately instead of timing out               |
 
 The Node side caches `ping` success for 30 s to avoid round-tripping every call.
 Cache invalidates on first failure.
