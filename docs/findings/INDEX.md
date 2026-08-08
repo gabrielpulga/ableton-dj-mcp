@@ -9,6 +9,11 @@ subdirs (see `HOW-TO-WRITE.md`).
 
 ## dev
 
+- [getproperty-no-boundary-cost](dev/getproperty-no-boundary-cost.md)
+  [src/live-api-adapter/**, src/tools/live-set/read-live-set.ts,
+  src/tools/track/read/read-track.ts] — LiveAPI .get()/getProperty() is an
+  in-process call, no IPC boundary cost to amortize; batching reads is not a
+  real optimization
 - [live-api-property-names-need-external-check](dev/live-api-property-names-need-external-check.md)
   [src/tools/live-set/**, src/tools/track/**, src/tools/clip/**] — mocked tests
   can't catch a wrong LOM property name; verify against AbletonOSC/Adam Murray's
@@ -25,6 +30,11 @@ subdirs (see `HOW-TO-WRITE.md`).
   [src/shared/v8-sleep.ts, src/live-api-adapter/**] — inline
   `new Task(cb).schedule(ms)` risks GC before firing; keep a persistent
   reference until the callback runs
+- [write-tools-already-batch](dev/write-tools-already-batch.md)
+  [src/tools/_/update/_.def.ts, src/tools/_/create/_.def.ts,
+  src/tools/operations/**/*.def.ts] — update/create/delete/duplicate tools
+  already accept comma-separated ids or a count param; no round-trip gap to fix
+  there
 
 ### notation
 
