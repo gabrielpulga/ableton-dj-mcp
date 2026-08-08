@@ -22,6 +22,18 @@ updates:
         versions: [">=10"]
       - dependency-name: eslint-plugin-unicorn
         versions: [">=66"]
+      # @eslint/js is eslint's companion package and must stay in lockstep
+      # with the eslint ignore rule above, or it can bump to 10.x on its own
+      # (as it did in #278) even though eslint itself is still pinned at 9.
+      - dependency-name: "@eslint/js"
+        versions: [">=10"]
+      # @typescript-eslint/eslint-plugin@8.65.0 caps its typescript peer at
+      # <6.1.0. Dependabot bumped typescript straight to 7.0.2 in #276,
+      # which fails that peer check, so npm ci fails before any job runs
+      # (same failure mode as the eslint case above). Unblock once
+      # @typescript-eslint raises its typescript ceiling.
+      - dependency-name: typescript
+        versions: [">=6.1"]
 
   - package-ecosystem: github-actions
     directory: /
