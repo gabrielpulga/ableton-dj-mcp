@@ -19,6 +19,7 @@ Threading:
       drain the request queue there and execute browser ops, then push results
       onto the response queue."""
 
+import errno
 import json
 import os
 import socket
@@ -145,6 +146,25 @@ class BrowserBridge(ControlSurface):
             self._socket.sendto(json.dumps(payload).encode("utf-8"), addr)
         except Exception as exc:
             self._log("udp send failed: %s" % exc)
+            self._send_fallback_error(addr, payload.get("id"), exc)
+
+    def _send_fallback_error(self, addr, req_id, exc):
+        # The original payload didn't fit on the wire (or otherwise failed
+        # to send); tell the caller so it fails fast with a clear reason
+        # instead of just timing out with no indication why (issue #290).
+        if self._socket is None or req_id is None:
+            return
+        code = (
+            "REPLY_TOO_LARGE"
+            if isinstance(exc, OSError) and exc.errno == errno.EMSGSIZE
+            else "SEND_FAILED"
+        )
+        fallback = self._error(req_id, code, str(exc))
+        try:
+            self._socket.sendto(json.dumps(fallback).encode("utf-8"), addr)
+        except Exception as fallback_exc:
+            # Truly nothing more we can do — the caller will time out.
+            self._log("udp fallback send also failed: %s" % fallback_exc)
 
     # ----------------------------------------------------------- main thread
 
