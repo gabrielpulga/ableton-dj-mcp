@@ -154,6 +154,10 @@ subdirs (see `HOW-TO-WRITE.md`).
 - [device-deploy-flow](workflow/device-deploy-flow.md) [max-for-live-device/**,
   dist/**, package.json] — build → copy bundles to max-for-live-device → restart
   Live to load new version
+- [github-token-blocks-required-checks](workflow/github-token-blocks-required-checks.md)
+  [.github/workflows/*.yml] — GITHUB_TOKEN-authored pushes/PRs never trigger
+  push/pull_request runs; required status checks block them forever unless CI is
+  dispatched explicitly against that branch
 - [portal-restart-exposes-new-tools](workflow/portal-restart-exposes-new-tools.md)
   [src/portal/**, src/mcp-server/**, dist/**] — MCP tool list fixed at connect
   time; tools added by a server update need an MCP reconnect to appear
