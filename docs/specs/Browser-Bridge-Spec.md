@@ -143,6 +143,12 @@ Result:
 }
 ```
 
+Without `search`, the bridge stops enumerating a folder as soon as it has
+`limit + 1` children rather than walking the whole folder first — a populated
+Library folder can hold thousands of entries, and there's no point paying to
+enumerate past what will be discarded anyway (issue #270). `search` still
+scans every child, since matches can appear anywhere in the folder.
+
 #### `load_item`
 
 Args:
@@ -309,7 +315,7 @@ Risk-gated — not in the first ship.
 | Bridge installed, Live not running               | Send timeouts                                                | error: "start Live first"                                      |
 | Bridge installed, Live running, prefs toggle off | Same as above                                                | error: "enable AbletonDjMcp in Live prefs"                     |
 | Bridge crashed mid-session                       | Subsequent ops timeout                                       | error: "bridge died, restart Live"                             |
-| Bridge slow / blocked on Live main thread        | Op exceeds timeout (10 s for `browse`, 30 s for `load_item`) | error: "bridge timeout, retry"                                 |
+| Bridge slow / blocked on Live main thread        | Op exceeds timeout (25 s for `browse`, 30 s for `load_item`) | error: "bridge timeout, retry"                                 |
 
 The Node side caches `ping` success for 30 s to avoid round-tripping every call.
 Cache invalidates on first failure.

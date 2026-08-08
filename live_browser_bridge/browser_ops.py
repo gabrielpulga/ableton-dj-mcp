@@ -12,6 +12,8 @@ The functions tolerate Live's mix of attribute/iterator-style children
 (``BrowserItem.children`` is a sequence in modern versions; older versions
 exposed ``iter_children``)."""
 
+import itertools
+
 CATEGORY_ATTRS = (
     "instruments",
     "audio_effects",
@@ -55,17 +57,25 @@ def get_category_root(browser, category):
     return root
 
 
-def children_of(item):
-    """Return a list of children for a BrowserItem, abstracting over Live versions."""
+def children_of(item, max_items=None):
+    """Return children for a BrowserItem, abstracting over Live versions.
+
+    ``max_items``, when given, stops enumeration after that many children via
+    ``itertools.islice`` instead of materializing the whole collection first.
+    A populated Library folder can hold thousands of entries; on a large,
+    unfiltered folder this avoids paying for entries the caller is going to
+    discard anyway (see issue #270)."""
     children = getattr(item, "children", None)
     if children is None:
         children = getattr(item, "iter_children", None)
         if callable(children):
-            children = list(children())
+            children = children()
         else:
             children = []
-    # children may be a Live "vector" — coerce to plain list
-    return list(children)
+    if max_items is None:
+        # children may be a Live "vector" — coerce to plain list
+        return list(children)
+    return list(itertools.islice(children, max_items))
 
 
 def serialize_item(item, depth=0, max_depth=1, include_children=True):
@@ -138,11 +148,19 @@ def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
 
     root = get_category_root(browser, category)
     target = walk_path(root, path)
-    raw_items = children_of(target)
 
     if search:
+        # A search needs to scan every child to find matches, so there's no
+        # cheaper enumeration cap to apply here.
+        raw_items = children_of(target)
         needle = search.lower()
         raw_items = [it for it in raw_items if needle in (getattr(it, "name", "") or "").lower()]
+    else:
+        # No filter: stop enumerating as soon as we have one more than
+        # `limit` so truncation can still be detected, instead of walking
+        # (and paying for) the rest of a large folder just to discard it.
+        scan_cap = (limit + 1) if limit is not None else None
+        raw_items = children_of(target, max_items=scan_cap)
 
     truncated = False
     if limit is not None and len(raw_items) > limit:
