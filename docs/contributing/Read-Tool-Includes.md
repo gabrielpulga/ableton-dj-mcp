@@ -178,8 +178,8 @@ available at this level. Use `adj-read-device` for chain/drum-pad detail.
 ### Include: `"meters"`
 
 Adds live output meter levels. Works on regular, return, and master tracks.
-Values are instantaneous — Live only updates them during playback, so they
-read `0` while the transport is stopped.
+Values are instantaneous — Live only updates them during playback, so they read
+`0` while the transport is stopped.
 
 | Field        | Type     | Description                               |
 | ------------ | -------- | ----------------------------------------- |
@@ -188,7 +188,11 @@ read `0` while the transport is stopped.
 | `meterLevel` | `number` | Mono output meter level, 0.0-1.0          |
 
 Unlike `mixer`'s fields, these are always present (not omitted at zero) since
-zero is meaningful signal information, not a default value to hide.
+zero is meaningful signal information, not a default value to hide. Exception:
+`meterLeft`/`meterRight` are absent on a MIDI track with no audio-producing
+device — only `meterLevel` reads there. Audio tracks, return tracks, and the
+master track always expose all three (verified live against Ableton Live
+12.4.3).
 
 ## adj-read-scene
 
