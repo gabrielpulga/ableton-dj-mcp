@@ -971,9 +971,9 @@ if (!Array.prototype.with) {
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "bb98d6d4",
+  sha: "9cdb6442",
   dirty: false,
-  buildTime: "2026-08-04T21:40:27.411Z",
+  buildTime: "2026-08-08T23:04:13.444Z",
   source: "local"
 };
 
@@ -10122,13 +10122,15 @@ function createAndDeleteTempClip(track, position, length, isMidiClip, context) {
 }
 
 function clearClipAtDuplicateTarget(track, sourceClipId, targetPosition, isMidiClip, context) {
-  const sourceClip = LiveAPI.from(toLiveApiId(sourceClipId));
+  const normalizedSourceId = toLiveApiId(sourceClipId);
+  const sourceClip = LiveAPI.from(normalizedSourceId);
   if (sourceClip.getProperty("is_arrangement_clip") !== 1) return;
   const sourceStart = sourceClip.getProperty("start_time");
   const sourceEnd = sourceClip.getProperty("end_time");
   const targetEnd = targetPosition + (sourceEnd - sourceStart);
   const clipIds = track.getChildIds("arrangement_clips");
   for (const clipId of clipIds) {
+    if (clipId === normalizedSourceId) continue;
     const clip = LiveAPI.from(clipId);
     const clipStart = clip.getProperty("start_time");
     const clipEnd = clip.getProperty("end_time");
@@ -13780,11 +13782,13 @@ const CLIPS = "clips";
 
 const MIXER = "mixer";
 
+const METERS = "meters";
+
 const LOCATORS = "locators";
 
 const ALL_INCLUDE_OPTIONS = {
-  song: [ "scenes", "routings", TRACKS, COLOR, MIXER, LOCATORS ],
-  track: [ SESSION_CLIPS, ARRANGEMENT_CLIPS, CLIP_NOTES, TIMING, SAMPLE, DEVICES, DRUM_MAP, "routings", AVAILABLE_ROUTINGS, MIXER, COLOR ],
+  song: [ "scenes", "routings", TRACKS, COLOR, MIXER, METERS, LOCATORS ],
+  track: [ SESSION_CLIPS, ARRANGEMENT_CLIPS, CLIP_NOTES, TIMING, SAMPLE, DEVICES, DRUM_MAP, "routings", AVAILABLE_ROUTINGS, MIXER, METERS, COLOR ],
   scene: [ CLIPS, CLIP_NOTES, SAMPLE, COLOR, TIMING ],
   clip: [ CLIP_NOTES, SAMPLE, COLOR, TIMING, WARP ]
 };
@@ -13810,6 +13814,7 @@ function parseIncludeArray(includeArray, defaults = {}) {
       includeTiming: Boolean(defaults.includeTiming),
       includeWarp: Boolean(defaults.includeWarp),
       includeMixer: Boolean(defaults.includeMixer),
+      includeMeters: Boolean(defaults.includeMeters),
       includeLocators: Boolean(defaults.includeLocators)
     };
   }
@@ -13836,6 +13841,7 @@ function parseIncludeArray(includeArray, defaults = {}) {
       includeTiming: false,
       includeWarp: false,
       includeMixer: false,
+      includeMeters: false,
       includeLocators: false
     };
   }
@@ -13858,6 +13864,7 @@ function parseIncludeArray(includeArray, defaults = {}) {
     includeTiming: includeSet.has(TIMING),
     includeWarp: includeSet.has(WARP),
     includeMixer: includeSet.has(MIXER),
+    includeMeters: includeSet.has(METERS),
     includeLocators: includeSet.has(LOCATORS)
   };
 }
@@ -13868,6 +13875,7 @@ const READ_SONG_DEFAULTS = {
   includeTracks: false,
   includeColor: false,
   includeMixer: false,
+  includeMeters: false,
   includeLocators: false
 };
 
@@ -13886,7 +13894,8 @@ const READ_TRACK_DEFAULTS = {
   includeColor: false,
   includeTiming: false,
   includeWarp: false,
-  includeMixer: false
+  includeMixer: false,
+  includeMeters: false
 };
 
 const READ_SCENE_DEFAULTS = {
@@ -15786,6 +15795,54 @@ function readDeviceParameters(device, options = {}) {
   return parameters.map(includeValues ? readParameter : readParameterBasic);
 }
 
+const COMPRESSOR_DEVICE_TYPE = "CompressorDevice";
+
+function isSidechainRoutableDevice(type) {
+  return type === COMPRESSOR_DEVICE_TYPE;
+}
+
+function readSidechainRouting(device, options) {
+  if (!isSidechainRoutableDevice(device.type)) return {};
+  const result = {};
+  if (options.includeCurrent) {
+    const type = device.getProperty("input_routing_type");
+    const channel = device.getProperty("input_routing_channel");
+    result.sidechainInputRoutingType = toRoutingRef(type);
+    result.sidechainInputRoutingChannel = toRoutingRef(channel);
+  }
+  if (options.includeAvailable) {
+    const types = device.getProperty("available_input_routing_types") ?? [];
+    const channels = device.getProperty("available_input_routing_channels") ?? [];
+    result.availableSidechainInputRoutingTypes = types.map(toRoutingRefStrict);
+    result.availableSidechainInputRoutingChannels = channels.map(toRoutingRefStrict);
+  }
+  return result;
+}
+
+function applySidechainRouting(device, params) {
+  if (params.sidechainInputRoutingTypeId != null) {
+    device.setProperty("input_routing_type", {
+      identifier: Number(params.sidechainInputRoutingTypeId)
+    });
+  }
+  if (params.sidechainInputRoutingChannelId != null) {
+    device.setProperty("input_routing_channel", {
+      identifier: Number(params.sidechainInputRoutingChannelId)
+    });
+  }
+}
+
+function toRoutingRef(routing) {
+  return routing ? toRoutingRefStrict(routing) : null;
+}
+
+function toRoutingRefStrict(routing) {
+  return {
+    name: routing.display_name,
+    id: String(routing.identifier)
+  };
+}
+
 function getDeviceType(device) {
   const typeValue = device.getProperty("type");
   const canHaveChains = device.getProperty("can_have_chains");
@@ -15872,30 +15929,15 @@ function getDrumMap(devices) {
 }
 
 function readDevice$1(device, options = {}) {
-  const {includeChains: includeChains = true, includeReturnChains: includeReturnChains = false, includeDrumPads: includeDrumPads = false, includeParams: includeParams = false, includeParamValues: includeParamValues = false, includeSample: includeSample = false, paramSearch: paramSearch, depth: depth = 0, maxDepth: maxDepth = 4, parentPath: parentPath} = options;
+  const {includeChains: includeChains = true, includeReturnChains: includeReturnChains = false, includeDrumPads: includeDrumPads = false, includeParams: includeParams = false, includeParamValues: includeParamValues = false, includeSample: includeSample = false, includeRoutings: includeRoutings = false, includeAvailableRoutings: includeAvailableRoutings = false, paramSearch: paramSearch, depth: depth = 0, maxDepth: maxDepth = 4, parentPath: parentPath} = options;
   if (depth > maxDepth) {
     warn(`Maximum recursion depth (${maxDepth}) exceeded`);
     return {};
   }
   const deviceType = getDeviceType(device);
   const className = device.getProperty("class_display_name");
-  const userDisplayName = device.getProperty("name");
-  const isRedundant = isRedundantDeviceClassName(deviceType, className);
   const path = parentPath ?? extractDevicePath(device.path);
-  const deviceInfo = {
-    id: device.id,
-    ...path && {
-      path: path
-    },
-    type: isRedundant ? deviceType : `${deviceType}: ${className}`
-  };
-  if (userDisplayName !== className) {
-    deviceInfo.name = userDisplayName;
-  }
-  const isActive = device.getProperty("is_active") > 0;
-  if (!isActive) {
-    deviceInfo.deactivated = true;
-  }
+  const deviceInfo = buildBaseDeviceInfo(device, deviceType, className, path);
   if (includeParams) {
     Object.assign(deviceInfo, readMacroVariations(device));
     Object.assign(deviceInfo, readABCompare(device));
@@ -15903,6 +15945,7 @@ function readDevice$1(device, options = {}) {
   if (includeSample) {
     Object.assign(deviceInfo, readSimplerSample(device, className));
   }
+  Object.assign(deviceInfo, readRequestedSidechainRouting(device, includeRoutings, includeAvailableRoutings));
   processDeviceChains(device, deviceInfo, deviceType, {
     includeChains: includeChains,
     includeReturnChains: includeReturnChains,
@@ -15919,6 +15962,36 @@ function readDevice$1(device, options = {}) {
     });
   }
   return deviceInfo;
+}
+
+function buildBaseDeviceInfo(device, deviceType, className, path) {
+  const isRedundant = isRedundantDeviceClassName(deviceType, className);
+  const userDisplayName = device.getProperty("name");
+  const deviceInfo = {
+    id: device.id,
+    ...path && {
+      path: path
+    },
+    type: isRedundant ? deviceType : `${deviceType}: ${className}`
+  };
+  if (userDisplayName !== className) {
+    deviceInfo.name = userDisplayName;
+  }
+  const isActive = device.getProperty("is_active") > 0;
+  if (!isActive) {
+    deviceInfo.deactivated = true;
+  }
+  return deviceInfo;
+}
+
+function readRequestedSidechainRouting(device, includeRoutings, includeAvailableRoutings) {
+  if (!includeRoutings && !includeAvailableRoutings) {
+    return {};
+  }
+  return readSidechainRouting(device, {
+    includeCurrent: includeRoutings,
+    includeAvailable: includeAvailableRoutings
+  });
 }
 
 function readSimplerSample(device, className) {
@@ -15959,6 +16032,8 @@ function readDevice({deviceId: deviceId, path: path, include: include = [], maxD
   const includeParamValues = includeAll || include.includes("param-values");
   const includeParams = includeParamValues || include.includes("params");
   const includeSample = includeAll || include.includes("sample");
+  const includeRoutings = includeAll || include.includes("routings");
+  const includeAvailableRoutings = includeAll || include.includes("available-routings");
   const chainsForDrumMap = includeDrumMap && !includeChains;
   const readOptions = {
     includeChains: includeChains || includeDrumMap,
@@ -15968,6 +16043,8 @@ function readDevice({deviceId: deviceId, path: path, include: include = [], maxD
     includeParams: includeParams,
     includeParamValues: includeParamValues,
     includeSample: includeSample,
+    includeRoutings: includeRoutings,
+    includeAvailableRoutings: includeAvailableRoutings,
     maxDepth: includeDrumMap ? Math.max(1, maxDepth) : maxDepth,
     paramSearch: paramSearch
   };
@@ -16136,6 +16213,28 @@ function buildDrumPadInfo(pad, path, options) {
     });
   }
   return drumPadInfo;
+}
+
+function isValidUpdateType(type) {
+  return type.endsWith("Device") || type.endsWith("Chain") || type === "DrumPad";
+}
+
+function isDeviceType(type) {
+  return type.endsWith("Device");
+}
+
+function isRackDevice(type) {
+  return type === "RackDevice";
+}
+
+function isChainType(type) {
+  return type.endsWith("Chain");
+}
+
+function warnIfSet(paramName, value, type) {
+  if (value != null) {
+    warn(`updateDevice: '${paramName}' not applicable to ${type}`);
+  }
 }
 
 function parseParamLines(input) {
@@ -16326,6 +16425,20 @@ function binarySearchRawValue(param, targetDisplay, rawMin, rawMax) {
   return (lo + hi) / 2;
 }
 
+function applyOrWarnSidechainRouting(target, type, sidechainInputRoutingTypeId, sidechainInputRoutingChannelId) {
+  if (!isSidechainRoutableDevice(type)) {
+    warnIfSet("sidechainInputRoutingTypeId", sidechainInputRoutingTypeId, type);
+    warnIfSet("sidechainInputRoutingChannelId", sidechainInputRoutingChannelId, type);
+    return;
+  }
+  if (sidechainInputRoutingTypeId != null || sidechainInputRoutingChannelId != null) {
+    applySidechainRouting(target, {
+      sidechainInputRoutingTypeId: sidechainInputRoutingTypeId,
+      sidechainInputRoutingChannelId: sidechainInputRoutingChannelId
+    });
+  }
+}
+
 function parseDrumPadNoteFromPath(path) {
   const match = path.match(/\/p([A-G][#b]?\d+|\*)(?:\/|$)/);
   return match ? match[1] ?? null : null;
@@ -16491,26 +16604,55 @@ function updateABCompare(device, action) {
   }
 }
 
-function isValidUpdateType(type) {
-  return type.endsWith("Device") || type.endsWith("Chain") || type === "DrumPad";
+function resolveIdToTarget(id) {
+  const target = LiveAPI.from(id);
+  return target.exists() ? {
+    target: target
+  } : null;
 }
 
-function isDeviceType(type) {
-  return type.endsWith("Device");
-}
-
-function isRackDevice(type) {
-  return type === "RackDevice";
-}
-
-function isChainType(type) {
-  return type.endsWith("Chain");
-}
-
-function warnIfSet(paramName, value, type) {
-  if (value != null) {
-    warn(`updateDevice: '${paramName}' not applicable to ${type}`);
+function resolvePathToTargetSafe(path) {
+  try {
+    return resolvePathToTarget(path);
+  } catch (e) {
+    warn(`updateDevice: ${errorMessage(e)}`);
+    return null;
   }
+}
+
+function resolvePathToTarget(path) {
+  const resolved = resolvePathToLiveApi(path);
+  switch (resolved.targetType) {
+   case "device":
+   case "chain":
+   case "return-chain":
+    {
+      const target = resolveTargetFromPath(resolved.liveApiPath);
+      return target ? {
+        target: target
+      } : null;
+    }
+
+   case "drum-pad":
+    {
+      const drumPadNote = resolved.drumPadNote;
+      const {remainingSegments: remainingSegments} = resolved;
+      const drumPadResult = resolveDrumPadFromPath(resolved.liveApiPath, drumPadNote, remainingSegments);
+      if (!drumPadResult.target) {
+        return null;
+      }
+      const hasExplicitChainIndex = remainingSegments.length > 0 && remainingSegments[0].startsWith("c");
+      return {
+        target: drumPadResult.target,
+        isDrumPadPath: !hasExplicitChainIndex
+      };
+    }
+  }
+}
+
+function resolveTargetFromPath(liveApiPath) {
+  const target = LiveAPI.from(liveApiPath);
+  return target.exists() ? target : null;
 }
 
 const RACK_TYPE_INSTRUMENT = "instrument-rack";
@@ -16680,7 +16822,7 @@ function wrapInstrumentsInRack(devices, toPath, name) {
   }
 }
 
-function updateDevice({ids: ids, path: path, toPath: toPath, name: name, params: params, macroVariation: macroVariation, macroVariationIndex: macroVariationIndex, macroCount: macroCount, abCompare: abCompare, mute: mute, solo: solo, color: color, chokeGroup: chokeGroup, mappedPitch: mappedPitch, wrapInRack: wrapInRack, focus: focus}, _context = {}) {
+function updateDevice({ids: ids, path: path, toPath: toPath, name: name, params: params, macroVariation: macroVariation, macroVariationIndex: macroVariationIndex, macroCount: macroCount, abCompare: abCompare, mute: mute, solo: solo, color: color, chokeGroup: chokeGroup, mappedPitch: mappedPitch, sidechainInputRoutingTypeId: sidechainInputRoutingTypeId, sidechainInputRoutingChannelId: sidechainInputRoutingChannelId, wrapInRack: wrapInRack, focus: focus}, _context = {}) {
   validateExclusiveParams(ids, path, "ids", "path");
   let result;
   if (wrapInRack) {
@@ -16706,7 +16848,9 @@ function updateDevice({ids: ids, path: path, toPath: toPath, name: name, params:
       solo: solo,
       color: color,
       chokeGroup: chokeGroup,
-      mappedPitch: mappedPitch
+      mappedPitch: mappedPitch,
+      sidechainInputRoutingTypeId: sidechainInputRoutingTypeId,
+      sidechainInputRoutingChannelId: sidechainInputRoutingChannelId
     };
     result = updateMultipleTargets(items, path ? resolvePathToTargetSafe : resolveIdToTarget, path ? "path" : "id", updateOptions, parsedNames, parsedColors);
   }
@@ -16746,57 +16890,6 @@ function updateMultipleTargets(items, resolveItem, itemType, updateOptions, pars
   return unwrapSingleResult(results);
 }
 
-function resolveIdToTarget(id) {
-  const target = LiveAPI.from(id);
-  return target.exists() ? {
-    target: target
-  } : null;
-}
-
-function resolvePathToTargetSafe(path) {
-  try {
-    return resolvePathToTarget(path);
-  } catch (e) {
-    warn(`updateDevice: ${errorMessage(e)}`);
-    return null;
-  }
-}
-
-function resolvePathToTarget(path) {
-  const resolved = resolvePathToLiveApi(path);
-  switch (resolved.targetType) {
-   case "device":
-   case "chain":
-   case "return-chain":
-    {
-      const target = resolveTargetFromPath(resolved.liveApiPath);
-      return target ? {
-        target: target
-      } : null;
-    }
-
-   case "drum-pad":
-    {
-      const drumPadNote = resolved.drumPadNote;
-      const {remainingSegments: remainingSegments} = resolved;
-      const drumPadResult = resolveDrumPadFromPath(resolved.liveApiPath, drumPadNote, remainingSegments);
-      if (!drumPadResult.target) {
-        return null;
-      }
-      const hasExplicitChainIndex = remainingSegments.length > 0 && remainingSegments[0].startsWith("c");
-      return {
-        target: drumPadResult.target,
-        isDrumPadPath: !hasExplicitChainIndex
-      };
-    }
-  }
-}
-
-function resolveTargetFromPath(liveApiPath) {
-  const target = LiveAPI.from(liveApiPath);
-  return target.exists() ? target : null;
-}
-
 function updateTarget(target, options) {
   const type = target.type;
   if (!isValidUpdateType(type)) {
@@ -16830,7 +16923,7 @@ function updateTarget(target, options) {
 }
 
 function updateDeviceProperties(target, type, options) {
-  const {params: params, macroVariation: macroVariation, macroVariationIndex: macroVariationIndex, macroCount: macroCount, abCompare: abCompare, mute: mute, solo: solo, color: color, chokeGroup: chokeGroup, mappedPitch: mappedPitch} = options;
+  const {params: params, macroVariation: macroVariation, macroVariationIndex: macroVariationIndex, macroCount: macroCount, abCompare: abCompare, mute: mute, solo: solo, color: color, chokeGroup: chokeGroup, mappedPitch: mappedPitch, sidechainInputRoutingTypeId: sidechainInputRoutingTypeId, sidechainInputRoutingChannelId: sidechainInputRoutingChannelId} = options;
   if (params != null) {
     setParamValues(target, params);
   }
@@ -16849,6 +16942,7 @@ function updateDeviceProperties(target, type, options) {
     warnIfSet("macroVariationIndex", macroVariationIndex, type);
     warnIfSet("macroCount", macroCount, type);
   }
+  applyOrWarnSidechainRouting(target, type, sidechainInputRoutingTypeId, sidechainInputRoutingChannelId);
   warnIfSet("mute", mute, type);
   warnIfSet("solo", solo, type);
   warnIfSet("color", color, type);
@@ -16862,6 +16956,7 @@ function updateNonDeviceProperties(target, type, options) {
   warnIfSet("macroVariationIndex", options.macroVariationIndex, type);
   warnIfSet("macroCount", options.macroCount, type);
   warnIfSet("abCompare", options.abCompare, type);
+  applyOrWarnSidechainRouting(target, type, options.sidechainInputRoutingTypeId, options.sidechainInputRoutingChannelId);
   if (options.mute != null) {
     target.set("mute", options.mute ? 1 : 0);
   }
@@ -17406,6 +17501,14 @@ function readMixerProperties(track, returnTrackNames) {
   return result;
 }
 
+function readMeterProperties(track) {
+  return {
+    meterLeft: track.getProperty("output_meter_left"),
+    meterRight: track.getProperty("output_meter_right"),
+    meterLevel: track.getProperty("output_meter_level")
+  };
+}
+
 function readTrack(args = {}, _context = {}) {
   const {trackIndex: trackIndex, trackId: trackId, trackType: trackType, returnTrackNames: returnTrackNames} = args;
   const category = trackType ?? "regular";
@@ -17482,7 +17585,7 @@ function addDrumMapFromDevices(result, categorizedDevices) {
 }
 
 function readTrackGeneric({track: track, trackIndex: trackIndex, category: category = "regular", include: include, returnTrackNames: returnTrackNames}) {
-  const {includeDrumMap: includeDrumMap, includeDevices: includeDevices, includeRoutings: includeRoutings, includeAvailableRoutings: includeAvailableRoutings, includeSessionClips: includeSessionClips, includeArrangementClips: includeArrangementClips, includeColor: includeColor, includeMixer: includeMixer} = parseIncludeArray(include, READ_TRACK_DEFAULTS);
+  const {includeDrumMap: includeDrumMap, includeDevices: includeDevices, includeRoutings: includeRoutings, includeAvailableRoutings: includeAvailableRoutings, includeSessionClips: includeSessionClips, includeArrangementClips: includeArrangementClips, includeColor: includeColor, includeMixer: includeMixer, includeMeters: includeMeters} = parseIncludeArray(include, READ_TRACK_DEFAULTS);
   if (!track.exists()) {
     return handleNonExistentTrack(category, trackIndex);
   }
@@ -17507,6 +17610,9 @@ function readTrackGeneric({track: track, trackIndex: trackIndex, category: categ
   }
   if (includeMixer) {
     Object.assign(result, readMixerProperties(track, returnTrackNames));
+  }
+  if (includeMeters) {
+    Object.assign(result, readMeterProperties(track));
   }
   if (groupId) {
     result.groupId = String(groupId);
@@ -17620,6 +17726,7 @@ function buildTrackInclude(flags) {
   const include = [];
   if (flags.includeRoutings) include.push("routings");
   if (flags.includeMixer) include.push("mixer");
+  if (flags.includeMeters) include.push("meters");
   if (flags.includeColor) include.push("color");
   return include;
 }
@@ -18274,7 +18381,7 @@ function getMinimalClipInfo(clip, omitFields = []) {
   return result;
 }
 
-function createClipsForLength(sourceClip, track, arrangementStartBeats, arrangementLengthBeats, name, omitFields = [], context = {}, color) {
+async function createClipsForLength(sourceClip, track, arrangementStartBeats, arrangementLengthBeats, name, omitFields = [], context = {}, color) {
   const sourceClipLength = sourceClip.getProperty("length");
   const isMidiClip = sourceClip.getProperty("is_midi_clip") === 1;
   const duplicatedClips = [];
@@ -18295,7 +18402,7 @@ function createClipsForLength(sourceClip, track, arrangementStartBeats, arrangem
     const newClip = LiveAPI.from(newClipResult);
     const newClipId = newClip.id;
     if (arrangementLengthBeats > sourceClipLength) {
-      lengthenClipAndCollectInfo(sourceClip, track, newClipId, arrangementLengthBeats, name, omitFields, context, duplicatedClips);
+      await lengthenClipAndCollectInfo(sourceClip, track, newClipId, arrangementLengthBeats, name, omitFields, context, duplicatedClips);
     } else {
       newClip.setAll({
         name: name,
@@ -18307,14 +18414,14 @@ function createClipsForLength(sourceClip, track, arrangementStartBeats, arrangem
   return duplicatedClips;
 }
 
-function lengthenClipAndCollectInfo(sourceClip, track, newClipId, targetBeats, name, omitFields, context, duplicatedClips) {
+async function lengthenClipAndCollectInfo(sourceClip, track, newClipId, targetBeats, name, omitFields, context, duplicatedClips) {
   const timeSigNum = sourceClip.getProperty("signature_numerator");
   const timeSigDenom = sourceClip.getProperty("signature_denominator");
   const beatsPerBar = 4 * (timeSigNum / timeSigDenom);
   const bars = Math.floor(targetBeats / beatsPerBar);
   const remainingBeats = targetBeats - bars * beatsPerBar;
   const arrangementLengthBarBeat = `${bars}:${remainingBeats.toFixed(3)}`;
-  const updateResult = updateClip({
+  const updateResult = await updateClip({
     ids: newClipId,
     arrangementLength: arrangementLengthBarBeat,
     name: name
@@ -18350,7 +18457,7 @@ function duplicateClipSlot(sourceTrackIndex, sourceSceneIndex, toTrackIndex, toS
   return getMinimalClipInfo(newClip);
 }
 
-function duplicateClipToArrangement(clipId, arrangementStartBeats, name, color, arrangementLength, _songTimeSigNumerator = 4, _songTimeSigDenominator = 4, context = {}) {
+async function duplicateClipToArrangement(clipId, arrangementStartBeats, name, color, arrangementLength, _songTimeSigNumerator = 4, _songTimeSigDenominator = 4, context = {}) {
   const clip = LiveAPI.from(clipId);
   if (!clip.exists()) {
     throw new Error(`duplicate failed: no clip exists for clipId "${clipId}"`);
@@ -18365,7 +18472,7 @@ function duplicateClipToArrangement(clipId, arrangementStartBeats, name, color, 
     const clipTimeSigNumerator = clip.getProperty("signature_numerator");
     const clipTimeSigDenominator = clip.getProperty("signature_denominator");
     const arrangementLengthBeats = parseArrangementLength(arrangementLength, clipTimeSigNumerator, clipTimeSigDenominator);
-    const clipsCreated = createClipsForLength(clip, track, arrangementStartBeats, arrangementLengthBeats, name, [ "trackIndex" ], context, color);
+    const clipsCreated = await createClipsForLength(clip, track, arrangementStartBeats, arrangementLengthBeats, name, [ "trackIndex" ], context, color);
     duplicatedClips.push(...clipsCreated);
   } else {
     const isMidiClip = clip.getProperty("is_midi_clip") === 1;
@@ -18387,7 +18494,7 @@ function duplicateClipToArrangement(clipId, arrangementStartBeats, name, color, 
   };
 }
 
-function duplicateClipWithPositions(destination, object, id, name, color, toSlot, arrangementStart, locator, arrangementLength, context) {
+async function duplicateClipWithPositions(destination, object, id, name, color, toSlot, arrangementStart, locator, arrangementLength, context) {
   const createdObjects = [];
   if (destination === "session") {
     const slots = parseSlotList(toSlot);
@@ -18413,7 +18520,7 @@ function duplicateClipWithPositions(destination, object, id, name, color, toSlot
     const parsedColors = parseCommaSeparatedColors(color, positionsInBeats.length);
     warnExtraNames(parsedNames, positionsInBeats.length, "duplicate");
     for (let i = 0; i < positionsInBeats.length; i++) {
-      const result = duplicateClipToArrangement(id, positionsInBeats[i], getNameForIndex(name, i, parsedNames), getColorForIndex(color, i, parsedColors), arrangementLength, songTimeSigNumerator, songTimeSigDenominator, context);
+      const result = await duplicateClipToArrangement(id, positionsInBeats[i], getNameForIndex(name, i, parsedNames), getColorForIndex(color, i, parsedColors), arrangementLength, songTimeSigNumerator, songTimeSigDenominator, context);
       createdObjects.push(result);
     }
   }
@@ -18639,6 +18746,18 @@ function forEachClipInScene(sceneIndex, trackIds, callback) {
   }
 }
 
+async function forEachClipInSceneAsync(sceneIndex, trackIds, callback) {
+  for (let trackIndex = 0; trackIndex < trackIds.length; trackIndex++) {
+    const clipSlot = LiveAPI.from(livePath.track(trackIndex).clipSlot(sceneIndex));
+    if (clipSlot.exists() && clipSlot.getProperty("has_clip")) {
+      const clip = LiveAPI.from(`${clipSlot.path} clip`);
+      if (clip.exists()) {
+        await callback(clip, clipSlot, trackIndex);
+      }
+    }
+  }
+}
+
 function removeHostTrackDevice(trackIndex, withoutDevices, newTrack) {
   const hostTrackIndex = getHostTrackIndex();
   if (trackIndex === hostTrackIndex && withoutDevices !== true) {
@@ -18783,7 +18902,7 @@ function assignNamesToClips(clips, name) {
   }
 }
 
-function duplicateSceneToArrangement(sceneId, arrangementStartBeats, name, withoutClips, arrangementLength, songTimeSigNumerator = 4, songTimeSigDenominator = 4, context = {}) {
+async function duplicateSceneToArrangement(sceneId, arrangementStartBeats, name, withoutClips, arrangementLength, songTimeSigNumerator = 4, songTimeSigDenominator = 4, context = {}) {
   const scene = LiveAPI.from(sceneId);
   if (!scene.exists()) {
     throw new Error(`duplicate failed: scene with id "${sceneId}" does not exist`);
@@ -18802,9 +18921,9 @@ function duplicateSceneToArrangement(sceneId, arrangementStartBeats, name, witho
     } else {
       arrangementLengthBeats = calculateSceneLength(sceneIndex);
     }
-    forEachClipInScene(sceneIndex, trackIds, (clip, _clipSlot, trackIndex) => {
+    await forEachClipInSceneAsync(sceneIndex, trackIds, async (clip, _clipSlot, trackIndex) => {
       const track = LiveAPI.from(livePath.track(trackIndex));
-      const clipsForTrack = createClipsForLength(clip, track, arrangementStartBeats, arrangementLengthBeats, name, [ "arrangementStart" ], context);
+      const clipsForTrack = await createClipsForLength(clip, track, arrangementStartBeats, arrangementLengthBeats, name, [ "arrangementStart" ], context);
       if (name != null) {
         assignNamesToClips(clipsForTrack, name);
       }
@@ -18905,7 +19024,7 @@ function validateArrangementParameters(destination, arrangementStart, locator) {
   }
 }
 
-function duplicate({type: type, id: id, count: count = 1, arrangementStart: arrangementStart, locator: locator, arrangementLength: arrangementLength, name: name, color: color, withoutClips: withoutClips, withoutDevices: withoutDevices, routeToSource: routeToSource, focus: focus, toSlot: toSlot, toPath: toPath}, context = {}) {
+async function duplicate({type: type, id: id, count: count = 1, arrangementStart: arrangementStart, locator: locator, arrangementLength: arrangementLength, name: name, color: color, withoutClips: withoutClips, withoutDevices: withoutDevices, routeToSource: routeToSource, focus: focus, toSlot: toSlot, toPath: toPath}, context = {}) {
   validateBasicInputs(type, id, count);
   const routeToSourceConfig = validateAndConfigureRouteToSource(type, routeToSource, withoutClips, withoutDevices);
   withoutClips = routeToSourceConfig.withoutClips;
@@ -18918,7 +19037,7 @@ function duplicate({type: type, id: id, count: count = 1, arrangementStart: arra
   if (type === "device") {
     return duplicateDeviceWithPaths(object, toPath, name, count);
   }
-  const createdObjects = type === "clip" ? duplicateClipWithPositions(destination, object, id, name, color, toSlot, arrangementStart, locator, arrangementLength, context) : duplicateTrackOrSceneWithCount(type, destination, object, id, count, name, color, {
+  const createdObjects = type === "clip" ? await duplicateClipWithPositions(destination, object, id, name, color, toSlot, arrangementStart, locator, arrangementLength, context) : await duplicateTrackOrSceneWithCount(type, destination, object, id, count, name, color, {
     arrangementStart: arrangementStart,
     locator: locator,
     arrangementLength: arrangementLength,
@@ -18943,9 +19062,9 @@ function duplicateDeviceWithPaths(object, toPath, name, count) {
   return paths.map((path, i) => duplicateDevice(object, path, getNameForIndex(name, i, parsedNames), 1));
 }
 
-function duplicateTrackOrSceneWithCount(type, destination, object, id, count, name, color, params, context) {
+async function duplicateTrackOrSceneWithCount(type, destination, object, id, count, name, color, params, context) {
   if (type === "scene" && destination === "arrangement") {
-    return duplicateSceneToArrangementAtPositions(object, id, count, name, params, context);
+    return await duplicateSceneToArrangementAtPositions(object, id, count, name, params, context);
   }
   const createdObjects = [];
   const {withoutClips: withoutClips, withoutDevices: withoutDevices, routeToSource: routeToSource} = params;
@@ -18961,7 +19080,7 @@ function duplicateTrackOrSceneWithCount(type, destination, object, id, count, na
   return createdObjects;
 }
 
-function duplicateSceneToArrangementAtPositions(object, id, count, name, params, context) {
+async function duplicateSceneToArrangementAtPositions(object, id, count, name, params, context) {
   const {arrangementStart: arrangementStart, locator: locator, arrangementLength: arrangementLength} = params;
   const withoutClips = params.withoutClips;
   const liveSet = LiveAPI.from(livePath.liveSet);
@@ -18980,7 +19099,7 @@ function duplicateSceneToArrangementAtPositions(object, id, count, name, params,
   const parsedNames = parseCommaSeparatedNames(name, allPositions.length);
   warnExtraNames(parsedNames, allPositions.length, "duplicate");
   for (let i = 0; i < allPositions.length; i++) {
-    const result = duplicateSceneToArrangement(id, allPositions[i], getNameForIndex(name, i, parsedNames), withoutClips, arrangementLength, songTimeSigNumerator, songTimeSigDenominator, context);
+    const result = await duplicateSceneToArrangement(id, allPositions[i], getNameForIndex(name, i, parsedNames), withoutClips, arrangementLength, songTimeSigNumerator, songTimeSigDenominator, context);
     createdObjects.push(result);
   }
   return createdObjects;
