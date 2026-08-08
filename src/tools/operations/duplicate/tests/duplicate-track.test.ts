@@ -17,7 +17,7 @@ import {
 } from "#src/tools/operations/duplicate/helpers/duplicate-test-helpers.ts";
 
 describe("duplicate - track duplication", () => {
-  it("should duplicate a single track (default count)", () => {
+  it("should duplicate a single track (default count)", async () => {
     registerMockObject("track1", { path: livePath.track(0) });
     const liveSet = registerMockObject("live_set", {
       path: livePath.liveSet,
@@ -28,13 +28,13 @@ describe("duplicate - track duplication", () => {
       properties: { devices: [], clip_slots: [], arrangement_clips: [] },
     });
 
-    const result = duplicate({ type: "track", id: "track1" });
+    const result = await duplicate({ type: "track", id: "track1" });
 
     expect(result).toStrictEqual(createTrackResult(1));
     expect(liveSet.call).toHaveBeenCalledWith("duplicate_track", 0);
   });
 
-  it("should duplicate multiple tracks with same name", () => {
+  it("should duplicate multiple tracks with same name", async () => {
     registerMockObject("track1", { path: livePath.track(0) });
     const liveSet = registerMockObject("live_set", {
       path: livePath.liveSet,
@@ -52,7 +52,7 @@ describe("duplicate - track duplication", () => {
       properties: { devices: [], clip_slots: [], arrangement_clips: [] },
     });
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       count: 3,
@@ -70,7 +70,7 @@ describe("duplicate - track duplication", () => {
     expect(track3.set).toHaveBeenCalledWith("name", "Custom Track");
   });
 
-  it("should duplicate a track without clips when withoutClips is true", () => {
+  it("should duplicate a track without clips when withoutClips is true", async () => {
     registerMockObject("track1", { path: livePath.track(0) });
     registerMockObject("live_set", { path: livePath.liveSet });
     const newTrack = registerMockObject("live_set/tracks/1", {
@@ -97,7 +97,7 @@ describe("duplicate - track duplication", () => {
       properties: { has_clip: 1 },
     });
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       withoutClips: true,
@@ -120,10 +120,10 @@ describe("duplicate - track duplication", () => {
     );
   });
 
-  it("should duplicate a track without devices when withoutDevices is true", () => {
+  it("should duplicate a track without devices when withoutDevices is true", async () => {
     const { liveSet, newTrack } = setupMcpDeviceMocks();
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       withoutDevices: true,
@@ -139,7 +139,7 @@ describe("duplicate - track duplication", () => {
     ["withoutDevices is false", false],
   ] as const)(
     "should duplicate a track with devices when %s",
-    (_desc: string, withoutDevices: boolean | undefined) => {
+    async (_desc: string, withoutDevices: boolean | undefined) => {
       registerMockObject("track1", { path: livePath.track(0) });
       const liveSet = registerMockObject("live_set", {
         path: livePath.liveSet,
@@ -153,7 +153,7 @@ describe("duplicate - track duplication", () => {
         },
       });
 
-      const result = duplicate({
+      const result = await duplicate({
         type: "track",
         id: "track1",
         ...(withoutDevices !== undefined && { withoutDevices }),
@@ -170,10 +170,10 @@ describe("duplicate - track duplication", () => {
     },
   );
 
-  it("should remove Ableton DJ MCP device when duplicating host track", () => {
+  it("should remove Ableton DJ MCP device when duplicating host track", async () => {
     const { liveSet, newTrack } = setupMcpDeviceMocks();
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
     });
@@ -188,10 +188,10 @@ describe("duplicate - track duplication", () => {
     );
   });
 
-  it("should not remove Ableton DJ MCP device when withoutDevices is true", () => {
+  it("should not remove Ableton DJ MCP device when withoutDevices is true", async () => {
     const { newTrack } = setupMcpDeviceMocks();
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       withoutDevices: true,
@@ -209,21 +209,21 @@ describe("duplicate - track duplication", () => {
   });
 
   describe("routeToSource functionality", () => {
-    it("should throw an error when routeToSource is used with non-track type", () => {
-      expect(() =>
+    it("should throw an error when routeToSource is used with non-track type", async () => {
+      await expect(
         duplicate({ type: "scene", id: "scene1", routeToSource: true }),
-      ).toThrow(
+      ).rejects.toThrow(
         "duplicate failed: routeToSource is only supported for type 'track'",
       );
     });
 
-    it("should configure routing when routeToSource is true", () => {
+    it("should configure routing when routeToSource is true", async () => {
       setupRoutingMocks({
         monitoringState: 1,
         inputRoutingName: "Audio In",
       });
 
-      const result = duplicate({
+      const result = await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -232,10 +232,10 @@ describe("duplicate - track duplication", () => {
       expect(result).toStrictEqual(createTrackResult(1));
     });
 
-    it("should not change source track monitoring if already set to In", () => {
+    it("should not change source track monitoring if already set to In", async () => {
       const { sourceTrack } = setupRoutingMocks();
 
-      duplicate({
+      await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -248,10 +248,10 @@ describe("duplicate - track duplication", () => {
       );
     });
 
-    it("should not change source track input routing if already set to No Input", () => {
+    it("should not change source track input routing if already set to No Input", async () => {
       const { sourceTrack } = setupRoutingMocks();
 
-      duplicate({
+      await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -264,10 +264,10 @@ describe("duplicate - track duplication", () => {
       );
     });
 
-    it("should override withoutClips to true when routeToSource is true", () => {
+    it("should override withoutClips to true when routeToSource is true", async () => {
       setupRoutingMocks();
 
-      const result = duplicate({
+      const result = await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -281,10 +281,10 @@ describe("duplicate - track duplication", () => {
       });
     });
 
-    it("should override withoutDevices to true when routeToSource is true", () => {
+    it("should override withoutDevices to true when routeToSource is true", async () => {
       setupRoutingMocks();
 
-      const result = duplicate({
+      const result = await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -298,12 +298,12 @@ describe("duplicate - track duplication", () => {
       });
     });
 
-    it("should arm the source track when routeToSource is true", () => {
+    it("should arm the source track when routeToSource is true", async () => {
       const { sourceTrack } = setupRoutingMocks({
         inputRoutingName: "Audio In",
       });
 
-      duplicate({
+      await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -313,7 +313,7 @@ describe("duplicate - track duplication", () => {
       expect(sourceTrack.set).toHaveBeenCalledWith("arm", 1);
     });
 
-    it("should not emit arm warning when source track is already armed", () => {
+    it("should not emit arm warning when source track is already armed", async () => {
       const { sourceTrack } = setupRoutingMocks({
         inputRoutingName: "Audio In",
         arm: 1,
@@ -321,7 +321,7 @@ describe("duplicate - track duplication", () => {
 
       vi.mocked(outlet).mockClear();
 
-      duplicate({
+      await duplicate({
         type: "track",
         id: "track1",
         routeToSource: true,
@@ -338,7 +338,7 @@ describe("duplicate - track duplication", () => {
     });
   });
 
-  it("should apply color when duplicating a track", () => {
+  it("should apply color when duplicating a track", async () => {
     registerMockObject("track1", { path: livePath.track(0) });
     registerMockObject("live_set", { path: livePath.liveSet });
     const newTrack = registerMockObject("live_set/tracks/1", {
@@ -346,7 +346,7 @@ describe("duplicate - track duplication", () => {
       properties: { devices: [], clip_slots: [], arrangement_clips: [] },
     });
 
-    const result = duplicate({
+    const result = await duplicate({
       type: "track",
       id: "track1",
       color: "#ff0000",

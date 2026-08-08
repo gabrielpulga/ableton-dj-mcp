@@ -25,7 +25,8 @@ type ClipInSceneCallback = (
 ) => void;
 
 /**
- * Iterate over all clips in a scene and call a callback for each
+ * Iterate over all clips in a scene and call a callback for each.
+ * Synchronous only — see forEachClipInSceneAsync for the awaited variant.
  * @param sceneIndex - Scene index
  * @param trackIds - Array of track IDs
  * @param callback - Callback to call for each clip
@@ -45,6 +46,38 @@ function forEachClipInScene(
 
       if (clip.exists()) {
         callback(clip, clipSlot, trackIndex);
+      }
+    }
+  }
+}
+
+/**
+ * Async variant of forEachClipInScene. Awaits each callback sequentially,
+ * since callbacks mutate shared track state (e.g. arrangement clip
+ * positions) that later iterations depend on.
+ * @param sceneIndex - Scene index
+ * @param trackIds - Array of track IDs
+ * @param callback - Async callback to call for each clip
+ */
+async function forEachClipInSceneAsync(
+  sceneIndex: number,
+  trackIds: string[],
+  callback: (
+    clip: LiveAPI,
+    clipSlot: LiveAPI,
+    trackIndex: number,
+  ) => Promise<void>,
+): Promise<void> {
+  for (let trackIndex = 0; trackIndex < trackIds.length; trackIndex++) {
+    const clipSlot = LiveAPI.from(
+      livePath.track(trackIndex).clipSlot(sceneIndex),
+    );
+
+    if (clipSlot.exists() && clipSlot.getProperty("has_clip")) {
+      const clip = LiveAPI.from(`${clipSlot.path} clip`);
+
+      if (clip.exists()) {
+        await callback(clip, clipSlot, trackIndex);
       }
     }
   }
@@ -343,7 +376,7 @@ function assignNamesToClips(clips: MinimalClipInfo[], name: string): void {
  * @param context - Context object with holdingAreaStartBeats and silenceWavPath
  * @returns Object with arrangementStart and clips array
  */
-export function duplicateSceneToArrangement(
+export async function duplicateSceneToArrangement(
   sceneId: string,
   arrangementStartBeats: number,
   name?: string,
@@ -352,7 +385,7 @@ export function duplicateSceneToArrangement(
   songTimeSigNumerator = 4,
   songTimeSigDenominator = 4,
   context: Partial<ToolContext & TilingContext> = {},
-): { arrangementStart: string; clips: MinimalClipInfo[] } {
+): Promise<{ arrangementStart: string; clips: MinimalClipInfo[] }> {
   const scene = LiveAPI.from(sceneId);
 
   if (!scene.exists()) {
@@ -391,28 +424,32 @@ export function duplicateSceneToArrangement(
 
     // Only duplicate clips if withoutClips is not explicitly true
     // Find all clips in this scene and duplicate them to arrangement
-    forEachClipInScene(sceneIndex, trackIds, (clip, _clipSlot, trackIndex) => {
-      const track = LiveAPI.from(livePath.track(trackIndex));
+    await forEachClipInSceneAsync(
+      sceneIndex,
+      trackIds,
+      async (clip, _clipSlot, trackIndex) => {
+        const track = LiveAPI.from(livePath.track(trackIndex));
 
-      // Use the new length-aware clip creation logic
-      // Omit arrangementStart since all clips share the same start time
-      const clipsForTrack = createClipsForLength(
-        clip,
-        track,
-        arrangementStartBeats,
-        arrangementLengthBeats,
-        name,
-        ["arrangementStart"],
-        context,
-      );
+        // Use the new length-aware clip creation logic
+        // Omit arrangementStart since all clips share the same start time
+        const clipsForTrack = await createClipsForLength(
+          clip,
+          track,
+          arrangementStartBeats,
+          arrangementLengthBeats,
+          name,
+          ["arrangementStart"],
+          context,
+        );
 
-      // Add the scene name to each clip result if provided
-      if (name != null) {
-        assignNamesToClips(clipsForTrack, name);
-      }
+        // Add the scene name to each clip result if provided
+        if (name != null) {
+          assignNamesToClips(clipsForTrack, name);
+        }
 
-      duplicatedClips.push(...clipsForTrack);
-    });
+        duplicatedClips.push(...clipsForTrack);
+      },
+    );
   }
 
   return {
