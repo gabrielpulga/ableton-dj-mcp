@@ -52,6 +52,11 @@ state.
 - `include: ["session-clips", "arrangement-clips", "devices", "routings"]`
 - `trackIndex` — zero-based track index
 - `isFrozen` — included (true) when the track is frozen
+- `include: ["meters"]` — live output meter levels (`meterLeft`, `meterRight`,
+  `meterLevel`, each 0.0-1.0); reads 0 while the transport is stopped. Works on
+  regular, return, and master tracks. Combine `adj-read-live-set` with
+  `include: ["tracks", "meters"]` for a one-call mix snapshot of every track's
+  levels
 
 ### `adj-create-track`
 

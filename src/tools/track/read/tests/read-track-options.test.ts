@@ -119,6 +119,7 @@ describe("readTrack", () => {
           "routings",
           "available-routings",
           "mixer",
+          "meters",
           "color",
         ],
       });

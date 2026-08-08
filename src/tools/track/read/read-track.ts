@@ -29,6 +29,7 @@ import {
   getInstrumentName,
   handleNonExistentTrack,
   readArrangementClips,
+  readMeterProperties,
   readMixerProperties,
   readSessionClips,
 } from "./helpers/read-track-helpers.ts";
@@ -222,6 +223,7 @@ export function readTrackGeneric({
     includeArrangementClips,
     includeColor,
     includeMixer,
+    includeMeters,
   } = parseIncludeArray(include, READ_TRACK_DEFAULTS);
 
   if (!track.exists()) {
@@ -258,6 +260,11 @@ export function readTrackGeneric({
   // Add mixer properties if requested
   if (includeMixer) {
     Object.assign(result, readMixerProperties(track, returnTrackNames));
+  }
+
+  // Add live output meter levels if requested
+  if (includeMeters) {
+    Object.assign(result, readMeterProperties(track));
   }
 
   if (groupId) {

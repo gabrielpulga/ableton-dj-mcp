@@ -161,6 +161,7 @@ function buildTrackInclude(flags: IncludeFlags): string[] {
 
   if (flags.includeRoutings) include.push("routings");
   if (flags.includeMixer) include.push("mixer");
+  if (flags.includeMeters) include.push("meters");
   if (flags.includeColor) include.push("color");
 
   return include;

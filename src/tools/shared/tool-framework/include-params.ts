@@ -19,13 +19,14 @@ const AVAILABLE_ROUTINGS = "available-routings";
 const COLOR = "color";
 const CLIPS = "clips";
 const MIXER = "mixer";
+const METERS = "meters";
 const LOCATORS = "locators";
 
 /**
  * All available include options mapped by tool type
  */
 const ALL_INCLUDE_OPTIONS: Record<string, string[]> = {
-  song: ["scenes", "routings", TRACKS, COLOR, MIXER, LOCATORS],
+  song: ["scenes", "routings", TRACKS, COLOR, MIXER, METERS, LOCATORS],
   track: [
     SESSION_CLIPS,
     ARRANGEMENT_CLIPS,
@@ -37,6 +38,7 @@ const ALL_INCLUDE_OPTIONS: Record<string, string[]> = {
     "routings",
     AVAILABLE_ROUTINGS,
     MIXER,
+    METERS,
     COLOR,
   ],
   scene: [CLIPS, CLIP_NOTES, SAMPLE, COLOR, TIMING],
@@ -62,6 +64,7 @@ export interface IncludeFlags {
   includeTiming: boolean;
   includeWarp: boolean;
   includeMixer: boolean;
+  includeMeters: boolean;
   includeLocators: boolean;
 }
 
@@ -96,6 +99,7 @@ export function parseIncludeArray(
       includeTiming: Boolean(defaults.includeTiming),
       includeWarp: Boolean(defaults.includeWarp),
       includeMixer: Boolean(defaults.includeMixer),
+      includeMeters: Boolean(defaults.includeMeters),
       includeLocators: Boolean(defaults.includeLocators),
     };
   }
@@ -127,6 +131,7 @@ export function parseIncludeArray(
       includeTiming: false,
       includeWarp: false,
       includeMixer: false,
+      includeMeters: false,
       includeLocators: false,
     };
   }
@@ -150,6 +155,7 @@ export function parseIncludeArray(
     includeTiming: includeSet.has(TIMING),
     includeWarp: includeSet.has(WARP),
     includeMixer: includeSet.has(MIXER),
+    includeMeters: includeSet.has(METERS),
     includeLocators: includeSet.has(LOCATORS),
   };
 }
@@ -176,6 +182,7 @@ const FLAG_TO_OPTION: [keyof IncludeFlags, string][] = [
   ["includeTiming", TIMING],
   ["includeWarp", WARP],
   ["includeMixer", MIXER],
+  ["includeMeters", METERS],
   ["includeLocators", LOCATORS],
 ];
 
@@ -203,6 +210,7 @@ export const READ_SONG_DEFAULTS: Partial<IncludeFlags> = {
   includeTracks: false,
   includeColor: false,
   includeMixer: false,
+  includeMeters: false,
   includeLocators: false,
 };
 
@@ -225,6 +233,7 @@ export const READ_TRACK_DEFAULTS: Partial<IncludeFlags> = {
   includeTiming: false,
   includeWarp: false,
   includeMixer: false,
+  includeMeters: false,
 };
 
 /**
