@@ -13,6 +13,16 @@ The functions tolerate Live's mix of attribute/iterator-style children
 exposed ``iter_children``)."""
 
 import itertools
+import json
+
+# macOS's default net.inet.udp.maxdgram is 9216 bytes; a sendto() over that
+# fails with EMSGSIZE. BrowserBridge._send() catches that and only logs it,
+# so an oversized reply is silently dropped and the caller just sees its own
+# request time out with no indication why (issue #270 — a folder with ~65+
+# items already blows this budget, including under the tool's default
+# limit=100). Stay well under the OS ceiling to leave room for UDP/IP framing
+# and the {id, ok, result} envelope BrowserBridge wraps this in.
+MAX_REPLY_BYTES = 8192
 
 CATEGORY_ATTRS = (
     "instruments",
@@ -64,7 +74,7 @@ def children_of(item, max_items=None):
     ``itertools.islice`` instead of materializing the whole collection first.
     A populated Library folder can hold thousands of entries; on a large,
     unfiltered folder this avoids paying for entries the caller is going to
-    discard anyway (see issue #270)."""
+    discard anyway."""
     children = getattr(item, "children", None)
     if children is None:
         children = getattr(item, "iter_children", None)
@@ -130,6 +140,12 @@ def walk_path(root, path):
     return current
 
 
+def _reply_bytes(category, path, items):
+    """Size of the JSON `browse` result payload, as sent over the wire."""
+    envelope = {"category": category, "path": path or "", "items": items, "truncated": True}
+    return len(json.dumps(envelope).encode("utf-8"))
+
+
 def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
     """Return a serialized listing of the browser tree.
 
@@ -171,6 +187,13 @@ def browse(browser, category=None, path=None, search=None, depth=1, limit=100):
         serialize_item(it, depth=0, max_depth=max(depth - 1, 0), include_children=depth > 1)
         for it in raw_items
     ]
+
+    # Belt-and-suspenders: `limit` alone doesn't bound reply size (long
+    # names, depth>1 sub-trees), so trim further if the JSON still wouldn't
+    # fit in one UDP datagram.
+    while items and _reply_bytes(category, path, items) > MAX_REPLY_BYTES:
+        items.pop()
+        truncated = True
 
     return {
         "category": category,

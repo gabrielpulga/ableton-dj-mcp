@@ -146,8 +146,17 @@ Result:
 Without `search`, the bridge stops enumerating a folder as soon as it has
 `limit + 1` children rather than walking the whole folder first — a populated
 Library folder can hold thousands of entries, and there's no point paying to
-enumerate past what will be discarded anyway (issue #270). `search` still
-scans every child, since matches can appear anywhere in the folder.
+enumerate past what will be discarded anyway. `search` still scans every
+child, since matches can appear anywhere in the folder.
+
+The reply is also trimmed to `MAX_REPLY_BYTES` (8192, see `browser_ops.py`)
+regardless of `limit`: macOS's default `net.inet.udp.maxdgram` is 9216 bytes,
+and `BrowserBridge._send()`'s `sendto()` fails with `EMSGSIZE` above that —
+caught and only logged, so an oversized reply was silently dropped and the
+caller just saw its own request time out (issue #270). A folder with
+~65-70 items of typical name length already crosses that limit, which is
+well under the tool's default `limit=100` — this was not a slow-enumeration
+problem, despite how it presented.
 
 #### `load_item`
 
@@ -315,7 +324,7 @@ Risk-gated — not in the first ship.
 | Bridge installed, Live not running               | Send timeouts                                                | error: "start Live first"                                      |
 | Bridge installed, Live running, prefs toggle off | Same as above                                                | error: "enable AbletonDjMcp in Live prefs"                     |
 | Bridge crashed mid-session                       | Subsequent ops timeout                                       | error: "bridge died, restart Live"                             |
-| Bridge slow / blocked on Live main thread        | Op exceeds timeout (25 s for `browse`, 30 s for `load_item`) | error: "bridge timeout, retry"                                 |
+| Bridge slow / blocked on Live main thread        | Op exceeds timeout (10 s for `browse`, 30 s for `load_item`) | error: "bridge timeout, retry"                                 |
 
 The Node side caches `ping` success for 30 s to avoid round-tripping every call.
 Cache invalidates on first failure.

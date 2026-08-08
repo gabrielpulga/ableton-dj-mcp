@@ -128,8 +128,10 @@ class BrowseTest(unittest.TestCase):
         self.assertTrue(result["truncated"])
 
     def test_large_unfiltered_folder_stops_enumeration_early(self):
-        # Regression test for issue #270: an unfiltered browse of a huge
-        # folder must not walk every child just to discard most of them.
+        # An unfiltered browse of a huge folder must not walk every child
+        # just to discard most of them. limit=50 keeps the reply well under
+        # MAX_REPLY_BYTES so this isolates the item-count cap from the
+        # separate byte-budget cap (see test_oversized_reply_is_trimmed_*).
         pulled = []
 
         def counting_children():
@@ -141,11 +143,31 @@ class BrowseTest(unittest.TestCase):
         huge_root.children = counting_children()
         browser = FakeBrowser(instruments=huge_root)
 
-        result = browser_ops.browse(browser, category="instruments", limit=150)
+        result = browser_ops.browse(browser, category="instruments", limit=50)
 
-        self.assertEqual(len(result["items"]), 150)
+        self.assertEqual(len(result["items"]), 50)
         self.assertTrue(result["truncated"])
-        self.assertEqual(len(pulled), 151)
+        self.assertEqual(len(pulled), 51)
+
+    def test_oversized_reply_is_trimmed_to_fit_one_datagram(self):
+        # Regression test for issue #270: the bridge silently drops a browse
+        # reply that doesn't fit in a single UDP datagram (macOS rejects the
+        # sendto() with EMSGSIZE), which surfaces to the caller as an
+        # unexplained timeout. A folder with ~100 items already blows the
+        # default limit=100 past MAX_REPLY_BYTES, well before `limit` kicks in.
+        children = [FakeItem(name="Item%d" % i, uri="query:Big#Item%d" % i)
+                    for i in range(100)]
+        root = FakeItem(name="Big", is_folder=True, children=children)
+        browser = FakeBrowser(instruments=root)
+
+        result = browser_ops.browse(browser, category="instruments", limit=100)
+
+        self.assertLess(len(result["items"]), 100)
+        self.assertTrue(result["truncated"])
+        self.assertLessEqual(
+            browser_ops._reply_bytes("instruments", "", result["items"]),
+            browser_ops.MAX_REPLY_BYTES,
+        )
 
     def test_small_unfiltered_folder_not_truncated(self):
         children = [FakeItem(name="Item%d" % i) for i in range(5)]

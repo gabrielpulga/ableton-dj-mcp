@@ -19,9 +19,7 @@ import {
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 11_077;
-// A large, unfiltered Library folder can take the bridge several seconds to
-// enumerate on Live's main thread (see issue #270).
-const DEFAULT_BROWSE_TIMEOUT_MS = 25_000;
+const DEFAULT_BROWSE_TIMEOUT_MS = 10_000;
 const DEFAULT_LOAD_TIMEOUT_MS = 30_000;
 const DEFAULT_AUTOMATION_WRITE_TIMEOUT_MS = 15_000;
 const DEFAULT_AUTOMATION_TIMEOUT_MS = 10_000;
