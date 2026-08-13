@@ -743,8 +743,8 @@ import os from "node:os";
 
 const BUILD_INFO = {
   branch: "main",
-  sha: "745d4171",
-  buildTime: "2026-08-08T23:14:21.499Z"
+  sha: "ea977e17",
+  buildTime: "2026-08-10T12:32:54.372Z"
 };
 
 function buildIdentifier() {
